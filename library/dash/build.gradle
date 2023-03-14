@@ -25,6 +25,7 @@ android {
 
 dependencies {
     implementation project(modulePrefix + 'library-core')
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'com.google.errorprone:error_prone_annotations:' + errorProneVersion
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
@@ -45,3 +46,4 @@ ext {
     releaseDescription = 'The ExoPlayer library DASH module.'
 }
 apply from: '../../publish.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

@@ -19,6 +19,7 @@ dependencies {
     implementation project(modulePrefix + 'library-common')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     implementation 'androidx.leanback:leanback:1.0.0'
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
 }
 
@@ -32,3 +33,4 @@ ext {
     releaseDescription = 'Leanback extension for ExoPlayer.'
 }
 apply from: '../../publish.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

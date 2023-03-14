@@ -20,6 +20,7 @@ dependencies {
     api 'androidx.test.ext:truth:' + androidxTestTruthVersion
     api 'junit:junit:' + junitVersion
     api 'com.google.truth:truth:' + truthVersion
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
@@ -39,3 +40,4 @@ ext {
     releaseDescription = 'Test utils for ExoPlayer.'
 }
 apply from: '../publish.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

@@ -18,6 +18,7 @@ dependencies {
     implementation 'androidx.collection:collection:' + androidxCollectionVersion
     implementation 'androidx.concurrent:concurrent-futures:' + androidxFuturesVersion
     api 'androidx.media2:media2-session:' + androidxMedia2Version
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'com.google.errorprone:error_prone_annotations:' + errorProneVersion
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
@@ -41,3 +42,4 @@ ext {
     releaseDescription = 'Media2 extension for ExoPlayer.'
 }
 apply from: '../../publish.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

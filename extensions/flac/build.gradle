@@ -31,6 +31,7 @@ dependencies {
     // TODO(b/203752526): Remove this dependency.
     implementation project(modulePrefix + 'library-core')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
     androidTestImplementation project(modulePrefix + 'testutils')
@@ -47,3 +48,4 @@ ext {
     javadocTitle = 'FLAC extension'
 }
 apply from: '../../javadoc_library.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

@@ -15,6 +15,7 @@
  */
 apply from: '../../constants.gradle'
 apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
 
 android {
     compileSdkVersion project.ext.compileSdkVersion
@@ -71,6 +72,7 @@ android {
 
 dependencies {
     implementation 'androidx.core:core:' + androidxCoreVersion
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     implementation 'androidx.appcompat:appcompat:' + androidxAppCompatVersion

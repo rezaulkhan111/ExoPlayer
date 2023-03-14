@@ -26,6 +26,7 @@ dependencies {
     api 'androidx.media:media:' + androidxMediaVersion
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     implementation 'androidx.recyclerview:recyclerview:' + androidxRecyclerViewVersion
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
     testImplementation project(modulePrefix + 'testutils')
@@ -42,3 +43,4 @@ ext {
     releaseDescription = 'The ExoPlayer library UI module.'
 }
 apply from: '../../publish.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

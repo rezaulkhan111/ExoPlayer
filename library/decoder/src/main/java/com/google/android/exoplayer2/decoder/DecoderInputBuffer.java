@@ -29,7 +29,9 @@ import java.lang.annotation.Target;
 import java.nio.ByteBuffer;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
 
-/** Holds input for a decoder. */
+/**
+ * Holds input for a decoder.
+ */
 public class DecoderInputBuffer extends Buffer {
 
   static {
@@ -43,15 +45,19 @@ public class DecoderInputBuffer extends Buffer {
    */
   public static final class InsufficientCapacityException extends IllegalStateException {
 
-    /** The current capacity of the buffer. */
+    /**
+     * The current capacity of the buffer.
+     */
     public final int currentCapacity;
-    /** The required capacity of the buffer. */
+    /**
+     * The required capacity of the buffer.
+     */
     public final int requiredCapacity;
 
     /**
      * Creates an instance.
      *
-     * @param currentCapacity The current capacity of the buffer.
+     * @param currentCapacity  The current capacity of the buffer.
      * @param requiredCapacity The required capacity of the buffer.
      */
     public InsufficientCapacityException(int currentCapacity, int requiredCapacity) {
@@ -71,26 +77,43 @@ public class DecoderInputBuffer extends Buffer {
   @Retention(RetentionPolicy.SOURCE)
   @Target(TYPE_USE)
   @IntDef({
-    BUFFER_REPLACEMENT_MODE_DISABLED,
-    BUFFER_REPLACEMENT_MODE_NORMAL,
-    BUFFER_REPLACEMENT_MODE_DIRECT
+      BUFFER_REPLACEMENT_MODE_DISABLED,
+      BUFFER_REPLACEMENT_MODE_NORMAL,
+      BUFFER_REPLACEMENT_MODE_DIRECT
   })
-  public @interface BufferReplacementMode {}
-  /** Disallows buffer replacement. */
+  public @interface BufferReplacementMode {
+
+  }
+
+  /**
+   * Disallows buffer replacement.
+   */
   public static final int BUFFER_REPLACEMENT_MODE_DISABLED = 0;
-  /** Allows buffer replacement using {@link ByteBuffer#allocate(int)}. */
+  /**
+   * Allows buffer replacement using {@link ByteBuffer#allocate(int)}.
+   */
   public static final int BUFFER_REPLACEMENT_MODE_NORMAL = 1;
-  /** Allows buffer replacement using {@link ByteBuffer#allocateDirect(int)}. */
+  /**
+   * Allows buffer replacement using {@link ByteBuffer#allocateDirect(int)}.
+   */
   public static final int BUFFER_REPLACEMENT_MODE_DIRECT = 2;
 
-  /** The {@link Format}. */
-  @Nullable public Format format;
+  /**
+   * The {@link Format}.
+   */
+  @Nullable
+  public Format format;
 
-  /** {@link CryptoInfo} for encrypted data. */
+  /**
+   * {@link CryptoInfo} for encrypted data.
+   */
   public final CryptoInfo cryptoInfo;
 
-  /** The buffer's data, or {@code null} if no data has been set. */
-  @Nullable public ByteBuffer data;
+  /**
+   * The buffer's data, or {@code null} if no data has been set.
+   */
+  @Nullable
+  public ByteBuffer data;
 
   // TODO: Remove this temporary signaling once end-of-stream propagation for clips using content
   // protection is fixed. See [Internal: b/153326944] for details.
@@ -100,19 +123,24 @@ public class DecoderInputBuffer extends Buffer {
    */
   public boolean waitingForKeys;
 
-  /** The time at which the sample should be presented. */
+  /**
+   * The time at which the sample should be presented.
+   */
   public long timeUs;
 
   /**
    * Supplemental data related to the buffer, if {@link #hasSupplementalData()} returns true. If
    * present, the buffer is populated with supplemental data from position 0 to its limit.
    */
-  @Nullable public ByteBuffer supplementalData;
+  @Nullable
+  public ByteBuffer supplementalData;
 
   private final @BufferReplacementMode int bufferReplacementMode;
   private final int paddingSize;
 
-  /** Returns a new instance that's not able to hold any data. */
+  /**
+   * Returns a new instance that's not able to hold any data.
+   */
   public static DecoderInputBuffer newNoDataInstance() {
     return new DecoderInputBuffer(BUFFER_REPLACEMENT_MODE_DISABLED);
   }
@@ -130,11 +158,11 @@ public class DecoderInputBuffer extends Buffer {
    * Creates a new instance.
    *
    * @param bufferReplacementMode The {@link BufferReplacementMode} replacement mode.
-   * @param paddingSize If non-zero, {@link #ensureSpaceForWrite(int)} will ensure that the buffer
-   *     is this number of bytes larger than the requested length. This can be useful for decoders
-   *     that consume data in fixed size blocks, for efficiency. Setting the padding size to the
-   *     decoder's fixed read size is necessary to prevent such a decoder from trying to read beyond
-   *     the end of the buffer.
+   * @param paddingSize           If non-zero, {@link #ensureSpaceForWrite(int)} will ensure that the buffer
+   *                              is this number of bytes larger than the requested length. This can be useful for decoders
+   *                              that consume data in fixed size blocks, for efficiency. Setting the padding size to the
+   *                              decoder's fixed read size is necessary to prevent such a decoder from trying to read beyond
+   *                              the end of the buffer.
    */
   public DecoderInputBuffer(@BufferReplacementMode int bufferReplacementMode, int paddingSize) {
     this.cryptoInfo = new CryptoInfo();
@@ -167,7 +195,7 @@ public class DecoderInputBuffer extends Buffer {
    *
    * @param length The length of the write that must be accommodated, in bytes.
    * @throws InsufficientCapacityException If there is insufficient capacity to accommodate the
-   *     write and {@link #bufferReplacementMode} is {@link #BUFFER_REPLACEMENT_MODE_DISABLED}.
+   *                                       write and {@link #bufferReplacementMode} is {@link #BUFFER_REPLACEMENT_MODE_DISABLED}.
    */
   @EnsuresNonNull("data")
   public void ensureSpaceForWrite(int length) {
@@ -197,7 +225,9 @@ public class DecoderInputBuffer extends Buffer {
     data = newData;
   }
 
-  /** Returns whether the {@link C#BUFFER_FLAG_ENCRYPTED} flag is set. */
+  /**
+   * Returns whether the {@link C#BUFFER_FLAG_ENCRYPTED} flag is set.
+   */
   public final boolean isEncrypted() {
     return getFlag(C.BUFFER_FLAG_ENCRYPTED);
   }

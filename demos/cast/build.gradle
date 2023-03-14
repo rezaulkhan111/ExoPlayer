@@ -63,6 +63,8 @@ dependencies {
     implementation 'androidx.multidex:multidex:' + androidxMultidexVersion
     implementation 'androidx.recyclerview:recyclerview:' + androidxRecyclerViewVersion
     implementation 'com.google.android.material:material:' + androidxMaterialVersion
+    implementation 'androidx.core:core-ktx:+'
 }
 
 apply plugin: 'com.google.android.gms.strict-version-matcher-plugin'
+apply plugin: 'org.jetbrains.kotlin.android'

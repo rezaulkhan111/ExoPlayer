@@ -28,6 +28,7 @@ dependencies {
     // TODO(b/203752526): Remove this dependency.
     implementation project(modulePrefix + 'library-core')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
     testImplementation project(modulePrefix + 'testutils')
     testImplementation 'org.robolectric:robolectric:' + robolectricVersion
@@ -41,3 +42,4 @@ ext {
     javadocTitle = 'VP9 extension'
 }
 apply from: '../../javadoc_library.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

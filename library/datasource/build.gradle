@@ -34,6 +34,7 @@ dependencies {
     implementation project(modulePrefix + 'library-common')
     implementation project(modulePrefix + 'library-database')
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'com.google.code.findbugs:jsr305:' + jsr305Version
     compileOnly 'com.google.errorprone:error_prone_annotations:' + errorProneVersion
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
@@ -66,3 +67,4 @@ ext {
     releaseDescription = 'The ExoPlayer library DataSource module.'
 }
 apply from: '../../publish.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

@@ -25,6 +25,7 @@ dependencies {
     api project(modulePrefix + 'library-rtsp')
     api project(modulePrefix + 'library-smoothstreaming')
     api project(modulePrefix + 'library-ui')
+    implementation 'androidx.core:core-ktx:+'
 }
 
 ext {
@@ -32,3 +33,4 @@ ext {
     releaseDescription = 'The ExoPlayer library (all modules).'
 }
 apply from: '../../publish.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

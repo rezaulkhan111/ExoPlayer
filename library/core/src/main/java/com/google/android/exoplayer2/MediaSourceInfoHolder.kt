@@ -13,16 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2;
+package com.google.android.exoplayer2
 
-import com.google.android.exoplayer2.source.MediaSource;
+/** A holder of information about a [MediaSource].  */ /* package */
+internal interface MediaSourceInfoHolder {
+    /** Returns the uid of the [MediaSourceList.MediaSourceHolder].  */
+    open fun getUid(): Any?
 
-/** A holder of information about a {@link MediaSource}. */
-/* package */ interface MediaSourceInfoHolder {
-
-  /** Returns the uid of the {@link MediaSourceList.MediaSourceHolder}. */
-  Object getUid();
-
-  /** Returns the timeline. */
-  Timeline getTimeline();
+    /** Returns the timeline.  */
+    fun getTimeline(): Timeline?
 }

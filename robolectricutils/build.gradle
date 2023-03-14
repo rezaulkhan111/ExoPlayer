@@ -14,6 +14,7 @@
 apply from: "$gradle.ext.exoplayerSettingsDir/common_library_config.gradle"
 
 dependencies {
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     compileOnly 'org.checkerframework:checker-compat-qual:' + checkerframeworkCompatVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
@@ -33,3 +34,4 @@ ext {
     releaseDescription = 'Robolectric utils for ExoPlayer.'
 }
 apply from: '../publish.gradle'
+apply plugin: 'org.jetbrains.kotlin.android'

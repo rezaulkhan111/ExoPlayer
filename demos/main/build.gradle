@@ -69,6 +69,7 @@ android {
 }
 
 dependencies {
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.checkerframework:checker-qual:' + checkerframeworkVersion
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     implementation 'androidx.appcompat:appcompat:' + androidxAppCompatVersion
@@ -91,3 +92,4 @@ dependencies {
 }
 
 apply plugin: 'com.google.android.gms.strict-version-matcher-plugin'
+apply plugin: 'org.jetbrains.kotlin.android'

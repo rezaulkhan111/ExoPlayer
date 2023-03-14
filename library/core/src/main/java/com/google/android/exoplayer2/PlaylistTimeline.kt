@@ -13,101 +13,78 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2;
+package com.google.android.exoplayer2
 
-import com.google.android.exoplayer2.source.ShuffleOrder;
-import com.google.android.exoplayer2.util.Util;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import com.google.android.exoplayer2.source.ShuffleOrder
+import com.google.android.exoplayer2.util.Util.binarySearchFloor
+import java.util.*
 
-/** Timeline exposing concatenated timelines of playlist media sources. */
-/* package */ final class PlaylistTimeline extends AbstractConcatenatedTimeline {
+/** Timeline exposing concatenated timelines of playlist media sources.  */ /* package */
+internal class PlaylistTimeline(
+        mediaSourceInfoHolders: Collection<MediaSourceInfoHolder>,
+        shuffleOrder: ShuffleOrder?) : AbstractConcatenatedTimeline( /* isAtomic= */false, shuffleOrder) {
+    override val windowCount: Int
+    override val periodCount: Int
+    private val firstPeriodInChildIndices: IntArray
+    private val firstWindowInChildIndices: IntArray
+    private val timelines: Array<Timeline>
+    private val uids: Array<Any>
+    private val childIndexByUid: HashMap<Any, Int>
 
-  private final int windowCount;
-  private final int periodCount;
-  private final int[] firstPeriodInChildIndices;
-  private final int[] firstWindowInChildIndices;
-  private final Timeline[] timelines;
-  private final Object[] uids;
-  private final HashMap<Object, Integer> childIndexByUid;
-
-  /** Creates an instance. */
-  public PlaylistTimeline(
-      Collection<? extends MediaSourceInfoHolder> mediaSourceInfoHolders,
-      ShuffleOrder shuffleOrder) {
-    super(/* isAtomic= */ false, shuffleOrder);
-    int childCount = mediaSourceInfoHolders.size();
-    firstPeriodInChildIndices = new int[childCount];
-    firstWindowInChildIndices = new int[childCount];
-    timelines = new Timeline[childCount];
-    uids = new Object[childCount];
-    childIndexByUid = new HashMap<>();
-    int index = 0;
-    int windowCount = 0;
-    int periodCount = 0;
-    for (MediaSourceInfoHolder mediaSourceInfoHolder : mediaSourceInfoHolders) {
-      timelines[index] = mediaSourceInfoHolder.getTimeline();
-      firstWindowInChildIndices[index] = windowCount;
-      firstPeriodInChildIndices[index] = periodCount;
-      windowCount += timelines[index].getWindowCount();
-      periodCount += timelines[index].getPeriodCount();
-      uids[index] = mediaSourceInfoHolder.getUid();
-      childIndexByUid.put(uids[index], index++);
+    /** Creates an instance.  */
+    init {
+        val childCount = mediaSourceInfoHolders.size
+        firstPeriodInChildIndices = IntArray(childCount)
+        firstWindowInChildIndices = IntArray(childCount)
+        timelines = arrayOfNulls(childCount)
+        uids = arrayOfNulls(childCount)
+        childIndexByUid = HashMap()
+        var index = 0
+        var windowCount = 0
+        var periodCount = 0
+        for (mediaSourceInfoHolder in mediaSourceInfoHolders) {
+            timelines[index] = mediaSourceInfoHolder.timeline
+            firstWindowInChildIndices[index] = windowCount
+            firstPeriodInChildIndices[index] = periodCount
+            windowCount += timelines[index].windowCount
+            periodCount += timelines[index].periodCount
+            uids[index] = mediaSourceInfoHolder.uid
+            childIndexByUid[uids[index]] = index++
+        }
+        this.windowCount = windowCount
+        this.periodCount = periodCount
     }
-    this.windowCount = windowCount;
-    this.periodCount = periodCount;
-  }
 
-  /** Returns the child timelines. */
-  /* package */ List<Timeline> getChildTimelines() {
-    return Arrays.asList(timelines);
-  }
+    /** Returns the child timelines.  */ /* package */
+    val childTimelines: List<Timeline>
+        get() = Arrays.asList(*timelines)
 
-  @Override
-  protected int getChildIndexByPeriodIndex(int periodIndex) {
-    return Util.binarySearchFloor(firstPeriodInChildIndices, periodIndex + 1, false, false);
-  }
+    override fun getChildIndexByPeriodIndex(periodIndex: Int): Int {
+        return binarySearchFloor(firstPeriodInChildIndices, periodIndex + 1, false, false)
+    }
 
-  @Override
-  protected int getChildIndexByWindowIndex(int windowIndex) {
-    return Util.binarySearchFloor(firstWindowInChildIndices, windowIndex + 1, false, false);
-  }
+    override fun getChildIndexByWindowIndex(windowIndex: Int): Int {
+        return binarySearchFloor(firstWindowInChildIndices, windowIndex + 1, false, false)
+    }
 
-  @Override
-  protected int getChildIndexByChildUid(Object childUid) {
-    Integer index = childIndexByUid.get(childUid);
-    return index == null ? C.INDEX_UNSET : index;
-  }
+    override fun getChildIndexByChildUid(childUid: Any): Int {
+        val index = childIndexByUid[childUid]
+        return index ?: C.INDEX_UNSET
+    }
 
-  @Override
-  protected Timeline getTimelineByChildIndex(int childIndex) {
-    return timelines[childIndex];
-  }
+    override fun getTimelineByChildIndex(childIndex: Int): Timeline {
+        return timelines[childIndex]
+    }
 
-  @Override
-  protected int getFirstPeriodIndexByChildIndex(int childIndex) {
-    return firstPeriodInChildIndices[childIndex];
-  }
+    override fun getFirstPeriodIndexByChildIndex(childIndex: Int): Int {
+        return firstPeriodInChildIndices[childIndex]
+    }
 
-  @Override
-  protected int getFirstWindowIndexByChildIndex(int childIndex) {
-    return firstWindowInChildIndices[childIndex];
-  }
+    override fun getFirstWindowIndexByChildIndex(childIndex: Int): Int {
+        return firstWindowInChildIndices[childIndex]
+    }
 
-  @Override
-  protected Object getChildUidByChildIndex(int childIndex) {
-    return uids[childIndex];
-  }
-
-  @Override
-  public int getWindowCount() {
-    return windowCount;
-  }
-
-  @Override
-  public int getPeriodCount() {
-    return periodCount;
-  }
+    override fun getChildUidByChildIndex(childIndex: Int): Any {
+        return uids[childIndex]
+    }
 }

@@ -15,6 +15,7 @@
  */
 package com.google.android.exoplayer2.source.chunk
 
+import com.google.android.exoplayer2.C
 import com.google.android.exoplayer2.C.TrackType
 import com.google.android.exoplayer2.Format
 import com.google.android.exoplayer2.analytics.PlayerId
@@ -45,12 +46,13 @@ interface ChunkExtractor {
          * @return A new [ChunkExtractor] instance, or null if not applicable.
          */
         fun createProgressiveMediaExtractor(
-                @TrackType primaryTrackType: Int,
-                representationFormat: Format?,
-                enableEventMessageTrack: Boolean,
-                closedCaptionFormats: List<Format?>?,
-                playerEmsgTrackOutput: TrackOutput?,
-                playerId: PlayerId?): ChunkExtractor?
+            @TrackType primaryTrackType: Int,
+            representationFormat: Format?,
+            enableEventMessageTrack: Boolean,
+            closedCaptionFormats: List<Format?>?,
+            playerEmsgTrackOutput: TrackOutput?,
+            playerId: PlayerId?
+        ): ChunkExtractor?
     }
 
     /** Provides [TrackOutput] instances to be written to during extraction.  */
@@ -71,13 +73,13 @@ interface ChunkExtractor {
     /**
      * Returns the [ChunkIndex] most recently obtained from the chunks, or null if a [ ] has not been obtained.
      */
-     fun getChunkIndex(): ChunkIndex?
+    fun getChunkIndex(): ChunkIndex?
 
     /**
      * Returns the sample [Format]s for the tracks identified by the extractor, or null if the
      * extractor has not finished identifying tracks.
      */
-     fun getSampleFormats(): Array<Format?>?
+    fun getSampleFormats(): Array<Format?>?
 
     /**
      * Initializes the wrapper to output to [TrackOutput]s provided by the specified [ ], and configures the extractor to receive data from a new chunk.

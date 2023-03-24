@@ -66,7 +66,9 @@ interface ChunkSource {
      * @param queue The queue of buffered [MediaChunks][MediaChunk].
      * @return Whether the ongoing load of `loadingChunk` should be canceled.
      */
-    fun shouldCancelLoad(playbackPositionUs: Long, loadingChunk: Chunk?, queue: List<MediaChunk?>?): Boolean
+    fun shouldCancelLoad(
+        playbackPositionUs: Long, loadingChunk: Chunk?, queue: List<MediaChunk?>?
+    ): Boolean
 
     /**
      * Returns the next chunk to load.
@@ -86,7 +88,12 @@ interface ChunkSource {
      * @param queue The queue of buffered [MediaChunk]s.
      * @param out A holder to populate.
      */
-    fun getNextChunk(playbackPositionUs: Long, loadPositionUs: Long, queue: List<MediaChunk?>?, out: ChunkHolder?)
+    fun getNextChunk(
+        playbackPositionUs: Long,
+        loadPositionUs: Long,
+        queue: List<MediaChunk?>?,
+        out: ChunkHolder?
+    )
 
     /**
      * Called when the [ChunkSampleStream] has finished loading a chunk obtained from this
@@ -109,7 +116,12 @@ interface ChunkSource {
      * Must be `false` if `cancelable` is `false`. If `true`, [     ][.getNextChunk] will be called to obtain the replacement
      * chunk.
      */
-    fun onChunkLoadError(chunk: Chunk?, cancelable: Boolean, loadErrorInfo: LoadErrorInfo?, loadErrorHandlingPolicy: LoadErrorHandlingPolicy?): Boolean
+    fun onChunkLoadError(
+        chunk: Chunk?,
+        cancelable: Boolean,
+        loadErrorInfo: LoadErrorInfo?,
+        loadErrorHandlingPolicy: LoadErrorHandlingPolicy?
+    ): Boolean
 
     /** Releases any held resources.  */
     fun release()

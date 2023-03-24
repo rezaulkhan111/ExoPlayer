@@ -15,9 +15,14 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.text.TextUtilsimport
+import android.text.TextUtils
+import androidx.annotation.VisibleForTesting
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.C.TrackType
+import com.google.common.base.Ascii
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
-androidx.annotation .VisibleForTestingimport com.google.android.exoplayer2.Cimport com.google.android.exoplayer2.C.TrackTypeimport com.google.common.base.Asciiimport java.util.regex.Matcherimport java.util.regex.Pattern
 /** Defines common MIME types and helper methods.  */
 object MimeTypes {
     val BASE_TYPE_VIDEO: String = "video"
@@ -132,7 +137,8 @@ object MimeTypes {
      */
     val CODEC_E_AC3_JOC: String = "ec+3"
     private val customMimeTypes: ArrayList<CustomMimeType> = ArrayList()
-    private val MP4A_RFC_6381_CODEC_PATTERN: Pattern = Pattern.compile("^mp4a\\.([a-zA-Z0-9]{2})(?:\\.([0-9]{1,2}))?$")
+    private val MP4A_RFC_6381_CODEC_PATTERN: Pattern =
+        Pattern.compile("^mp4a\\.([a-zA-Z0-9]{2})(?:\\.([0-9]{1,2}))?$")
 
     /**
      * Registers a custom MIME type. Most applications do not need to call this method, as handling of
@@ -145,7 +151,8 @@ object MimeTypes {
      * is ignored if the top-level type of `mimeType` is audio, video or text.
      */
     fun registerCustomMimeType(
-            mimeType: String, codecPrefix: String?, trackType: @TrackType Int) {
+        mimeType: String, codecPrefix: String?, @C.TrackType trackType: Int
+    ) {
         val customMimeType: CustomMimeType = CustomMimeType(mimeType, codecPrefix, trackType)
         val customMimeTypeCount: Int = customMimeTypes.size
         for (i in 0 until customMimeTypeCount) {
@@ -190,7 +197,8 @@ object MimeTypes {
      * @return Whether it is known that all samples in the stream are guaranteed to be sync samples.
      */
     fun allSamplesAreSyncSamples(
-            mimeType: String?, codec: String?): Boolean {
+        mimeType: String?, codec: String?
+    ): Boolean {
         if (mimeType == null) {
             return false
         }
@@ -204,7 +212,8 @@ object MimeTypes {
                 if (objectType == null) {
                     return false
                 }
-                val encoding: @C.Encoding Int = objectType.encoding
+                @C.Encoding
+                val encoding: Int = objectType.getEncoding()
                 // xHE-AAC is an exception in which it's not true that all samples will be sync samples.
                 // Also return false for ENCODING_INVALID, which indicates we weren't able to parse the
                 // encoding from the codec string.
@@ -244,7 +253,8 @@ object MimeTypes {
      * `mimeType`.
      */
     fun containsCodecsCorrespondingToMimeType(
-            codecs: String?, mimeType: String?): Boolean {
+        codecs: String?, mimeType: String?
+    ): Boolean {
         return getCodecsCorrespondingToMimeType(codecs, mimeType) != null
     }
 
@@ -260,7 +270,8 @@ object MimeTypes {
      * or `codecs` does not contain a codec that corresponds to `mimeType`.
      */
     fun getCodecsCorrespondingToMimeType(
-            codecs: String?, mimeType: String?): String? {
+        codecs: String?, mimeType: String?
+    ): String? {
         if (codecs == null || mimeType == null) {
             return null
         }
@@ -334,10 +345,10 @@ object MimeTypes {
             return VIDEO_H264
         } else if (codec.startsWith("hev1") || codec.startsWith("hvc1")) {
             return VIDEO_H265
-        } else if ((codec.startsWith("dvav")
-                        || codec.startsWith("dva1")
-                        || codec.startsWith("dvhe")
-                        || codec.startsWith("dvh1"))) {
+        } else if ((codec.startsWith("dvav") || codec.startsWith("dva1") || codec.startsWith("dvhe") || codec.startsWith(
+                "dvh1"
+            ))
+        ) {
             return VIDEO_DOLBY_VISION
         } else if (codec.startsWith("av01")) {
             return VIDEO_AV1
@@ -428,7 +439,8 @@ object MimeTypes {
      * @param mimeType A MIME type.
      * @return The corresponding [track type][C.TrackType], which may be [     ][C.TRACK_TYPE_UNKNOWN] if it could not be determined.
      */
-    fun getTrackType(mimeType: String?): @TrackType Int {
+    @C.TrackType
+    fun getTrackType(mimeType: String?): Int {
         if (TextUtils.isEmpty(mimeType)) {
             return C.TRACK_TYPE_UNKNOWN
         } else if (isAudio(mimeType)) {
@@ -457,7 +469,8 @@ object MimeTypes {
      * @param codec An RFC 6381 codec string, or `null` if unknown or not applicable.
      * @return The corresponding [C.Encoding], or [C.ENCODING_INVALID].
      */
-    fun getEncoding(mimeType: String?, codec: String?): @C.Encoding Int {
+    @C.Encoding
+    fun getEncoding(mimeType: String?, codec: String?): Int {
         when (mimeType) {
             AUDIO_MPEG -> return C.ENCODING_MP3
             AUDIO_AAC -> {
@@ -487,7 +500,8 @@ object MimeTypes {
      * @param codec An RFC 6381 codec string.
      * @return The corresponding [track type][C.TrackType], which may be [     ][C.TRACK_TYPE_UNKNOWN] if it could not be determined.
      */
-    fun getTrackTypeOfCodec(codec: String?): @TrackType Int {
+    @C.TrackType
+    fun getTrackTypeOfCodec(codec: String?): Int {
         return getTrackType(getMediaMimeType(codec))
     }
 
@@ -511,12 +525,11 @@ object MimeTypes {
         if (mimeType == null) {
             return false
         }
-        return (mimeType.startsWith(VIDEO_WEBM)
-                || mimeType.startsWith(AUDIO_WEBM)
-                || mimeType.startsWith(APPLICATION_WEBM)
-                || mimeType.startsWith(VIDEO_MATROSKA)
-                || mimeType.startsWith(AUDIO_MATROSKA)
-                || mimeType.startsWith(APPLICATION_MATROSKA))
+        return (mimeType.startsWith(VIDEO_WEBM) || mimeType.startsWith(AUDIO_WEBM) || mimeType.startsWith(
+            APPLICATION_WEBM
+        ) || mimeType.startsWith(VIDEO_MATROSKA) || mimeType.startsWith(AUDIO_MATROSKA) || mimeType.startsWith(
+            APPLICATION_MATROSKA
+        ))
     }
 
     /**
@@ -545,7 +558,8 @@ object MimeTypes {
         return null
     }
 
-    private fun getTrackTypeForCustomMimeType(mimeType: String?): @TrackType Int {
+    @C.TrackType
+    private fun getTrackTypeForCustomMimeType(mimeType: String?): Int {
         val customMimeTypeCount: Int = customMimeTypes.size
         for (i in 0 until customMimeTypeCount) {
             val customMimeType: CustomMimeType = customMimeTypes.get(i)
@@ -597,27 +611,43 @@ object MimeTypes {
 
     /** An MP4A Object Type Indication (OTI) and its optional audio OTI is defined by RFC 6381.  */
     @VisibleForTesting /* package */
-    class Mp4aObjectType     // See AUDIO_OBJECT_TYPE_AAC_* constants in AacUtil.
-    constructor(
-            /** The Object Type Indication of the MP4A codec.  */
-            val objectTypeIndication: Int,
-            /** The Audio Object Type Indication of the MP4A codec, or 0 if it is absent.  */
-            val audioObjectTypeIndication: Int) {
+    class Mp4aObjectType {
+        /** The Object Type Indication of the MP4A codec.  */
+        var objectTypeIndication = 0
+
+        /** The Audio Object Type Indication of the MP4A codec, or 0 if it is absent.  */
+        var audioObjectTypeIndication = 0
+
+        constructor(objectTypeIndication: Int, audioObjectTypeIndication: Int) {
+            this.objectTypeIndication = objectTypeIndication
+            this.audioObjectTypeIndication = audioObjectTypeIndication
+        }
+
         /** Returns the encoding for [.audioObjectTypeIndication].  */
-        val encoding: @C.Encoding Int
-            get() {
-                // See AUDIO_OBJECT_TYPE_AAC_* constants in AacUtil.
-                when (audioObjectTypeIndication) {
-                    2 -> return C.ENCODING_AAC_LC
-                    5 -> return C.ENCODING_AAC_HE_V1
-                    29 -> return C.ENCODING_AAC_HE_V2
-                    42 -> return C.ENCODING_AAC_XHE
-                    23 -> return C.ENCODING_AAC_ELD
-                    22 -> return C.ENCODING_AAC_ER_BSAC
-                    else -> return C.ENCODING_INVALID
-                }
+        @C.Encoding
+        fun getEncoding(): Int {
+            // See AUDIO_OBJECT_TYPE_AAC_* constants in AacUtil.
+            return when (audioObjectTypeIndication) {
+                2 -> C.ENCODING_AAC_LC
+                5 -> C.ENCODING_AAC_HE_V1
+                29 -> C.ENCODING_AAC_HE_V2
+                42 -> C.ENCODING_AAC_XHE
+                23 -> C.ENCODING_AAC_ELD
+                22 -> C.ENCODING_AAC_ER_BSAC
+                else -> C.ENCODING_INVALID
             }
+        }
     }
 
-    private class CustomMimeType constructor(val mimeType: String, val codecPrefix: String?, val trackType: @TrackType Int)
+    private class CustomMimeType {
+        var mimeType: String? = null
+        var codecPrefix: String? = null
+        var trackType = 0
+
+        constructor(mimeType: String?, codecPrefix: String?, trackType: @TrackType Int) {
+            this.mimeType = mimeType
+            this.codecPrefix = codecPrefix
+            this.trackType = trackType
+        }
+    }
 }

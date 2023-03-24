@@ -52,43 +52,31 @@ interface LoadErrorHandlingPolicy {
     @IntDef(value = [FALLBACK_TYPE_LOCATION, FALLBACK_TYPE_TRACK])
     annotation class FallbackType
 
-    companion object {
-        /**
-         * Fallback to the same resource at a different location (i.e., a different URL through which the
-         * exact same data can be requested).
-         */
-        const val FALLBACK_TYPE_LOCATION = 1
-
-        /**
-         * Fallback to a different track (i.e., a different representation of the same content; for
-         * example the same video encoded at a different bitrate or resolution).
-         */
-        const val FALLBACK_TYPE_TRACK = 2
-    }
-
     /** Holds information about a load task error.  */
     class LoadErrorInfo
     /** Creates an instance with the given values.  */(
-            /** The [LoadEventInfo] associated with the load that encountered an error.  */
-            val loadEventInfo: LoadEventInfo,
-            /** [MediaLoadData] associated with the load that encountered an error.  */
-            val mediaLoadData: MediaLoadData,
-            /** The exception associated to the load error.  */
-            val exception: IOException,
-            /** The number of errors this load task has encountered, including this one.  */
-            val errorCount: Int)
+        /** The [LoadEventInfo] associated with the load that encountered an error.  */
+        val loadEventInfo: LoadEventInfo,
+        /** [MediaLoadData] associated with the load that encountered an error.  */
+        val mediaLoadData: MediaLoadData,
+        /** The exception associated to the load error.  */
+        val exception: IOException,
+        /** The number of errors this load task has encountered, including this one.  */
+        val errorCount: Int
+    )
 
     /** Holds information about the available fallback options.  */
     class FallbackOptions
     /** Creates an instance.  */(
-            /** The number of available locations.  */
-            private val numberOfLocations: Int,
-            /** The number of locations that are already excluded.  */
-            private val numberOfExcludedLocations: Int,
-            /** The number of tracks.  */
-            val numberOfTracks: Int,
-            /** The number of tracks that are already excluded.  */
-            private val numberOfExcludedTracks: Int) {
+        /** The number of available locations.  */
+        val numberOfLocations: Int,
+        /** The number of locations that are already excluded.  */
+        val numberOfExcludedLocations: Int,
+        /** The number of tracks.  */
+        val numberOfTracks: Int,
+        /** The number of tracks that are already excluded.  */
+        val numberOfExcludedTracks: Int
+    ) {
         /** Returns whether a fallback is available for the given [fallback type][FallbackType].  */
         fun isFallbackAvailable(@FallbackType type: Int): Boolean {
             return if (type == FALLBACK_TYPE_LOCATION) numberOfLocations - numberOfExcludedLocations > 1 else numberOfTracks - numberOfExcludedTracks > 1
@@ -96,25 +84,24 @@ interface LoadErrorHandlingPolicy {
     }
 
     /** A selected fallback option.  */
-    class FallbackSelection {
-        /**
-         * The type of fallback.
-         */
-        var type = 0
+    class FallbackSelection(@FallbackType type: Int, exclusionDurationMs: Long) {
+        /** The type of fallback.  */
+        @JvmField
+        @FallbackType
+        val type: Int
 
-        /**
-         * The duration for which the failing resource should be excluded, in milliseconds.
-         */
-        var exclusionDurationMs: Long = 0
+        /** The duration for which the failing resource should be excluded, in milliseconds.  */
+        @JvmField
+        val exclusionDurationMs: Long
 
         /**
          * Creates an instance.
          *
-         * @param type                The type of fallback.
+         * @param type The type of fallback.
          * @param exclusionDurationMs The duration for which the failing resource should be excluded, in
          * milliseconds. Must be non-negative.
          */
-        constructor(@FallbackType type: Int, exclusionDurationMs: Long) {
+        init {
             checkArgument(exclusionDurationMs >= 0)
             this.type = type
             this.exclusionDurationMs = exclusionDurationMs
@@ -133,7 +120,9 @@ interface LoadErrorHandlingPolicy {
      * @param loadErrorInfo A [LoadErrorInfo] holding information about the load error.
      * @return The selected fallback, or `null` if the calling loader should not fall back.
      */
-    fun getFallbackSelectionFor(fallbackOptions: FallbackOptions?, loadErrorInfo: LoadErrorInfo?): FallbackSelection?
+    fun getFallbackSelectionFor(
+        fallbackOptions: FallbackOptions?, loadErrorInfo: LoadErrorInfo?
+    ): FallbackSelection?
 
     /**
      * Returns whether a loader can retry on encountering an error, and if so the duration to wait
@@ -170,4 +159,18 @@ interface LoadErrorHandlingPolicy {
      * @see Loader.startLoading
      */
     fun getMinimumLoadableRetryCount(dataType: Int): Int
+
+    companion object {
+        /**
+         * Fallback to the same resource at a different location (i.e., a different URL through which the
+         * exact same data can be requested).
+         */
+        const val FALLBACK_TYPE_LOCATION = 1
+
+        /**
+         * Fallback to a different track (i.e., a different representation of the same content; for
+         * example the same video encoded at a different bitrate or resolution).
+         */
+        const val FALLBACK_TYPE_TRACK = 2
+    }
 }

@@ -17,10 +17,13 @@ package com.google.android.exoplayer2.util
 
 import com.google.android.exoplayer2.PlaybackParameters
 
-/** Tracks the progression of media time.  */
+/**
+ * Tracks the progression of media time.
+ */
 interface MediaClock {
+
     /** Returns the current media position in microseconds.  */
-    val positionUs: Long
+    fun getPositionUs(): Long
 
     /**
      * Attempts to set the playback parameters. The media clock may override the speed if changing the

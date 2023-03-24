@@ -20,7 +20,6 @@ import com.google.android.exoplayer2.C
 // TODO: Clarify the requirements for implementing this interface [Internal ref: b/36250203].
 /** A loader that can proceed in approximate synchronization with other loaders.  */
 interface SequenceableLoader {
-
     /** A callback to be notified of [SequenceableLoader] events.  */
     interface Callback<T : SequenceableLoader?> {
         /**

@@ -35,13 +35,6 @@ interface SampleStream {
     @IntDef(flag = true, value = [FLAG_PEEK, FLAG_REQUIRE_FORMAT, FLAG_OMIT_SAMPLE_DATA])
     annotation class ReadFlags
 
-    /** Return values of [.readData].  */
-    @Documented
-    @Retention(RetentionPolicy.SOURCE)
-    @Target(TYPE_USE)
-    @IntDef(value = [C.RESULT_NOTHING_READ, C.RESULT_FORMAT_READ, C.RESULT_BUFFER_READ])
-    annotation class ReadDataResult
-
     companion object {
         /** Specifies that the read position should not be advanced if a sample buffer is read.  */
         const val FLAG_PEEK = 1
@@ -72,6 +65,13 @@ interface SampleStream {
          */
         const val FLAG_OMIT_SAMPLE_DATA = 1 shl 2
     }
+
+    /** Return values of [.readData].  */
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(TYPE_USE)
+    @IntDef(value = [C.RESULT_NOTHING_READ, C.RESULT_FORMAT_READ, C.RESULT_BUFFER_READ])
+    annotation class ReadDataResult
 
     /**
      * Returns whether data is available to be read.
@@ -109,7 +109,11 @@ interface SampleStream {
      * flags are populated if this exception is thrown, but the read position is not advanced.
      */
     @ReadDataResult
-    fun readData(formatHolder: FormatHolder?, buffer: DecoderInputBuffer?, @ReadFlags readFlags: Int): Int
+    fun readData(
+        formatHolder: FormatHolder?,
+        buffer: DecoderInputBuffer?,
+        @ReadFlags readFlags: Int
+    ): Int
 
     /**
      * Attempts to skip to the keyframe before the specified position, or to the end of the stream if

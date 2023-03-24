@@ -77,7 +77,8 @@ interface MetadataDecoderFactory {
                     }
                 }
                 throw IllegalArgumentException(
-                        "Attempted to create decoder for unsupported MIME type: $mimeType")
+                    "Attempted to create decoder for unsupported MIME type: $mimeType"
+                )
             }
         }
     }

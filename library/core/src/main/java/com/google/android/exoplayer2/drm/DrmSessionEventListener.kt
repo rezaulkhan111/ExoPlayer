@@ -17,38 +17,37 @@ package com.google.android.exoplayer2.drm
 
 import android.os.Handler
 import androidx.annotation.CheckResult
+import com.google.android.exoplayer2.source.MediaSource
 import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId
 import com.google.android.exoplayer2.util.Assertions.checkNotNull
-import com.google.android.exoplayer2.util.Util.postOrRun
 import java.util.concurrent.CopyOnWriteArrayList
 
-/**
- * Listener of [DrmSessionManager] events.
- */
+/** Listener of [DrmSessionManager] events.  */
 interface DrmSessionEventListener {
 
     @Deprecated("Implement {@link #onDrmSessionAcquired(int, MediaPeriodId, int)} instead.")
-    fun onDrmSessionAcquired(windowIndex: Int, mediaPeriodId: MediaPeriodId?) {
+    fun onDrmSessionAcquired(windowIndex: Int, mediaPeriodId: MediaSource.MediaPeriodId?) {
     }
 
     /**
      * Called each time a drm session is acquired.
      *
-     * @param windowIndex   The window index in the timeline this media period belongs to.
+     * @param windowIndex The window index in the timeline this media period belongs to.
      * @param mediaPeriodId The [MediaPeriodId] associated with the drm session.
-     * @param state         The [DrmSession.State] of the session when the acquisition completed.
+     * @param state The [DrmSession.State] of the session when the acquisition completed.
      */
     fun onDrmSessionAcquired(
-            windowIndex: Int, mediaPeriodId: MediaPeriodId?, @DrmSession.State state: Int) {
+        windowIndex: Int, mediaPeriodId: MediaSource.MediaPeriodId?, state: @DrmSession.State Int
+    ) {
     }
 
     /**
      * Called each time keys are loaded.
      *
-     * @param windowIndex   The window index in the timeline this media period belongs to.
+     * @param windowIndex The window index in the timeline this media period belongs to.
      * @param mediaPeriodId The [MediaPeriodId] associated with the drm session.
      */
-    fun onDrmKeysLoaded(windowIndex: Int, mediaPeriodId: MediaPeriodId?) {}
+    fun onDrmKeysLoaded(windowIndex: Int, mediaPeriodId: MediaSource.MediaPeriodId?) {}
 
     /**
      * Called when a drm error occurs.
@@ -61,64 +60,69 @@ interface DrmSessionEventListener {
      * behavior). This method is called to provide the application with an opportunity to log the
      * error if it wishes to do so.
      *
-     * @param windowIndex   The window index in the timeline this media period belongs to.
+     * @param windowIndex The window index in the timeline this media period belongs to.
      * @param mediaPeriodId The [MediaPeriodId] associated with the drm session.
-     * @param error         The corresponding exception.
+     * @param error The corresponding exception.
      */
     fun onDrmSessionManagerError(
-            windowIndex: Int, mediaPeriodId: MediaPeriodId?, error: Exception?) {
+        windowIndex: Int, mediaPeriodId: MediaSource.MediaPeriodId?, error: Exception?
+    ) {
     }
 
     /**
      * Called each time offline keys are restored.
      *
-     * @param windowIndex   The window index in the timeline this media period belongs to.
+     * @param windowIndex The window index in the timeline this media period belongs to.
      * @param mediaPeriodId The [MediaPeriodId] associated with the drm session.
      */
-    fun onDrmKeysRestored(windowIndex: Int, mediaPeriodId: MediaPeriodId?) {}
+    fun onDrmKeysRestored(windowIndex: Int, mediaPeriodId: MediaSource.MediaPeriodId?) {}
 
     /**
      * Called each time offline keys are removed.
      *
-     * @param windowIndex   The window index in the timeline this media period belongs to.
+     * @param windowIndex The window index in the timeline this media period belongs to.
      * @param mediaPeriodId The [MediaPeriodId] associated with the drm session.
      */
-    fun onDrmKeysRemoved(windowIndex: Int, mediaPeriodId: MediaPeriodId?) {}
+    fun onDrmKeysRemoved(windowIndex: Int, mediaPeriodId: MediaSource.MediaPeriodId?) {}
 
     /**
      * Called each time a drm session is released.
      *
-     * @param windowIndex   The window index in the timeline this media period belongs to.
+     * @param windowIndex The window index in the timeline this media period belongs to.
      * @param mediaPeriodId The [MediaPeriodId] associated with the drm session.
      */
-    fun onDrmSessionReleased(windowIndex: Int, mediaPeriodId: MediaPeriodId?) {}
+    fun onDrmSessionReleased(windowIndex: Int, mediaPeriodId: MediaSource.MediaPeriodId?) {}
 
-    /**
-     * Dispatches events to [DrmSessionEventListeners][DrmSessionEventListener].
-     */
+    /** Dispatches events to [DrmSessionEventListeners][DrmSessionEventListener].  */
     class EventDispatcher {
-
-        /** The timeline window index reported with the events.  */
+        /**
+         * The timeline window index reported with the events.
+         */
         var windowIndex = 0
 
-        /** The [MediaPeriodId] reported with the events.  */
-        var mediaPeriodId: MediaPeriodId? = null
+        /**
+         * The [MediaPeriodId] reported with the events.
+         */
+        var mediaPeriodId: MediaSource.MediaPeriodId? = null
 
         private var listenerAndHandlers: CopyOnWriteArrayList<ListenerAndHandler>? = null
 
         /**
          * Creates an event dispatcher.
          */
-        constructor() : this( /* listenerAndHandlers= */
+        constructor() {
+            EventDispatcher( /* listenerAndHandlers= */
                 CopyOnWriteArrayList<ListenerAndHandler>(),  /* windowIndex= */
                 0,  /* mediaPeriodId= */
-                null) {
+                null
+            )
         }
 
         private constructor(
-                listenerAndHandlers: CopyOnWriteArrayList<ListenerAndHandler>?,
-                windowIndex: Int,
-                mediaPeriodId: MediaPeriodId?) {
+            listenerAndHandlers: CopyOnWriteArrayList<ListenerAndHandler>?,
+            windowIndex: Int,
+            mediaPeriodId: MediaPeriodId?
+        ) {
             this.listenerAndHandlers = listenerAndHandlers
             this.windowIndex = windowIndex
             this.mediaPeriodId = mediaPeriodId
@@ -132,8 +136,10 @@ interface DrmSessionEventListener {
          * @return A view of the event dispatcher with the pre-configured parameters.
          */
         @CheckResult
-        fun withParameters(windowIndex: Int, mediaPeriodId: MediaPeriodId?): EventDispatcher {
-            return EventDispatcher(listenerAndHandlers, windowIndex, mediaPeriodId)
+        fun withParameters(windowIndex: Int, mediaPeriodId: MediaPeriodId?): EventDispatcher? {
+            return DrmSessionEventListener.EventDispatcher(
+                listenerAndHandlers, windowIndex, mediaPeriodId
+            )
         }
 
         /**
@@ -142,10 +148,14 @@ interface DrmSessionEventListener {
          * @param handler       A handler on the which listener events will be posted.
          * @param eventListener The listener to be added.
          */
-        fun addEventListener(handler: Handler?, eventListener: DrmSessionEventListener) {
+        fun addEventListener(handler: Handler?, eventListener: DrmSessionEventListener?) {
             checkNotNull(handler)
             checkNotNull(eventListener)
-            listenerAndHandlers?.add(ListenerAndHandler(handler, eventListener))
+            listenerAndHandlers!!.add(
+                ListenerAndHandler(
+                    handler, eventListener!!
+                )
+            )
         }
 
         /**
@@ -156,7 +166,7 @@ interface DrmSessionEventListener {
         fun removeEventListener(eventListener: DrmSessionEventListener) {
             for (listenerAndHandler in listenerAndHandlers!!) {
                 if (listenerAndHandler.listener === eventListener) {
-                    listenerAndHandlers?.remove(listenerAndHandler)
+                    listenerAndHandlers!!.remove(listenerAndHandler)
                 }
             }
         }
@@ -165,14 +175,14 @@ interface DrmSessionEventListener {
          * Dispatches [.onDrmSessionAcquired] and [ ][.onDrmSessionAcquired].
          */
         // Calls deprecated listener method.
-        fun drmSessionAcquired(@DrmSession.State state: Int) {
+        fun drmSessionAcquired(state: @DrmSession.State Int) {
             for (listenerAndHandler in listenerAndHandlers!!) {
                 val listener = listenerAndHandler.listener
                 postOrRun(
-                        listenerAndHandler.handler
+                    listenerAndHandler.handler
                 ) {
-                    listener?.onDrmSessionAcquired(windowIndex, mediaPeriodId)
-                    listener?.onDrmSessionAcquired(windowIndex, mediaPeriodId, state)
+                    listener.onDrmSessionAcquired(windowIndex, mediaPeriodId)
+                    listener.onDrmSessionAcquired(windowIndex, mediaPeriodId, state)
                 }
             }
         }
@@ -183,8 +193,9 @@ interface DrmSessionEventListener {
         fun drmKeysLoaded() {
             for (listenerAndHandler in listenerAndHandlers!!) {
                 val listener = listenerAndHandler.listener
-                postOrRun(listenerAndHandler.handler)
-                { listener?.onDrmKeysLoaded(windowIndex, mediaPeriodId) }
+                postOrRun(
+                    listenerAndHandler.handler
+                ) { listener.onDrmKeysLoaded(windowIndex, mediaPeriodId) }
             }
         }
 
@@ -195,8 +206,8 @@ interface DrmSessionEventListener {
             for (listenerAndHandler in listenerAndHandlers!!) {
                 val listener = listenerAndHandler.listener
                 postOrRun(
-                        listenerAndHandler.handler
-                ) { listener?.onDrmSessionManagerError(windowIndex, mediaPeriodId, error) }
+                    listenerAndHandler.handler
+                ) { listener.onDrmSessionManagerError(windowIndex, mediaPeriodId, error) }
             }
         }
 
@@ -207,8 +218,8 @@ interface DrmSessionEventListener {
             for (listenerAndHandler in listenerAndHandlers!!) {
                 val listener = listenerAndHandler.listener
                 postOrRun(
-                        listenerAndHandler.handler
-                ) { listener?.onDrmKeysRestored(windowIndex, mediaPeriodId) }
+                    listenerAndHandler.handler
+                ) { listener.onDrmKeysRestored(windowIndex, mediaPeriodId) }
             }
         }
 
@@ -219,8 +230,8 @@ interface DrmSessionEventListener {
             for (listenerAndHandler in listenerAndHandlers!!) {
                 val listener = listenerAndHandler.listener
                 postOrRun(
-                        listenerAndHandler.handler
-                ) { listener?.onDrmKeysRemoved(windowIndex, mediaPeriodId) }
+                    listenerAndHandler.handler
+                ) { listener.onDrmKeysRemoved(windowIndex, mediaPeriodId) }
             }
         }
 
@@ -231,10 +242,11 @@ interface DrmSessionEventListener {
             for (listenerAndHandler in listenerAndHandlers!!) {
                 val listener = listenerAndHandler.listener
                 postOrRun(
-                        listenerAndHandler.handler
-                ) { listener?.onDrmSessionReleased(windowIndex, mediaPeriodId) }
+                    listenerAndHandler.handler
+                ) { listener.onDrmSessionReleased(windowIndex, mediaPeriodId) }
             }
         }
+
 
         private class ListenerAndHandler {
             var handler: Handler? = null

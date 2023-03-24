@@ -134,7 +134,13 @@ interface MediaPeriod : SequenceableLoader {
      * not yet started, the value will be the starting position.
      * @return The actual position at which the tracks were enabled, in microseconds.
      */
-    fun selectTracks(selections: Array<ExoTrackSelection?>?, mayRetainStreamFlags: BooleanArray?, streams: Array<SampleStream?>?, streamResetFlags: BooleanArray?, positionUs: Long): Long
+    fun selectTracks(
+        selections: Array<ExoTrackSelection?>?,
+        mayRetainStreamFlags: BooleanArray?,
+        streams: Array<SampleStream?>?,
+        streamResetFlags: BooleanArray?,
+        positionUs: Long
+    ): Long
 
     /**
      * Discards buffered media up to the specified position.

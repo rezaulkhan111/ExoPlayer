@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.trackselectionimport
+package com.google.android.exoplayer2.trackselection
 
 import android.content.Context
 import android.graphics.Point
@@ -23,9 +23,11 @@ import android.view.accessibility.CaptioningManager
 import androidx.annotation.RequiresApi
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.C.*
+import com.google.android.exoplayer2.C.RoleFlags
+import com.google.android.exoplayer2.C.SelectionFlags
+import com.google.android.exoplayer2.C.TrackType
 import com.google.android.exoplayer2.source.TrackGroup
 import com.google.android.exoplayer2.trackselection.TrackSelectionOverride
-import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
 import com.google.android.exoplayer2.util.*
 import com.google.common.base.MoreObjects
 import com.google.common.collect.ImmutableList
@@ -35,152 +37,6 @@ import com.google.common.primitives.Ints
 import com.google.errorprone.annotations.CanIgnoreReturnValue
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull
 import java.util.*
-
-androidx.annotation .IntDef
-import com.google.android.exoplayer2.ui.AdOverlayInfo
-import android.view.ViewGroup
-import com.google.common.collect.ImmutableList
-import com.google.android.exoplayer2.drm.DrmInitData.SchemeData
-import android.os.Parcelable
-import android.os.Parcel
-import android.text.TextUtils
-import com.google.android.exoplayer2.text.span.TextAnnotation
-import com.google.android.exoplayer2.text.span.LanguageFeatureSpan
-import android.text.Spannable
-import com.google.android.exoplayer2.text.span.TextEmphasisSpan.MarkFill
-import com.google.android.exoplayer2.text.span.TextEmphasisSpan
-import android.graphics.Bitmap
-import com.google.android.exoplayer2.text.Cue.LineType
-import com.google.android.exoplayer2.text.Cue.TextSizeType
-import com.google.android.exoplayer2.text.Cue.VerticalType
-import com.google.android.exoplayer2.text.Cue
-import androidx.annotation.ColorInt
-import org.checkerframework.dataflow.qual.Pure
-import android.os.Bundle
-import android.text.Spanned
-import android.text.SpannedString
-import com.google.android.exoplayer2.text.CueGroup
-import android.content.IntentFilter
-import android.content.Intent
-import android.content.ComponentName
-import android.app.Activity
-import com.google.android.exoplayer2.MediaItem.SubtitleConfiguration
-import android.provider.MediaStore
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull
-import org.checkerframework.checker.initialization.qual.UnknownInitialization
-import android.os.Looper
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
-import com.google.common.util.concurrent.Futures
-import org.checkerframework.checker.nullness.qual.PolyNull
-import androidx.annotation.RequiresApi
-import android.util.SparseLongArray
-import android.content.pm.PackageInfo
-import android.content.pm.PackageManager
-import com.google.android.exoplayer2.C.TrackType
-import com.google.android.exoplayer2.C.PcmEncoding
-import android.annotation.SuppressLint
-import com.google.android.exoplayer2.C.AudioUsage
-import com.google.android.exoplayer2.C.AudioContentType
-import android.media.MediaDrm
-import android.telephony.TelephonyManager
-import android.app.UiModeManager
-import android.hardware.display.DisplayManager
-import android.view.WindowManager
-import android.database.sqlite.SQLiteDatabase
-import android.database.DatabaseUtils
-import android.Manifest.permission
-import android.security.NetworkSecurityPolicy
-import android.opengl.EGL14
-import javax.microedition.khronos.egl.EGL10
-import android.opengl.GLES20
-import com.google.android.exoplayer2.util.GlUtil.GlException
-import com.google.android.exoplayer2.util.GlUtil.Api17
-import android.opengl.GLU
-import android.opengl.GLES11Ext
-import android.opengl.GLES30
-import android.util.SparseBooleanArray
-import com.google.android.exoplayer2.util.GlProgram.Uniform
-import com.google.android.exoplayer2.util.MimeTypes.CustomMimeType
-import com.google.android.exoplayer2.util.MimeTypes.Mp4aObjectType
-import com.google.android.exoplayer2.util.AtomicFile.AtomicFileOutputStream
-import android.os.IBinder
-import kotlin.annotations.jvm.UnderMigration
-import kotlin.annotations.jvm.MigrationStatus
-import com.google.android.exoplayer2.util.ListenerSet.IterationFinishedEvent
-import android.util.SparseArray
-import com.google.android.exoplayer2.video.ColorInfo
-import android.media.MediaFormat
-import android.app.NotificationManager
-import androidx.annotation.StringRes
-import com.google.android.exoplayer2.util.NotificationUtil.Importance
-import android.app.NotificationChannel
-import android.view.SurfaceView
-import com.google.android.exoplayer2.util.EGLSurfaceTexture.TextureImageListener
-import android.graphics.SurfaceTexture
-import com.google.android.exoplayer2.util.EGLSurfaceTexture.SecureMode
-import org.xmlpull.v1.XmlPullParserException
-import org.xmlpull.v1.XmlPullParser
-import android.net.ConnectivityManager
-import com.google.android.exoplayer2.util.NetworkTypeObserver.Api31.DisplayInfoCallback
-import android.telephony.TelephonyCallback
-import android.telephony.TelephonyCallback.DisplayInfoListener
-import android.telephony.TelephonyDisplayInfo
-import android.net.NetworkInfo
-import com.google.android.exoplayer2.util.PriorityTaskManager.PriorityTooLowException
-import com.google.android.exoplayer2.util.SystemHandlerWrapper.SystemMessage
-import com.google.android.exoplayer2.audio.AuxEffectInfo
-import com.google.android.exoplayer2.audio.AudioProcessor.UnhandledAudioFormatException
-import com.google.android.exoplayer2.C.AudioFlags
-import com.google.android.exoplayer2.C.AudioAllowedCapturePolicy
-import com.google.android.exoplayer2.C.SpatializationBehavior
-import com.google.android.exoplayer2.audio.AudioAttributes.Api32
-import com.google.android.exoplayer2.audio.AudioAttributes.AudioAttributesV21
-import com.google.android.exoplayer2.audio.AudioProcessor
-import com.google.android.exoplayer2.C.ColorRange
-import com.google.android.exoplayer2.C.ColorTransfer
-import androidx.annotation.FloatRange
-import android.media.MediaCodec
-import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdGroup
-import com.google.android.exoplayer2.source.ads.AdPlaybackState
-import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdState
-import com.google.android.exoplayer2.source.TrackGroup
-import com.google.android.exoplayer2.C.RoleFlags
-import com.google.android.exoplayer2.offline.StreamKey
-import com.google.android.exoplayer2.C.SelectionFlags
-import com.google.android.exoplayer2.C.StereoMode
-import com.google.android.exoplayer2.C.CryptoType
-import com.google.android.exoplayer2.Player.PositionInfo
-import com.google.android.exoplayer2.Player.TimelineChangeReason
-import com.google.android.exoplayer2.Player.MediaItemTransitionReason
-import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
-import com.google.android.exoplayer2.Player.PlayWhenReadyChangeReason
-import com.google.android.exoplayer2.Player.PlaybackSuppressionReason
-import com.google.android.exoplayer2.Player.DiscontinuityReason
-import android.view.SurfaceHolder
-import android.view.TextureView
-import com.google.android.exoplayer2.Rating.RatingType
-import com.google.common.primitives.Booleans
-import com.google.common.base.MoreObjects
-import com.google.android.exoplayer2.MediaItem.LiveConfiguration
-import com.google.android.exoplayer2.Timeline.RemotableTimeline
-import com.google.android.exoplayer2.MediaItem.ClippingProperties
-import com.google.android.exoplayer2.MediaItem.PlaybackProperties
-import com.google.android.exoplayer2.MediaItem.RequestMetadata
-import com.google.android.exoplayer2.MediaItem.AdsConfiguration
-import com.google.android.exoplayer2.MediaItem.LocalConfiguration
-import com.google.android.exoplayer2.MediaItem.ClippingConfiguration
-import com.google.android.exoplayer2.MediaItem.DrmConfiguration
-import com.google.android.exoplayer2.trackselection.TrackSelectionOverride
-import com.google.common.primitives.Ints
-import android.view.accessibility.CaptioningManager
-import com.google.android.exoplayer2.DeviceInfo.PlaybackType
-import com.google.android.exoplayer2.MediaMetadata.PictureType
-import com.google.android.exoplayer2.MediaMetadata.FolderType
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull
-import org.checkerframework.checker.nullness.qual.RequiresNonNull
-import androidx.annotation.CallSuper
-import android.media.MediaPlayer
 
 /**
  * Parameters for controlling track selection.
@@ -202,7 +58,8 @@ import android.media.MediaPlayer
  * player.setTrackSelectionParameters(newParameters);
 `</pre> *
  */
-open class TrackSelectionParameters protected constructor(builder: TrackSelectionParameters.Builder) : Bundleable {
+open class TrackSelectionParameters protected constructor(builder: TrackSelectionParameters.Builder) :
+    Bundleable {
     /**
      * A builder for [TrackSelectionParameters]. See the [TrackSelectionParameters]
      * documentation for explanations of the parameters that can be configured using this builder.
@@ -291,73 +148,145 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
         /** Creates a builder with the initial values specified in `bundle`.  */
         constructor(bundle: Bundle) {
             // Video
-            maxVideoWidth = bundle.getInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_WIDTH), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxVideoWidth)
+            maxVideoWidth = bundle.getInt(
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_WIDTH),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxVideoWidth
+            )
             maxVideoHeight = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_HEIGHT), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxVideoHeight)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_HEIGHT),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxVideoHeight
+            )
             maxVideoFrameRate = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_FRAMERATE), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxVideoFrameRate)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_FRAMERATE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxVideoFrameRate
+            )
             maxVideoBitrate = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_BITRATE), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxVideoBitrate)
-            minVideoWidth = bundle.getInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_WIDTH), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.minVideoWidth)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_BITRATE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxVideoBitrate
+            )
+            minVideoWidth = bundle.getInt(
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_WIDTH),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.minVideoWidth
+            )
             minVideoHeight = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_HEIGHT), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.minVideoHeight)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_HEIGHT),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.minVideoHeight
+            )
             minVideoFrameRate = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_FRAMERATE), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.minVideoFrameRate)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_FRAMERATE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.minVideoFrameRate
+            )
             minVideoBitrate = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_BITRATE), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.minVideoBitrate)
-            viewportWidth = bundle.getInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_WIDTH), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.viewportWidth)
-            viewportHeight = bundle.getInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_HEIGHT), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.viewportHeight)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_BITRATE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.minVideoBitrate
+            )
+            viewportWidth = bundle.getInt(
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_WIDTH),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.viewportWidth
+            )
+            viewportHeight = bundle.getInt(
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_HEIGHT),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.viewportHeight
+            )
             viewportOrientationMayChange = bundle.getBoolean(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_ORIENTATION_MAY_CHANGE),
-                    TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.viewportOrientationMayChange)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_ORIENTATION_MAY_CHANGE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.viewportOrientationMayChange
+            )
             preferredVideoMimeTypes = ImmutableList.copyOf(
-                    MoreObjects.firstNonNull(
-                            bundle.getStringArray(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_VIDEO_MIMETYPES)), arrayOfNulls(0)))
+                MoreObjects.firstNonNull(
+                    bundle.getStringArray(
+                        TrackSelectionParameters.Companion.keyForField(
+                            TrackSelectionParameters.Companion.FIELD_PREFERRED_VIDEO_MIMETYPES
+                        )
+                    ), arrayOfNulls(0)
+                )
+            )
             preferredVideoRoleFlags = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_VIDEO_ROLE_FLAGS),
-                    TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.preferredVideoRoleFlags)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_VIDEO_ROLE_FLAGS),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.preferredVideoRoleFlags
+            )
             // Audio
             val preferredAudioLanguages1: Array<String?> = MoreObjects.firstNonNull(
-                    bundle.getStringArray(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_LANGUAGES)), arrayOfNulls(0))
-            preferredAudioLanguages = TrackSelectionParameters.Builder.Companion.normalizeLanguageCodes(preferredAudioLanguages1)
+                bundle.getStringArray(
+                    TrackSelectionParameters.Companion.keyForField(
+                        TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_LANGUAGES
+                    )
+                ), arrayOfNulls(0)
+            )
+            preferredAudioLanguages =
+                TrackSelectionParameters.Builder.Companion.normalizeLanguageCodes(
+                    preferredAudioLanguages1
+                )
             preferredAudioRoleFlags = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_ROLE_FLAGS),
-                    TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.preferredAudioRoleFlags)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_ROLE_FLAGS),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.preferredAudioRoleFlags
+            )
             maxAudioChannelCount = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_AUDIO_CHANNEL_COUNT),
-                    TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxAudioChannelCount)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_AUDIO_CHANNEL_COUNT),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxAudioChannelCount
+            )
             maxAudioBitrate = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_AUDIO_BITRATE), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxAudioBitrate)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_AUDIO_BITRATE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.maxAudioBitrate
+            )
             preferredAudioMimeTypes = ImmutableList.copyOf(
-                    MoreObjects.firstNonNull(
-                            bundle.getStringArray(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_MIME_TYPES)), arrayOfNulls(0)))
+                MoreObjects.firstNonNull(
+                    bundle.getStringArray(
+                        TrackSelectionParameters.Companion.keyForField(
+                            TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_MIME_TYPES
+                        )
+                    ), arrayOfNulls(0)
+                )
+            )
             // Text
-            preferredTextLanguages = TrackSelectionParameters.Builder.Companion.normalizeLanguageCodes(
+            preferredTextLanguages =
+                TrackSelectionParameters.Builder.Companion.normalizeLanguageCodes(
                     MoreObjects.firstNonNull(
-                            bundle.getStringArray(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_TEXT_LANGUAGES)), arrayOfNulls(0)))
+                        bundle.getStringArray(
+                            TrackSelectionParameters.Companion.keyForField(
+                                TrackSelectionParameters.Companion.FIELD_PREFERRED_TEXT_LANGUAGES
+                            )
+                        ), arrayOfNulls(0)
+                    )
+                )
             preferredTextRoleFlags = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_TEXT_ROLE_FLAGS),
-                    TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.preferredTextRoleFlags)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_TEXT_ROLE_FLAGS),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.preferredTextRoleFlags
+            )
             ignoredTextSelectionFlags = bundle.getInt(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_IGNORED_TEXT_SELECTION_FLAGS),
-                    TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.ignoredTextSelectionFlags)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_IGNORED_TEXT_SELECTION_FLAGS),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.ignoredTextSelectionFlags
+            )
             selectUndeterminedTextLanguage = bundle.getBoolean(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_SELECT_UNDETERMINED_TEXT_LANGUAGE),
-                    TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.selectUndeterminedTextLanguage)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_SELECT_UNDETERMINED_TEXT_LANGUAGE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.selectUndeterminedTextLanguage
+            )
             // General
             forceLowestBitrate = bundle.getBoolean(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_FORCE_LOWEST_BITRATE), TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.forceLowestBitrate)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_FORCE_LOWEST_BITRATE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.forceLowestBitrate
+            )
             forceHighestSupportedBitrate = bundle.getBoolean(
-                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_FORCE_HIGHEST_SUPPORTED_BITRATE),
-                    TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.forceHighestSupportedBitrate)
-            val overrideBundleList: List<Bundle>? = bundle.getParcelableArrayList(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_SELECTION_OVERRIDES))
-            val overrideList: List<TrackSelectionOverride> = if (overrideBundleList == null) ImmutableList.of() else BundleableUtil.fromBundleList(TrackSelectionOverride.Companion.CREATOR, overrideBundleList)
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_FORCE_HIGHEST_SUPPORTED_BITRATE),
+                TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT.forceHighestSupportedBitrate
+            )
+            val overrideBundleList: List<Bundle>? = bundle.getParcelableArrayList(
+                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_SELECTION_OVERRIDES)
+            )
+            val overrideList: List<TrackSelectionOverride> =
+                if (overrideBundleList == null) ImmutableList.of() else BundleableUtil.fromBundleList(
+                    TrackSelectionOverride.Companion.CREATOR, overrideBundleList
+                )
             overrides = HashMap()
             for (i in overrideList.indices) {
                 val override: TrackSelectionOverride = overrideList.get(i)
                 overrides!!.put(override.mediaTrackGroup, override)
             }
-            val disabledTrackTypeArray: IntArray = MoreObjects.firstNonNull(bundle.getIntArray(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_DISABLED_TRACK_TYPE)), IntArray(0))
+            val disabledTrackTypeArray: IntArray = MoreObjects.firstNonNull(
+                bundle.getIntArray(
+                    TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_DISABLED_TRACK_TYPE)
+                ), IntArray(0)
+            )
             disabledTrackTypes = HashSet()
             for (disabledTrackType: @TrackType Int in disabledTrackTypeArray) {
                 disabledTrackTypes!!.add(disabledTrackType)
@@ -365,7 +294,14 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
         }
 
         /** Overrides the value of the builder with the value of [TrackSelectionParameters].  */
-        @EnsuresNonNull("preferredVideoMimeTypes", "preferredAudioLanguages", "preferredAudioMimeTypes", "preferredTextLanguages", "overrides", "disabledTrackTypes")
+        @EnsuresNonNull(
+            "preferredVideoMimeTypes",
+            "preferredAudioLanguages",
+            "preferredAudioMimeTypes",
+            "preferredTextLanguages",
+            "overrides",
+            "disabledTrackTypes"
+        )
         private fun init(parameters: TrackSelectionParameters) {
             // Video
             maxVideoWidth = parameters.maxVideoWidth
@@ -434,7 +370,9 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          * @return This builder.
          */
         @CanIgnoreReturnValue
-        open fun setMaxVideoSize(maxVideoWidth: Int, maxVideoHeight: Int): TrackSelectionParameters.Builder? {
+        open fun setMaxVideoSize(
+            maxVideoWidth: Int, maxVideoHeight: Int
+        ): TrackSelectionParameters.Builder? {
             this.maxVideoWidth = maxVideoWidth
             this.maxVideoHeight = maxVideoHeight
             return this
@@ -472,7 +410,9 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          * @return This builder.
          */
         @CanIgnoreReturnValue
-        open fun setMinVideoSize(minVideoWidth: Int, minVideoHeight: Int): TrackSelectionParameters.Builder? {
+        open fun setMinVideoSize(
+            minVideoWidth: Int, minVideoHeight: Int
+        ): TrackSelectionParameters.Builder? {
             this.minVideoWidth = minVideoWidth
             this.minVideoHeight = minVideoHeight
             return this
@@ -513,7 +453,8 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          */
         @CanIgnoreReturnValue
         open fun setViewportSizeToPhysicalDisplaySize(
-                context: Context, viewportOrientationMayChange: Boolean): TrackSelectionParameters.Builder? {
+            context: Context, viewportOrientationMayChange: Boolean
+        ): TrackSelectionParameters.Builder? {
             // Assume the viewport is fullscreen.
             val viewportSize: Point? = Util.getCurrentDisplayModeSize(context)
             return setViewportSize(viewportSize!!.x, viewportSize.y, viewportOrientationMayChange)
@@ -541,7 +482,8 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          */
         @CanIgnoreReturnValue
         open fun setViewportSize(
-                viewportWidth: Int, viewportHeight: Int, viewportOrientationMayChange: Boolean): TrackSelectionParameters.Builder? {
+            viewportWidth: Int, viewportHeight: Int, viewportOrientationMayChange: Boolean
+        ): TrackSelectionParameters.Builder? {
             this.viewportWidth = viewportWidth
             this.viewportHeight = viewportHeight
             this.viewportOrientationMayChange = viewportOrientationMayChange
@@ -556,7 +498,9 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          * @return This builder.
          */
         open fun setPreferredVideoMimeType(mimeType: String?): TrackSelectionParameters.Builder? {
-            return if (mimeType == null) setPreferredVideoMimeTypes() else setPreferredVideoMimeTypes(mimeType)
+            return if (mimeType == null) setPreferredVideoMimeTypes() else setPreferredVideoMimeTypes(
+                mimeType
+            )
         }
 
         /**
@@ -592,7 +536,9 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          * @return This builder.
          */
         open fun setPreferredAudioLanguage(preferredAudioLanguage: String?): TrackSelectionParameters.Builder? {
-            return if (preferredAudioLanguage == null) setPreferredAudioLanguages() else setPreferredAudioLanguages(preferredAudioLanguage)
+            return if (preferredAudioLanguage == null) setPreferredAudioLanguages() else setPreferredAudioLanguages(
+                preferredAudioLanguage
+            )
         }
 
         /**
@@ -605,7 +551,10 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          */
         @CanIgnoreReturnValue
         open fun setPreferredAudioLanguages(vararg preferredAudioLanguages: String?): TrackSelectionParameters.Builder? {
-            this.preferredAudioLanguages = TrackSelectionParameters.Builder.Companion.normalizeLanguageCodes(preferredAudioLanguages)
+            this.preferredAudioLanguages =
+                TrackSelectionParameters.Builder.Companion.normalizeLanguageCodes(
+                    preferredAudioLanguages
+                )
             return this
         }
 
@@ -653,7 +602,9 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          * @return This builder.
          */
         open fun setPreferredAudioMimeType(mimeType: String?): TrackSelectionParameters.Builder? {
-            return if (mimeType == null) setPreferredAudioMimeTypes() else setPreferredAudioMimeTypes(mimeType)
+            return if (mimeType == null) setPreferredAudioMimeTypes() else setPreferredAudioMimeTypes(
+                mimeType
+            )
         }
 
         /**
@@ -681,7 +632,8 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          */
         @CanIgnoreReturnValue
         open fun setPreferredTextLanguageAndRoleFlagsToCaptioningManagerSettings(
-                context: Context): TrackSelectionParameters.Builder? {
+            context: Context
+        ): TrackSelectionParameters.Builder? {
             if (Util.SDK_INT >= 19) {
                 setPreferredTextLanguageAndRoleFlagsToCaptioningManagerSettingsV19(context)
             }
@@ -696,7 +648,9 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          * @return This builder.
          */
         open fun setPreferredTextLanguage(preferredTextLanguage: String?): TrackSelectionParameters.Builder? {
-            return if (preferredTextLanguage == null) setPreferredTextLanguages() else setPreferredTextLanguages(preferredTextLanguage)
+            return if (preferredTextLanguage == null) setPreferredTextLanguages() else setPreferredTextLanguages(
+                preferredTextLanguage
+            )
         }
 
         /**
@@ -709,7 +663,10 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          */
         @CanIgnoreReturnValue
         open fun setPreferredTextLanguages(vararg preferredTextLanguages: String?): TrackSelectionParameters.Builder? {
-            this.preferredTextLanguages = TrackSelectionParameters.Builder.Companion.normalizeLanguageCodes(preferredTextLanguages)
+            this.preferredTextLanguages =
+                TrackSelectionParameters.Builder.Companion.normalizeLanguageCodes(
+                    preferredTextLanguages
+                )
             return this
         }
 
@@ -847,7 +804,9 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          * @return This builder.
          */
         @CanIgnoreReturnValue
-        open fun setTrackTypeDisabled(trackType: @TrackType Int, disabled: Boolean): TrackSelectionParameters.Builder? {
+        open fun setTrackTypeDisabled(
+            trackType: @TrackType Int, disabled: Boolean
+        ): TrackSelectionParameters.Builder? {
             if (disabled) {
                 disabledTrackTypes!!.add(trackType)
             } else {
@@ -863,20 +822,23 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
 
         @RequiresApi(19)
         private fun setPreferredTextLanguageAndRoleFlagsToCaptioningManagerSettingsV19(
-                context: Context) {
+            context: Context
+        ) {
             if (Util.SDK_INT < 23 && Looper.myLooper() == null) {
                 // Android platform bug (pre-Marshmallow) that causes RuntimeExceptions when
                 // CaptioningService is instantiated from a non-Looper thread. See [internal: b/143779904].
                 return
             }
-            val captioningManager: CaptioningManager? = context.getSystemService(Context.CAPTIONING_SERVICE) as CaptioningManager?
+            val captioningManager: CaptioningManager? =
+                context.getSystemService(Context.CAPTIONING_SERVICE) as CaptioningManager?
             if (captioningManager == null || !captioningManager.isEnabled()) {
                 return
             }
             preferredTextRoleFlags = C.ROLE_FLAG_CAPTION or C.ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND
             val preferredLocale: Locale? = captioningManager.getLocale()
             if (preferredLocale != null) {
-                preferredTextLanguages = ImmutableList.of(Util.getLocaleLanguageTag(preferredLocale))
+                preferredTextLanguages =
+                    ImmutableList.of(Util.getLocaleLanguageTag(preferredLocale))
             }
         }
 
@@ -1062,27 +1024,9 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
         }
         val other: TrackSelectionParameters = obj as TrackSelectionParameters
         // Video
-        return ((maxVideoWidth == other.maxVideoWidth
-                ) && (maxVideoHeight == other.maxVideoHeight
-                ) && (maxVideoFrameRate == other.maxVideoFrameRate
-                ) && (maxVideoBitrate == other.maxVideoBitrate
-                ) && (minVideoWidth == other.minVideoWidth
-                ) && (minVideoHeight == other.minVideoHeight
-                ) && (minVideoFrameRate == other.minVideoFrameRate
-                ) && (minVideoBitrate == other.minVideoBitrate
-                ) && (viewportOrientationMayChange == other.viewportOrientationMayChange
-                ) && (viewportWidth == other.viewportWidth
-                ) && (viewportHeight == other.viewportHeight
-                ) && (preferredVideoMimeTypes == other.preferredVideoMimeTypes) && (preferredVideoRoleFlags == other.preferredVideoRoleFlags // Audio
-                ) && (preferredAudioLanguages == other.preferredAudioLanguages) && (preferredAudioRoleFlags == other.preferredAudioRoleFlags
-                ) && (maxAudioChannelCount == other.maxAudioChannelCount
-                ) && (maxAudioBitrate == other.maxAudioBitrate
-                ) && (preferredAudioMimeTypes == other.preferredAudioMimeTypes) && (preferredTextLanguages == other.preferredTextLanguages) && (preferredTextRoleFlags == other.preferredTextRoleFlags
-                ) && (ignoredTextSelectionFlags == other.ignoredTextSelectionFlags
-                ) && (selectUndeterminedTextLanguage == other.selectUndeterminedTextLanguage // General
-                ) && (forceLowestBitrate == other.forceLowestBitrate
-                ) && (forceHighestSupportedBitrate == other.forceHighestSupportedBitrate
-                ) && (overrides == other.overrides) && (disabledTrackTypes == other.disabledTrackTypes))
+        return ((maxVideoWidth == other.maxVideoWidth) && (maxVideoHeight == other.maxVideoHeight) && (maxVideoFrameRate == other.maxVideoFrameRate) && (maxVideoBitrate == other.maxVideoBitrate) && (minVideoWidth == other.minVideoWidth) && (minVideoHeight == other.minVideoHeight) && (minVideoFrameRate == other.minVideoFrameRate) && (minVideoBitrate == other.minVideoBitrate) && (viewportOrientationMayChange == other.viewportOrientationMayChange) && (viewportWidth == other.viewportWidth) && (viewportHeight == other.viewportHeight) && (preferredVideoMimeTypes == other.preferredVideoMimeTypes) && (preferredVideoRoleFlags == other.preferredVideoRoleFlags // Audio
+                ) && (preferredAudioLanguages == other.preferredAudioLanguages) && (preferredAudioRoleFlags == other.preferredAudioRoleFlags) && (maxAudioChannelCount == other.maxAudioChannelCount) && (maxAudioBitrate == other.maxAudioBitrate) && (preferredAudioMimeTypes == other.preferredAudioMimeTypes) && (preferredTextLanguages == other.preferredTextLanguages) && (preferredTextRoleFlags == other.preferredTextRoleFlags) && (ignoredTextSelectionFlags == other.ignoredTextSelectionFlags) && (selectUndeterminedTextLanguage == other.selectUndeterminedTextLanguage // General
+                ) && (forceLowestBitrate == other.forceLowestBitrate) && (forceHighestSupportedBitrate == other.forceHighestSupportedBitrate) && (overrides == other.overrides) && (disabledTrackTypes == other.disabledTrackTypes))
     }
 
     public override fun hashCode(): Int {
@@ -1124,46 +1068,113 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
         val bundle: Bundle = Bundle()
 
         // Video
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_WIDTH), maxVideoWidth)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_HEIGHT), maxVideoHeight)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_FRAMERATE), maxVideoFrameRate)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_BITRATE), maxVideoBitrate)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_WIDTH), minVideoWidth)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_HEIGHT), minVideoHeight)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_FRAMERATE), minVideoFrameRate)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_BITRATE), minVideoBitrate)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_WIDTH), viewportWidth)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_HEIGHT), viewportHeight)
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_WIDTH),
+            maxVideoWidth
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_HEIGHT),
+            maxVideoHeight
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_FRAMERATE),
+            maxVideoFrameRate
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_VIDEO_BITRATE),
+            maxVideoBitrate
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_WIDTH),
+            minVideoWidth
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_HEIGHT),
+            minVideoHeight
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_FRAMERATE),
+            minVideoFrameRate
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MIN_VIDEO_BITRATE),
+            minVideoBitrate
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_WIDTH),
+            viewportWidth
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_HEIGHT),
+            viewportHeight
+        )
         bundle.putBoolean(
-                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_ORIENTATION_MAY_CHANGE), viewportOrientationMayChange)
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_VIEWPORT_ORIENTATION_MAY_CHANGE),
+            viewportOrientationMayChange
+        )
         bundle.putStringArray(
-                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_VIDEO_MIMETYPES),
-                preferredVideoMimeTypes.toTypedArray())
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_VIDEO_ROLE_FLAGS), preferredVideoRoleFlags)
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_VIDEO_MIMETYPES),
+            preferredVideoMimeTypes.toTypedArray()
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_VIDEO_ROLE_FLAGS),
+            preferredVideoRoleFlags
+        )
         // Audio
         bundle.putStringArray(
-                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_LANGUAGES),
-                preferredAudioLanguages.toTypedArray())
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_ROLE_FLAGS), preferredAudioRoleFlags)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_AUDIO_CHANNEL_COUNT), maxAudioChannelCount)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_AUDIO_BITRATE), maxAudioBitrate)
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_LANGUAGES),
+            preferredAudioLanguages.toTypedArray()
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_ROLE_FLAGS),
+            preferredAudioRoleFlags
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_AUDIO_CHANNEL_COUNT),
+            maxAudioChannelCount
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_MAX_AUDIO_BITRATE),
+            maxAudioBitrate
+        )
         bundle.putStringArray(
-                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_MIME_TYPES),
-                preferredAudioMimeTypes.toTypedArray())
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_AUDIO_MIME_TYPES),
+            preferredAudioMimeTypes.toTypedArray()
+        )
         // Text
         bundle.putStringArray(
-                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_TEXT_LANGUAGES), preferredTextLanguages.toTypedArray())
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_TEXT_ROLE_FLAGS), preferredTextRoleFlags)
-        bundle.putInt(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_IGNORED_TEXT_SELECTION_FLAGS), ignoredTextSelectionFlags)
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_TEXT_LANGUAGES),
+            preferredTextLanguages.toTypedArray()
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_PREFERRED_TEXT_ROLE_FLAGS),
+            preferredTextRoleFlags
+        )
+        bundle.putInt(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_IGNORED_TEXT_SELECTION_FLAGS),
+            ignoredTextSelectionFlags
+        )
         bundle.putBoolean(
-                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_SELECT_UNDETERMINED_TEXT_LANGUAGE), selectUndeterminedTextLanguage)
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_SELECT_UNDETERMINED_TEXT_LANGUAGE),
+            selectUndeterminedTextLanguage
+        )
         // General
-        bundle.putBoolean(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_FORCE_LOWEST_BITRATE), forceLowestBitrate)
         bundle.putBoolean(
-                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_FORCE_HIGHEST_SUPPORTED_BITRATE), forceHighestSupportedBitrate)
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_FORCE_LOWEST_BITRATE),
+            forceLowestBitrate
+        )
+        bundle.putBoolean(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_FORCE_HIGHEST_SUPPORTED_BITRATE),
+            forceHighestSupportedBitrate
+        )
         bundle.putParcelableArrayList(
-                TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_SELECTION_OVERRIDES), BundleableUtil.toBundleArrayList(overrides.values))
-        bundle.putIntArray(TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_DISABLED_TRACK_TYPE), Ints.toArray(disabledTrackTypes))
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_SELECTION_OVERRIDES),
+            BundleableUtil.toBundleArrayList(overrides.values)
+        )
+        bundle.putIntArray(
+            TrackSelectionParameters.Companion.keyForField(TrackSelectionParameters.Companion.FIELD_DISABLED_TRACK_TYPE),
+            Ints.toArray(disabledTrackTypes)
+        )
         return bundle
     }
 
@@ -1216,10 +1227,12 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
          * [CaptioningManager].
          *
          */
-        val DEFAULT_WITHOUT_CONTEXT: TrackSelectionParameters = TrackSelectionParameters.Builder().build()
+        val DEFAULT_WITHOUT_CONTEXT: TrackSelectionParameters =
+            TrackSelectionParameters.Builder().build()
 
         @Deprecated("This instance is not configured using {@link Context} constraints. Use {@link\n" + "   *     #getDefaults(Context)} instead.")
-        val DEFAULT: TrackSelectionParameters = TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT
+        val DEFAULT: TrackSelectionParameters =
+            TrackSelectionParameters.Companion.DEFAULT_WITHOUT_CONTEXT
 
         /** Returns an instance configured with default values.  */
         fun getDefaults(context: Context?): TrackSelectionParameters {
@@ -1270,7 +1283,10 @@ open class TrackSelectionParameters protected constructor(builder: TrackSelectio
         }
 
         @Deprecated("Use {@link #fromBundle(Bundle)} instead.")
-        val CREATOR: Bundleable.Creator<TrackSelectionParameters> = Bundleable.Creator({ bundle: Bundle? -> TrackSelectionParameters.Companion.fromBundle(bundle) })
+        val CREATOR: Bundleable.Creator<TrackSelectionParameters> =
+            Bundleable.Creator({ bundle: Bundle? ->
+                TrackSelectionParameters.Companion.fromBundle(bundle)
+            })
 
         /**
          * Converts the given field number to a string which can be used as a field key when implementing

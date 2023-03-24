@@ -23,6 +23,8 @@ import com.google.android.exoplayer2.analytics.PlayerId
 import com.google.android.exoplayer2.decoder.CryptoConfig
 import com.google.android.exoplayer2.drm.DrmInitData.SchemeData
 import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 import java.util.*
 
 /**
@@ -50,7 +52,7 @@ interface ExoMediaDrm {
          * no longer needs the instance, it must call [ExoMediaDrm.release] to decrement the
          * reference count.
          */
-        fun acquireExoMediaDrm(uuid: UUID?): ExoMediaDrm?
+        fun acquireExoMediaDrm(uuid: UUID?): ExoMediaDrm
     }
 
     /**
@@ -69,11 +71,38 @@ interface ExoMediaDrm {
             this.exoMediaDrm = exoMediaDrm
         }
 
-        override fun acquireExoMediaDrm(uuid: UUID?): ExoMediaDrm? {
-            exoMediaDrm!!.acquire()
-            return exoMediaDrm
+        override fun acquireExoMediaDrm(uuid: UUID?): ExoMediaDrm {
+            exoMediaDrm?.acquire()
+            return this.exoMediaDrm!!
         }
     }
+
+    companion object {
+        /** Event indicating that keys need to be requested from the license server.  */
+        const val EVENT_KEY_REQUIRED = MediaDrm.EVENT_KEY_REQUIRED
+
+        /** Event indicating that keys have expired, and are no longer usable.  */
+        const val EVENT_KEY_EXPIRED = MediaDrm.EVENT_KEY_EXPIRED
+
+        /** Event indicating that a certificate needs to be requested from the provisioning server.  */
+        const val EVENT_PROVISION_REQUIRED = MediaDrm.EVENT_PROVISION_REQUIRED
+
+        /**
+         * Key request type for keys that will be used for online use. Streaming keys will not be saved to
+         * the device for subsequent use when the device is not connected to a network.
+         */
+        const val KEY_TYPE_STREAMING = MediaDrm.KEY_TYPE_STREAMING
+
+        /**
+         * Key request type for keys that will be used for offline use. They will be saved to the device
+         * for subsequent use when the device is not connected to a network.
+         */
+        const val KEY_TYPE_OFFLINE = MediaDrm.KEY_TYPE_OFFLINE
+
+        /** Key request type indicating that saved offline keys should be released.  */
+        const val KEY_TYPE_RELEASE = MediaDrm.KEY_TYPE_RELEASE
+    }
+
 
     /**
      * Called when a DRM event occurs.
@@ -91,11 +120,8 @@ interface ExoMediaDrm {
          * @param data Optional byte array of data that may be associated with the event.
          */
         fun onEvent(
-                mediaDrm: ExoMediaDrm?,
-                sessionId: ByteArray?,
-                event: Int,
-                extra: Int,
-                data: ByteArray?)
+            mediaDrm: ExoMediaDrm?, sessionId: ByteArray?, event: Int, extra: Int, data: ByteArray?
+        )
     }
 
     /**
@@ -114,10 +140,11 @@ interface ExoMediaDrm {
          * @param hasNewUsableKey Whether a new key became usable.
          */
         fun onKeyStatusChange(
-                mediaDrm: ExoMediaDrm?,
-                sessionId: ByteArray?,
-                exoKeyInformation: List<KeyStatus?>?,
-                hasNewUsableKey: Boolean)
+            mediaDrm: ExoMediaDrm?,
+            sessionId: ByteArray?,
+            exoKeyInformation: List<KeyStatus?>?,
+            hasNewUsableKey: Boolean
+        )
     }
 
     /**
@@ -136,7 +163,9 @@ interface ExoMediaDrm {
          * milliseconds, relative to the Unix epoch. A time of 0 indicates that the keys never
          * expire.
          */
-        fun onExpirationUpdate(mediaDrm: ExoMediaDrm?, sessionId: ByteArray?, expirationTimeMs: Long)
+        fun onExpirationUpdate(
+            mediaDrm: ExoMediaDrm?, sessionId: ByteArray?, expirationTimeMs: Long
+        )
     }
 
     /**
@@ -146,8 +175,7 @@ interface ExoMediaDrm {
      */
     class KeyStatus {
         private var statusCode = 0
-        private var keyId: ByteArray? = null
-
+        private val keyId: ByteArray
 
         /**
          * Creates an instance.
@@ -155,9 +183,9 @@ interface ExoMediaDrm {
          * @param statusCode The status code of the key, as defined by [     ][MediaDrm.KeyStatus.getStatusCode].
          * @param keyId The ID of the key.
          */
-        constructor(statusCode: Int, keyId: ByteArray?) {
+        constructor(statusCode: Int, keyId: ByteArray) {
             this.statusCode = statusCode
-            this.keyId = keyId!!
+            this.keyId = keyId
         }
 
         /** Returns the status of the key, as defined by [MediaDrm.KeyStatus.getStatusCode].  */
@@ -166,11 +194,10 @@ interface ExoMediaDrm {
         }
 
         /** Returns the ID of the key.  */
-        fun getKeyId(): ByteArray? {
+        fun getKeyId(): ByteArray {
             return keyId
         }
     }
-
 
     /**
      * Contains data used to request keys from a license server.
@@ -184,11 +211,18 @@ interface ExoMediaDrm {
          * [.REQUEST_TYPE_UPDATE].
          */
         @Documented
-        @Retention(AnnotationRetention.SOURCE)
+        @Retention(RetentionPolicy.SOURCE)
         @Target(TYPE_USE)
         @IntDef(value = [REQUEST_TYPE_UNKNOWN, REQUEST_TYPE_INITIAL, REQUEST_TYPE_RENEWAL, REQUEST_TYPE_RELEASE, REQUEST_TYPE_NONE, REQUEST_TYPE_UPDATE])
         annotation class RequestType
 
+        /**
+         * Creates an instance.
+         *
+         * @param data The opaque key request data.
+         * @param licenseServerUrl The license server URL to which the request should be made.
+         * @param requestType The type of the request, or [.REQUEST_TYPE_UNKNOWN].
+         */
         companion object {
             /**
              * Value returned from [.getRequestType] if the underlying key request does not specify
@@ -272,6 +306,7 @@ interface ExoMediaDrm {
      * @see MediaDrm.ProvisionRequest
      */
     class ProvisionRequest {
+
         private var data: ByteArray? = null
         private var defaultUrl: String? = null
 
@@ -282,10 +317,11 @@ interface ExoMediaDrm {
          * @param defaultUrl The default URL of the provisioning server to which the request can be
          * made, or the empty string if not known.
          */
-        constructor(data: ByteArray?, defaultUrl: String?) {
+        constructor(data: ByteArray, defaultUrl: String?) {
             this.data = data
             this.defaultUrl = defaultUrl
         }
+
 
         /** Returns the opaque provisioning request data.  */
         fun getData(): ByteArray? {
@@ -384,10 +420,11 @@ interface ExoMediaDrm {
      */
     @Throws(NotProvisionedException::class)
     fun getKeyRequest(
-            scope: ByteArray?,
-            schemeDatas: List<SchemeData?>?,
-            keyType: Int,
-            optionalParameters: HashMap<String?, String?>?): KeyRequest?
+        scope: ByteArray?,
+        schemeDatas: List<SchemeData?>?,
+        keyType: Int,
+        optionalParameters: HashMap<String?, String?>?
+    ): KeyRequest?
 
     /**
      * Provides a key response for the last request to be generated using [.getKeyRequest].
@@ -518,31 +555,5 @@ interface ExoMediaDrm {
      * Returns the [type][C.CryptoType] of [CryptoConfig] instances returned by [ ][.createCryptoConfig].
      */
     @C.CryptoType
-    fun getCryptoType(): Int
-
-    companion object {
-        /** Event indicating that keys need to be requested from the license server.  */
-        const val EVENT_KEY_REQUIRED = MediaDrm.EVENT_KEY_REQUIRED
-
-        /** Event indicating that keys have expired, and are no longer usable.  */
-        const val EVENT_KEY_EXPIRED = MediaDrm.EVENT_KEY_EXPIRED
-
-        /** Event indicating that a certificate needs to be requested from the provisioning server.  */
-        const val EVENT_PROVISION_REQUIRED = MediaDrm.EVENT_PROVISION_REQUIRED
-
-        /**
-         * Key request type for keys that will be used for online use. Streaming keys will not be saved to
-         * the device for subsequent use when the device is not connected to a network.
-         */
-        const val KEY_TYPE_STREAMING = MediaDrm.KEY_TYPE_STREAMING
-
-        /**
-         * Key request type for keys that will be used for offline use. They will be saved to the device
-         * for subsequent use when the device is not connected to a network.
-         */
-        const val KEY_TYPE_OFFLINE = MediaDrm.KEY_TYPE_OFFLINE
-
-        /** Key request type indicating that saved offline keys should be released.  */
-        const val KEY_TYPE_RELEASE = MediaDrm.KEY_TYPE_RELEASE
-    }
+    open fun getCryptoType(): Int
 }

@@ -15,7 +15,7 @@
  */
 package com.google.android.exoplayer2.source.ads
 
-import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.C.ContentType
 import com.google.android.exoplayer2.MediaItem.AdsConfiguration
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.source.ads.AdsLoader.EventListener
@@ -116,7 +116,7 @@ interface AdsLoader {
      * [C.CONTENT_TYPE_DASH], [C.CONTENT_TYPE_HLS], [C.CONTENT_TYPE_SS] and
      * [C.CONTENT_TYPE_OTHER].
      */
-    fun setSupportedContentTypes(@C.ContentType vararg contentTypes: Int)
+    fun setSupportedContentTypes(@ContentType vararg contentTypes: Int)
 
     /**
      * Starts using the ads loader for playback. Called on the main thread by [AdsMediaSource].
@@ -128,11 +128,12 @@ interface AdsLoader {
      * @param eventListener Listener for ads loader events.
      */
     fun start(
-            adsMediaSource: AdsMediaSource?,
-            adTagDataSpec: DataSpec?,
-            adsId: Any?,
-            adViewProvider: AdViewProvider?,
-            eventListener: EventListener?)
+        adsMediaSource: AdsMediaSource?,
+        adTagDataSpec: DataSpec?,
+        adsId: Any?,
+        adViewProvider: AdViewProvider?,
+        eventListener: EventListener?
+    )
 
     /**
      * Stops using the ads loader for playback and deregisters the event listener. Called on the main
@@ -151,7 +152,11 @@ interface AdsLoader {
      * @param adGroupIndex The index of the ad group.
      * @param adIndexInAdGroup The index of the ad in the ad group.
      */
-    fun handlePrepareComplete(adsMediaSource: AdsMediaSource?, adGroupIndex: Int, adIndexInAdGroup: Int)
+    fun handlePrepareComplete(
+        adsMediaSource: AdsMediaSource?,
+        adGroupIndex: Int,
+        adIndexInAdGroup: Int
+    )
 
     /**
      * Notifies the ads loader that the player was not able to prepare media for a given ad.
@@ -163,5 +168,10 @@ interface AdsLoader {
      * @param adIndexInAdGroup The index of the ad in the ad group.
      * @param exception The preparation error.
      */
-    fun handlePrepareError(adsMediaSource: AdsMediaSource?, adGroupIndex: Int, adIndexInAdGroup: Int, exception: IOException?)
+    fun handlePrepareError(
+        adsMediaSource: AdsMediaSource?,
+        adGroupIndex: Int,
+        adIndexInAdGroup: Int,
+        exception: IOException?
+    )
 }

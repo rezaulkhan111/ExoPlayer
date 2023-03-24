@@ -68,7 +68,7 @@ interface DownloadCursor : Closeable {
      *
      * @return whether the move succeeded.
      */
-    fun moveToLast(): Boolean {
+    open fun moveToLast(): Boolean {
         return moveToPosition(getCount() - 1)
     }
 

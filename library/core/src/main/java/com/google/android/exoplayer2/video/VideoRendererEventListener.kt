@@ -45,7 +45,8 @@ interface VideoRendererEventListener {
      * @param initializationDurationMs The time taken to initialize the decoder in milliseconds.
      */
     fun onVideoDecoderInitialized(
-            decoderName: String?, initializedTimestampMs: Long, initializationDurationMs: Long) {
+        decoderName: String?, initializedTimestampMs: Long, initializationDurationMs: Long
+    ) {
     }
 
     @Deprecated("Use {@link #onVideoInputFormatChanged(Format, DecoderReuseEvaluation)}.")
@@ -61,7 +62,8 @@ interface VideoRendererEventListener {
      * have a decoder.
      */
     fun onVideoInputFormatChanged(
-            format: Format?, decoderReuseEvaluation: DecoderReuseEvaluation?) {
+        format: Format?, decoderReuseEvaluation: DecoderReuseEvaluation?
+    ) {
     }
 
     /**
@@ -147,8 +149,9 @@ interface VideoRendererEventListener {
     fun onVideoCodecError(videoCodecError: Exception?) {}
 
     /** Dispatches events to a [VideoRendererEventListener].  */
-    class EventDispatcher {
-
+    class EventDispatcher(
+        handler: Handler?, listener: VideoRendererEventListener?
+    ) {
         private val handler: Handler?
         private val listener: VideoRendererEventListener?
 
@@ -157,22 +160,25 @@ interface VideoRendererEventListener {
          * @param listener The listener to which events should be dispatched, or null if events should
          * not be dispatched.
          */
-        constructor(handler: Handler?, listener: VideoRendererEventListener?) {
+        init {
             this.handler = if (listener != null) checkNotNull(handler) else null
             this.listener = listener
         }
 
         /** Invokes [VideoRendererEventListener.onVideoEnabled].  */
         fun enabled(decoderCounters: DecoderCounters?) {
-            handler?.post { castNonNull(listener)?.onVideoEnabled(decoderCounters) }
+            handler?.post { castNonNull(listener).onVideoEnabled(decoderCounters) }
         }
 
         /** Invokes [VideoRendererEventListener.onVideoDecoderInitialized].  */
         fun decoderInitialized(
-                decoderName: String?, initializedTimestampMs: Long, initializationDurationMs: Long) {
+            decoderName: String?, initializedTimestampMs: Long, initializationDurationMs: Long
+        ) {
             handler?.post {
-                castNonNull(listener)?.onVideoDecoderInitialized(
-                        decoderName, initializedTimestampMs, initializationDurationMs)
+                castNonNull(listener)
+                    .onVideoDecoderInitialized(
+                        decoderName, initializedTimestampMs, initializationDurationMs
+                    )
             }
         }
 
@@ -181,28 +187,30 @@ interface VideoRendererEventListener {
          */
         // Calling deprecated listener method.
         fun inputFormatChanged(
-                format: Format?, decoderReuseEvaluation: DecoderReuseEvaluation?) {
+            format: Format?, decoderReuseEvaluation: DecoderReuseEvaluation?
+        ) {
             handler?.post {
-                castNonNull(listener)?.onVideoInputFormatChanged(format)
-                castNonNull(listener)?.onVideoInputFormatChanged(format, decoderReuseEvaluation)
+                castNonNull(listener).onVideoInputFormatChanged(format)
+                castNonNull(listener).onVideoInputFormatChanged(format, decoderReuseEvaluation)
             }
         }
 
         /** Invokes [VideoRendererEventListener.onDroppedFrames].  */
         fun droppedFrames(droppedFrameCount: Int, elapsedMs: Long) {
-            handler?.post { castNonNull(listener)?.onDroppedFrames(droppedFrameCount, elapsedMs) }
+            handler?.post { castNonNull(listener).onDroppedFrames(droppedFrameCount, elapsedMs) }
         }
 
         /** Invokes [VideoRendererEventListener.onVideoFrameProcessingOffset].  */
         fun reportVideoFrameProcessingOffset(totalProcessingOffsetUs: Long, frameCount: Int) {
             handler?.post {
-                castNonNull(listener)?.onVideoFrameProcessingOffset(totalProcessingOffsetUs, frameCount)
+                castNonNull(listener)
+                    .onVideoFrameProcessingOffset(totalProcessingOffsetUs, frameCount)
             }
         }
 
         /** Invokes [VideoRendererEventListener.onVideoSizeChanged].  */
         fun videoSizeChanged(videoSize: VideoSize?) {
-            handler?.post { castNonNull(listener)?.onVideoSizeChanged(videoSize) }
+            handler?.post { castNonNull(listener).onVideoSizeChanged(videoSize) }
         }
 
         /** Invokes [VideoRendererEventListener.onRenderedFirstFrame].  */
@@ -210,13 +218,18 @@ interface VideoRendererEventListener {
             if (handler != null) {
                 // TODO: Replace this timestamp with the actual frame release time.
                 val renderTimeMs = SystemClock.elapsedRealtime()
-                handler.post(Runnable { castNonNull(listener)?.onRenderedFirstFrame(output, renderTimeMs) })
+                handler.post(Runnable {
+                    castNonNull(listener).onRenderedFirstFrame(
+                        output,
+                        renderTimeMs
+                    )
+                })
             }
         }
 
         /** Invokes [VideoRendererEventListener.onVideoDecoderReleased].  */
         fun decoderReleased(decoderName: String?) {
-            handler?.post { castNonNull(listener)?.onVideoDecoderReleased(decoderName) }
+            handler?.post { castNonNull(listener).onVideoDecoderReleased(decoderName) }
         }
 
         /** Invokes [VideoRendererEventListener.onVideoDisabled].  */
@@ -224,13 +237,13 @@ interface VideoRendererEventListener {
             counters.ensureUpdated()
             handler?.post {
                 counters.ensureUpdated()
-                castNonNull(listener)?.onVideoDisabled(counters)
+                castNonNull(listener).onVideoDisabled(counters)
             }
         }
 
         /** Invokes [VideoRendererEventListener.onVideoCodecError].  */
         fun videoCodecError(videoCodecError: Exception?) {
-            handler?.post { castNonNull(listener)?.onVideoCodecError(videoCodecError) }
+            handler?.post { castNonNull(listener).onVideoCodecError(videoCodecError) }
         }
     }
 }

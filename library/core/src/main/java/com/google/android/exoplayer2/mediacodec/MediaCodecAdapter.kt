@@ -16,6 +16,7 @@
 package com.google.android.exoplayer2.mediacodec
 
 import android.media.MediaCodec
+import android.media.MediaCodec.BufferInfo
 import android.media.MediaCrypto
 import android.media.MediaFormat
 import android.os.Bundle
@@ -50,12 +51,14 @@ interface MediaCodecAdapter {
          * @return The created instance.
          */
         fun createForAudioDecoding(
-                codecInfo: MediaCodecInfo,
-                mediaFormat: MediaFormat,
-                format: Format,
-                crypto: MediaCrypto?): Configuration {
+            codecInfo: MediaCodecInfo?,
+            mediaFormat: MediaFormat?,
+            format: Format?,
+            crypto: MediaCrypto?
+        ): Configuration? {
             return Configuration(
-                    codecInfo, mediaFormat, format,  /* surface= */null, crypto,  /* flags= */0)
+                codecInfo!!, mediaFormat!!, format!!,  /* surface= */null, crypto,  /* flags= */0
+            )
         }
 
         /**
@@ -69,12 +72,16 @@ interface MediaCodecAdapter {
          * @return The created instance.
          */
         fun createForVideoDecoding(
-                codecInfo: MediaCodecInfo,
-                mediaFormat: MediaFormat,
-                format: Format,
-                surface: Surface?,
-                crypto: MediaCrypto?): Configuration {
-            return Configuration(codecInfo, mediaFormat, format, surface, crypto,  /* flags= */0)
+            codecInfo: MediaCodecInfo?,
+            mediaFormat: MediaFormat?,
+            format: Format?,
+            surface: Surface?,
+            crypto: MediaCrypto?
+        ): Configuration {
+            return Configuration(
+                codecInfo!!,
+                mediaFormat!!, format!!, surface, crypto,  /* flags= */0
+            )
         }
 
         /** Information about the [MediaCodec] being configured.  */
@@ -100,12 +107,13 @@ interface MediaCodecAdapter {
         var flags = 0
 
         private constructor(
-                codecInfo: MediaCodecInfo,
-                mediaFormat: MediaFormat,
-                format: Format,
-                surface: Surface?,
-                crypto: MediaCrypto?,
-                flags: Int) {
+            codecInfo: MediaCodecInfo,
+            mediaFormat: MediaFormat,
+            format: Format,
+            surface: Surface?,
+            crypto: MediaCrypto?,
+            flags: Int
+        ) {
             this.codecInfo = codecInfo
             this.mediaFormat = mediaFormat
             this.format = format
@@ -151,7 +159,7 @@ interface MediaCodecAdapter {
      *
      * @throws IllegalStateException If the underlying [MediaCodec] raised an error.
      */
-    fun dequeueOutputBufferIndex(bufferInfo: MediaCodec.BufferInfo?): Int
+    fun dequeueOutputBufferIndex(bufferInfo: BufferInfo?): Int
 
     /**
      * Gets the [MediaFormat] that was output from the [MediaCodec].
@@ -200,7 +208,8 @@ interface MediaCodecAdapter {
      * @see MediaCodec.queueSecureInputBuffer
      */
     fun queueSecureInputBuffer(
-            index: Int, offset: Int, info: CryptoInfo?, presentationTimeUs: Long, flags: Int)
+        index: Int, offset: Int, info: CryptoInfo?, presentationTimeUs: Long, flags: Int
+    )
 
     /**
      * Returns the buffer to the [MediaCodec]. If the [MediaCodec] was configured with an

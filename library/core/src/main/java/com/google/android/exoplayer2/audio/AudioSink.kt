@@ -17,10 +17,12 @@ package com.google.android.exoplayer2.audio
 
 import android.media.AudioDeviceInfo
 import android.media.AudioTrack
+import androidx.annotation.IntDef
 import androidx.annotation.RequiresApi
 import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.PlaybackParameters
 import com.google.android.exoplayer2.analytics.PlayerId
-import com.google.android.exoplayer2import.PlaybackParameters
+import com.google.android.exoplayer2.audio.AudioSink.*
 import java.lang.annotation.Documented
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
@@ -126,7 +128,8 @@ interface AudioSink {
     /** Thrown when a failure occurs configuring the sink.  */
     class ConfigurationException : Exception {
         /** Input [Format] of the sink when the configuration failure occurs.  */
-        var format: Format? = null
+        @JvmField
+        val format: Format
 
         /** Creates a new configuration exception with the specified `cause` and no message.  */
         constructor(cause: Throwable?, format: Format) : super(cause) {
@@ -141,7 +144,6 @@ interface AudioSink {
 
     /** Thrown when a failure occurs initializing the sink.  */
     class InitializationException : Exception {
-
         /** The underlying [AudioTrack]'s state.  */
         var audioTrackState = 0
 
@@ -163,20 +165,17 @@ interface AudioSink {
          * @param audioTrackException Exception thrown during the creation of the [AudioTrack].
          */
         constructor(
-                audioTrackState: Int,
-                sampleRate: Int,
-                channelConfig: Int,
-                bufferSize: Int,
-                format: Format?,
-                isRecoverable: Boolean,
-                audioTrackException: Exception?) : super(
-                "AudioTrack init failed "
-                        + audioTrackState
-                        + " "
-                        + "Config($sampleRate, $channelConfig, $bufferSize)"
-                        + if (isRecoverable) " (recoverable)" else "",
-                audioTrackException) {
-
+            audioTrackState: Int,
+            sampleRate: Int,
+            channelConfig: Int,
+            bufferSize: Int,
+            format: Format?,
+            isRecoverable: Boolean,
+            audioTrackException: Exception?
+        ) : super(
+            "AudioTrack init failed " + audioTrackState + " " + "Config($sampleRate, $channelConfig, $bufferSize)" + if (isRecoverable) " (recoverable)" else "",
+            audioTrackException
+        ) {
             this.audioTrackState = audioTrackState
             this.isRecoverable = isRecoverable
             this.format = format
@@ -205,7 +204,9 @@ interface AudioSink {
          * @param format The input format of the sink when the error occurs.
          * @param isRecoverable Whether the exception can be recovered by recreating the sink.
          */
-        constructor(errorCode: Int, format: Format?, isRecoverable: Boolean) : super("AudioTrack write failed: $errorCode") {
+        constructor(
+            errorCode: Int, format: Format?, isRecoverable: Boolean
+        ) : super("AudioTrack write failed: $errorCode") {
             this.isRecoverable = isRecoverable
             this.errorCode = errorCode
             this.format = format
@@ -227,11 +228,11 @@ interface AudioSink {
          * @param expectedPresentationTimeUs The expected presentation time of a sample, in
          * microseconds.
          */
-        constructor(actualPresentationTimeUs: Long, expectedPresentationTimeUs: Long) : super(
-                "Unexpected audio track timestamp discontinuity: expected "
-                        + expectedPresentationTimeUs
-                        + ", got "
-                        + actualPresentationTimeUs) {
+        constructor(
+            actualPresentationTimeUs: Long, expectedPresentationTimeUs: Long
+        ) : super(
+            "Unexpected audio track timestamp discontinuity: expected $expectedPresentationTimeUs, got $actualPresentationTimeUs"
+        ) {
             this.actualPresentationTimeUs = actualPresentationTimeUs
             this.expectedPresentationTimeUs = expectedPresentationTimeUs
         }
@@ -242,9 +243,26 @@ interface AudioSink {
      */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(TYPE_USE)
-    @IntDef([SINK_FORMAT_SUPPORTED_DIRECTLY, SINK_FORMAT_SUPPORTED_WITH_TRANSCODING, SINK_FORMAT_UNSUPPORTED])
+    @Target(TYPE_USE, AnnotationTarget.FUNCTION)
+    @IntDef(value = [SINK_FORMAT_SUPPORTED_DIRECTLY, SINK_FORMAT_SUPPORTED_WITH_TRANSCODING, SINK_FORMAT_UNSUPPORTED])
     annotation class SinkFormatSupport
+
+    companion object {
+        /** The sink supports the format directly, without the need for internal transcoding.  */
+        const val SINK_FORMAT_SUPPORTED_DIRECTLY = 2
+
+        /**
+         * The sink supports the format, but needs to transcode it internally to do so. Internal
+         * transcoding may result in lower quality and higher CPU load in some cases.
+         */
+        const val SINK_FORMAT_SUPPORTED_WITH_TRANSCODING = 1
+
+        /** The sink does not support the format.  */
+        const val SINK_FORMAT_UNSUPPORTED = 0
+
+        /** Returned by [.getCurrentPositionUs] when the position is not set.  */
+        const val CURRENT_POSITION_NOT_SET = Long.MIN_VALUE
+    }
 
     /**
      * Sets the listener for sink events, which should be the audio renderer.
@@ -327,8 +345,12 @@ interface AudioSink {
      * @throws InitializationException If an error occurs initializing the sink.
      * @throws WriteException If an error occurs writing the audio data.
      */
-    @Throws(InitializationException::class, WriteException::class)
-    fun handleBuffer(buffer: ByteBuffer?, presentationTimeUs: Long, encodedAccessUnitCount: Int): Boolean
+    @Throws(
+        InitializationException::class, WriteException::class
+    )
+    fun handleBuffer(
+        buffer: ByteBuffer?, presentationTimeUs: Long, encodedAccessUnitCount: Int
+    ): Boolean
 
     /**
      * Processes any remaining data. [.isEnded] will return `true` when no data remains.
@@ -341,7 +363,7 @@ interface AudioSink {
     /**
      * Returns whether [.playToEndOfStream] has been called and all buffers have been processed.
      */
-    open fun isEnded(): Boolean
+    fun isEnded(): Boolean
 
     /** Returns whether the sink has data pending that has not been consumed yet.  */
     fun hasPendingData(): Boolean
@@ -454,21 +476,4 @@ interface AudioSink {
 
     /** Resets the sink, releasing any resources that it currently holds.  */
     fun reset()
-
-    companion object {
-        /** The sink supports the format directly, without the need for internal transcoding.  */
-        const val SINK_FORMAT_SUPPORTED_DIRECTLY = 2
-
-        /**
-         * The sink supports the format, but needs to transcode it internally to do so. Internal
-         * transcoding may result in lower quality and higher CPU load in some cases.
-         */
-        const val SINK_FORMAT_SUPPORTED_WITH_TRANSCODING = 1
-
-        /** The sink does not support the format.  */
-        const val SINK_FORMAT_UNSUPPORTED = 0
-
-        /** Returned by [.getCurrentPositionUs] when the position is not set.  */
-        const val CURRENT_POSITION_NOT_SET = Long.MIN_VALUE
-    }
 }

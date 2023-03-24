@@ -34,23 +34,25 @@ interface ExoTrackSelection : TrackSelection {
     /** Contains of a subset of selected tracks belonging to a [TrackGroup].  */
     class Definition {
         /** The [TrackGroup] which tracks belong to.  */
-        @JvmField
-        val group: TrackGroup?
+        var group: TrackGroup? = null
 
         /** The indices of the selected tracks in [.group].  */
-        @JvmField
-        val tracks: IntArray
+        var tracks: IntArray? = null
 
         /** The type that will be returned from [TrackSelection.getType].  */
-        @JvmField
-        val type: @TrackSelection.Type Int
+        @Type
+        var type = 0
+
+        private val TAG = "ETSDefinition"
 
         /**
          * @param group The [TrackGroup]. Must not be null.
          * @param tracks The indices of the selected tracks within the [TrackGroup]. Must not be
          * null or empty. May be in any order.
          */
-        constructor(group: TrackGroup?, vararg tracks: Int) : this(group, tracks, TrackSelection.TYPE_UNSET) {}
+        constructor(group: TrackGroup?, vararg tracks: Int) {
+            Definition(group, tracks, TrackSelection.TYPE_UNSET)
+        }
 
         /**
          * @param group The [TrackGroup]. Must not be null.
@@ -58,18 +60,14 @@ interface ExoTrackSelection : TrackSelection {
          * null or empty. May be in any order.
          * @param type The type that will be returned from [TrackSelection.getType].
          */
-        constructor(group: TrackGroup?, tracks: IntArray, type: @TrackSelection.Type Int) {
-            if (tracks.size == 0) {
+        constructor(group: TrackGroup?, tracks: IntArray?, @Type type: Int) {
+            if (tracks?.size == 0) {
                 // TODO: Turn this into an assertion.
                 e(TAG, "Empty tracks are not allowed", IllegalArgumentException())
             }
             this.group = group
             this.tracks = tracks
             this.type = type
-        }
-
-        companion object {
-            private const val TAG = "ETSDefinition"
         }
     }
 
@@ -90,10 +88,11 @@ interface ExoTrackSelection : TrackSelection {
          * include null values.
          */
         fun createTrackSelections(
-                definitions: Array<Definition?>?,
-                bandwidthMeter: BandwidthMeter?,
-                mediaPeriodId: MediaSource.MediaPeriodId?,
-                timeline: Timeline?): Array<ExoTrackSelection?>?
+            definitions: Array<Definition?>?,
+            bandwidthMeter: BandwidthMeter?,
+            mediaPeriodId: MediaSource.MediaPeriodId?,
+            timeline: Timeline?
+        ): Array<ExoTrackSelection?>?
     }
 
     /**
@@ -111,9 +110,7 @@ interface ExoTrackSelection : TrackSelection {
      * This method may only be called when the track selection is already enabled.
      */
     fun disable()
-
     // Individual selected track.
-
     // Individual selected track.
     /** Returns the [Format] of the individual selected track.  */
     fun getSelectedFormat(): Format?
@@ -130,6 +127,7 @@ interface ExoTrackSelection : TrackSelection {
 
     /** Returns optional data associated with the current track selection.  */
     fun getSelectionData(): Any?
+
     // Adaptation.
     /**
      * Called to notify the selection of the current playback speed. The playback speed may affect
@@ -189,11 +187,12 @@ interface ExoTrackSelection : TrackSelection {
      * empty.
      */
     fun updateSelectedTrack(
-            playbackPositionUs: Long,
-            bufferedDurationUs: Long,
-            availableDurationUs: Long,
-            queue: List<MediaChunk?>?,
-            mediaChunkIterators: Array<MediaChunkIterator?>?)
+        playbackPositionUs: Long,
+        bufferedDurationUs: Long,
+        availableDurationUs: Long,
+        queue: List<MediaChunk?>?,
+        mediaChunkIterators: Array<MediaChunkIterator?>?
+    )
 
     /**
      * Returns the number of chunks that should be retained in the queue.
@@ -255,7 +254,11 @@ interface ExoTrackSelection : TrackSelection {
      * @param queue The queue of buffered [MediaChunks][MediaChunk], including the `loadingChunk` if it's a [MediaChunk]. Must not be modified.
      * @return Whether the ongoing load of `loadingChunk` should be canceled.
      */
-    fun shouldCancelChunkLoad(playbackPositionUs: Long, loadingChunk: Chunk?, queue: List<MediaChunk?>?): Boolean {
+    fun shouldCancelChunkLoad(
+        playbackPositionUs: Long,
+        loadingChunk: Chunk?,
+        queue: List<MediaChunk?>?
+    ): Boolean {
         return false
     }
 

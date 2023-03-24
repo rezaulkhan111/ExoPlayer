@@ -16,19 +16,16 @@
 package com.google.android.exoplayer2.drm
 
 import androidx.annotation.IntDef
-import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.decoder.CryptoConfig
+import com.google.android.exoplayer2import.PlaybackException
 import java.io.IOException
 import java.lang.annotation.Documented
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 import java.util.*
 
-/**
- * A DRM session.
- */
+/** A DRM session.  */
 interface DrmSession {
-
     /** Wraps the throwable which is the cause of the error state.  */
     class DrmSessionException : IOException {
         /** The [PlaybackException.ErrorCode] that corresponds to the failure.  */
@@ -47,9 +44,58 @@ interface DrmSession {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([STATE_RELEASED, STATE_ERROR, STATE_OPENING, STATE_OPENED, STATE_OPENED_WITH_KEYS])
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [STATE_RELEASED, STATE_ERROR, STATE_OPENING, STATE_OPENED, STATE_OPENED_WITH_KEYS])
     annotation class State
+
+    companion object {
+        /**
+         * Acquires `newSession` then releases `previousSession`.
+         *
+         *
+         * Invokes `newSession's` [.acquire] and
+         * `previousSession's` [.release] in that
+         * order (passing `eventDispatcher = null`). Null arguments are ignored. Does nothing if
+         * `previousSession` and `newSession` are the same session.
+         */
+        @JvmStatic
+        fun replaceSession(
+            previousSession: DrmSession?, newSession: DrmSession?
+        ) {
+            if (previousSession === newSession) {
+                // Do nothing.
+                return
+            }
+            newSession?.acquire( /* eventDispatcher= */null)
+            previousSession?.release( /* eventDispatcher= */null)
+        }
+
+        /** The session has been released. This is a terminal state.  */
+        const val STATE_RELEASED = 0
+
+        /**
+         * The session has encountered an error. [.getError] can be used to retrieve the cause.
+         * This is a terminal state.
+         */
+        const val STATE_ERROR = 1
+
+        /** The session is being opened.  */
+        const val STATE_OPENING = 2
+
+        /** The session is open, but does not have keys required for decryption.  */
+        const val STATE_OPENED = 3
+
+        /** The session is open and has keys required for decryption.  */
+        const val STATE_OPENED_WITH_KEYS = 4
+    }
 
     /**
      * Returns the current state of the session, which is one of [.STATE_ERROR], [ ][.STATE_RELEASED], [.STATE_OPENING], [.STATE_OPENED] and [ ][.STATE_OPENED_WITH_KEYS].
@@ -57,9 +103,7 @@ interface DrmSession {
     @State
     fun getState(): Int
 
-    /**
-     * Returns whether this session allows playback of clear samples prior to keys being loaded.
-     */
+    /** Returns whether this session allows playback of clear samples prior to keys being loaded.  */
     fun playClearSamplesWithoutKeys(): Boolean {
         return false
     }
@@ -69,9 +113,7 @@ interface DrmSession {
      */
     fun getError(): DrmSessionException?
 
-    /**
-     * Returns the DRM scheme UUID for this session.
-     */
+    /** Returns the DRM scheme UUID for this session.  */
     fun getSchemeUuid(): UUID?
 
     /**
@@ -129,51 +171,4 @@ interface DrmSession {
      * [.acquire]).
      */
     fun release(eventDispatcher: DrmSessionEventListener.EventDispatcher?)
-
-    companion object {
-        /**
-         * Acquires `newSession` then releases `previousSession`.
-         *
-         * Invokes `newSession's` [.acquire] and
-         * `previousSession's` [.release] in that
-         * order (passing `eventDispatcher = null`). Null arguments are ignored. Does nothing if
-         * `previousSession` and `newSession` are the same session.
-         */
-        @JvmStatic
-        fun replaceSession(
-                previousSession: DrmSession?, newSession: DrmSession?) {
-            if (previousSession === newSession) {
-                // Do nothing.
-                return
-            }
-            newSession?.acquire( /* eventDispatcher= */null)
-            previousSession?.release( /* eventDispatcher= */null)
-        }
-
-        /**
-         * The session has been released. This is a terminal state.
-         */
-        const val STATE_RELEASED = 0
-
-        /**
-         * The session has encountered an error. [.getError] can be used to retrieve the cause.
-         * This is a terminal state.
-         */
-        const val STATE_ERROR = 1
-
-        /**
-         * The session is being opened.
-         */
-        const val STATE_OPENING = 2
-
-        /**
-         * The session is open, but does not have keys required for decryption.
-         */
-        const val STATE_OPENED = 3
-
-        /**
-         * The session is open and has keys required for decryption.
-         */
-        const val STATE_OPENED_WITH_KEYS = 4
-    }
 }

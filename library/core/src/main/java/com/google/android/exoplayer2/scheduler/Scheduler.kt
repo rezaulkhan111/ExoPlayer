@@ -31,7 +31,11 @@ interface Scheduler {
      * @param serviceAction The action with which the service will be started.
      * @return Whether scheduling was successful.
      */
-    fun schedule(requirements: Requirements?, servicePackage: String?, serviceAction: String?): Boolean
+    fun schedule(
+        requirements: Requirements?,
+        servicePackage: String?,
+        serviceAction: String?
+    ): Boolean
 
     /**
      * Cancels anything that was previously scheduled, or else does nothing.

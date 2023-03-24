@@ -15,7 +15,7 @@
  */
 package com.google.android.exoplayer2.source
 
-import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.C.ContentType
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.drm.DrmSessionManagerProvider
 import com.google.android.exoplayer2.upstream.LoadErrorHandlingPolicy
@@ -27,23 +27,26 @@ interface MediaSourceFactory : MediaSource.Factory {
          * An instance that throws [UnsupportedOperationException] from [.createMediaSource]
          * and [.getSupportedTypes].
          */
+        @JvmField
         val UNSUPPORTED: MediaSourceFactory = object : MediaSourceFactory {
             override fun setDrmSessionManagerProvider(
-                    drmSessionManagerProvider: DrmSessionManagerProvider?): MediaSourceFactory {
+                drmSessionManagerProvider: DrmSessionManagerProvider?
+            ): MediaSourceFactory {
                 return this
             }
 
             override fun setLoadErrorHandlingPolicy(
-                    loadErrorHandlingPolicy: LoadErrorHandlingPolicy?): MediaSourceFactory {
+                loadErrorHandlingPolicy: LoadErrorHandlingPolicy?
+            ): MediaSourceFactory {
                 return this
             }
 
-            @C.ContentType
-            override fun getSupportedTypes(): IntArray? {
+            @ContentType
+            override fun getSupportedTypes(): IntArray {
                 throw UnsupportedOperationException()
             }
 
-            override fun createMediaSource(mediaItem: MediaItem?): MediaSource? {
+            override fun createMediaSource(mediaItem: MediaItem): MediaSource {
                 throw UnsupportedOperationException()
             }
         }

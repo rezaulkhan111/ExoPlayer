@@ -41,7 +41,7 @@ interface BandwidthMeter {
 
         /** Event dispatcher which allows listener registration.  */
         class EventDispatcher {
-            private var listeners: CopyOnWriteArrayList<HandlerAndListener>
+            private val listeners: CopyOnWriteArrayList<HandlerAndListener>
 
             /** Creates an event dispatcher.  */
             constructor() {
@@ -71,17 +71,17 @@ interface BandwidthMeter {
                     if (!handlerAndListener.released) {
                         handlerAndListener.handler?.post {
                             handlerAndListener.listener?.onBandwidthSample(
-                                    elapsedMs, bytesTransferred, bitrateEstimate)
+                                elapsedMs, bytesTransferred, bitrateEstimate
+                            )
                         }
                     }
                 }
             }
 
-            private class HandlerAndListener {
-                var handler: Handler? = null
-                var listener: EventListener? = null
-
-                var released = false
+            internal class HandlerAndListener {
+                internal var handler: Handler? = null
+                internal var listener: EventListener? = null
+                internal var released = false
 
                 constructor(handler: Handler?, eventListener: EventListener?) {
                     this.handler = handler

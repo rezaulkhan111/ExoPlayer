@@ -25,7 +25,12 @@ interface MediaCodecSelector {
          * the given format.
          */
         @JvmField
-        val DEFAULT: MediaCodecSelector = MediaCodecSelector { mimeType: String?, secure: Boolean, tunneling: Boolean -> MediaCodecUtil.getDecoderInfos(mimeType!!, secure, tunneling) }
+        val DEFAULT: MediaCodecSelector =
+            MediaCodecSelector { mimeType: String?, secure: Boolean, tunneling: Boolean ->
+                MediaCodecUtil.getDecoderInfos(
+                    mimeType!!, secure, tunneling
+                )
+            }
     }
 
     /**
@@ -39,5 +44,7 @@ interface MediaCodecSelector {
      * @throws DecoderQueryException Thrown if there was an error querying decoders.
      */
     @Throws(DecoderQueryException::class)
-    fun getDecoderInfos(mimeType: String?, requiresSecureDecoder: Boolean, requiresTunnelingDecoder: Boolean): List<MediaCodecInfo?>?
+    fun getDecoderInfos(
+        mimeType: String?, requiresSecureDecoder: Boolean, requiresTunnelingDecoder: Boolean
+    ): List<MediaCodecInfo?>?
 }

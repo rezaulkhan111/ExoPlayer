@@ -49,12 +49,13 @@ interface ProgressiveMediaExtractor {
      */
     @Throws(IOException::class)
     fun init(
-            dataReader: DataReader?,
-            uri: Uri?,
-            responseHeaders: Map<String?, List<String?>?>?,
-            position: Long,
-            length: Long,
-            output: ExtractorOutput?)
+        dataReader: DataReader?,
+        uri: Uri?,
+        responseHeaders: Map<String?, List<String?>?>?,
+        position: Long,
+        length: Long,
+        output: ExtractorOutput?
+    )
 
     /** Releases any held resources.  */
     fun release()

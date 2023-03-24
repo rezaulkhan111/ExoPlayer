@@ -19,6 +19,7 @@ import com.google.android.exoplayer2.Player.DiscontinuityReason
 import com.google.android.exoplayer2.Timeline
 import com.google.android.exoplayer2.analytics.AnalyticsListener.EventTime
 import com.google.android.exoplayer2.source.MediaSource
+import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId
 
 /**
  * Manager for active playback sessions.
@@ -53,7 +54,9 @@ interface PlaybackSessionManager {
          * @param contentSessionId The session identifier of the content session.
          * @param adSessionId The identifier of the ad session.
          */
-        fun onAdPlaybackStarted(eventTime: EventTime?, contentSessionId: String?, adSessionId: String?)
+        fun onAdPlaybackStarted(
+            eventTime: EventTime?, contentSessionId: String?, adSessionId: String?
+        )
 
         /**
          * Called when a session is permanently finished.
@@ -64,7 +67,8 @@ interface PlaybackSessionManager {
          * transition to the next playback item.
          */
         fun onSessionFinished(
-                eventTime: EventTime?, sessionId: String?, automaticTransitionToNextPlayback: Boolean)
+            eventTime: EventTime?, sessionId: String?, automaticTransitionToNextPlayback: Boolean
+        )
     }
 
     /**
@@ -85,7 +89,9 @@ interface PlaybackSessionManager {
      * @param timeline The timeline, `mediaPeriodId` is part of.
      * @param mediaPeriodId A [MediaPeriodId].
      */
-    fun getSessionForMediaPeriodId(timeline: Timeline?, mediaPeriodId: MediaSource.MediaPeriodId?): String?
+    fun getSessionForMediaPeriodId(
+        timeline: Timeline?, mediaPeriodId: MediaSource.MediaPeriodId?
+    ): String?
 
     /**
      * Returns whether an event time belong to a session.

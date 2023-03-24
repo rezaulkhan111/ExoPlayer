@@ -17,6 +17,7 @@ package com.google.android.exoplayer2.source
 
 import android.os.Handler
 import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.C.ContentType
 import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.Timeline
 import com.google.android.exoplayer2.analytics.PlayerId
@@ -49,14 +50,6 @@ interface MediaSource {
     /** Factory for creating [MediaSources][MediaSource] from [MediaItems][MediaItem].  */
     interface Factory {
         /**
-         * An instance that throws [UnsupportedOperationException] from [.createMediaSource]
-         * and [.getSupportedTypes].
-         */
-        var UNSUPPORTED: Factory
-            get() = MediaSourceFactory.UNSUPPORTED
-            set(value) = TODO()
-
-        /**
          * Sets the [DrmSessionManagerProvider] used to obtain a [DrmSessionManager] for a
          * [MediaItem].
          *
@@ -75,7 +68,7 @@ interface MediaSource {
          * Returns the [content types][C.ContentType] supported by media sources created by this
          * factory.
          */
-        @C.ContentType
+        @ContentType
         fun getSupportedTypes(): IntArray?
 
         /**
@@ -85,6 +78,14 @@ interface MediaSource {
          * @return The new [media source][MediaSource].
          */
         fun createMediaSource(mediaItem: MediaItem?): MediaSource?
+
+        companion object {
+            /**
+             * An instance that throws [UnsupportedOperationException] from [.createMediaSource]
+             * and [.getSupportedTypes].
+             */
+            val UNSUPPORTED: Factory = MediaSourceFactory.UNSUPPORTED
+        }
     }
 
     /** A caller of media sources, which will be notified of source events.  */
@@ -109,36 +110,45 @@ interface MediaSource {
      */
     class MediaPeriodId : com.google.android.exoplayer2.source.MediaPeriodId {
         /** See [com.google.android.exoplayer2.source.MediaPeriodId.MediaPeriodId].  */
-        constructor(periodUid: Any?) : super(periodUid!!) {}
+        constructor(periodUid: Any?) : super(periodUid!!)
 
         /**
          * See [com.google.android.exoplayer2.source.MediaPeriodId.MediaPeriodId].
          */
-        constructor(periodUid: Any?, windowSequenceNumber: Long) : super(periodUid!!, windowSequenceNumber) {}
+        constructor(periodUid: Any?, windowSequenceNumber: Long) : super(
+            periodUid!!, windowSequenceNumber
+        )
 
         /**
          * See [com.google.android.exoplayer2.source.MediaPeriodId.MediaPeriodId].
          */
-        constructor(periodUid: Any?, windowSequenceNumber: Long, nextAdGroupIndex: Int) : super(periodUid!!, windowSequenceNumber, nextAdGroupIndex) {}
+        constructor(periodUid: Any?, windowSequenceNumber: Long, nextAdGroupIndex: Int) : super(
+            periodUid!!, windowSequenceNumber, nextAdGroupIndex
+        )
 
         /**
          * See [com.google.android.exoplayer2.source.MediaPeriodId.MediaPeriodId].
          */
-        constructor(periodUid: Any?, adGroupIndex: Int, adIndexInAdGroup: Int, windowSequenceNumber: Long) : super(periodUid!!, adGroupIndex, adIndexInAdGroup, windowSequenceNumber) {
-        }
+        constructor(
+            periodUid: Any?, adGroupIndex: Int, adIndexInAdGroup: Int, windowSequenceNumber: Long
+        ) : super(
+            periodUid!!, adGroupIndex, adIndexInAdGroup, windowSequenceNumber
+        )
 
         /** Wraps an [com.google.android.exoplayer2.source.MediaPeriodId] into a MediaPeriodId.  */
-        constructor(mediaPeriodId: com.google.android.exoplayer2.source.MediaPeriodId?) : super(mediaPeriodId!!) {}
+        constructor(mediaPeriodId: com.google.android.exoplayer2.source.MediaPeriodId?) : super(
+            mediaPeriodId!!
+        )
 
         /** See [com.google.android.exoplayer2.source.MediaPeriodId.copyWithPeriodUid].  */
-        override fun copyWithPeriodUid(newPeriodUid: Any): MediaPeriodId? {
+        override fun copyWithPeriodUid(newPeriodUid: Any): MediaPeriodId {
             return MediaPeriodId(super.copyWithPeriodUid(newPeriodUid))
         }
 
         /**
          * See [ ][com.google.android.exoplayer2.source.MediaPeriodId.copyWithWindowSequenceNumber].
          */
-        override fun copyWithWindowSequenceNumber(windowSequenceNumber: Long): MediaPeriodId? {
+        override fun copyWithWindowSequenceNumber(windowSequenceNumber: Long): MediaPeriodId {
             return MediaPeriodId(super.copyWithWindowSequenceNumber(windowSequenceNumber))
         }
     }
@@ -190,7 +200,7 @@ interface MediaSource {
      * Any media source which has multiple windows should typically provide such an initial
      * timeline to make sure the player reports the correct number of windows immediately.
      */
-    open fun getInitialTimeline(): Timeline? {
+    fun getInitialTimeline(): Timeline? {
         return null
     }
 
@@ -206,9 +216,7 @@ interface MediaSource {
         return true
     }
 
-    /**
-     * Returns the [MediaItem] whose media is provided by the source.
-     */
+    /** Returns the [MediaItem] whose media is provided by the source.  */
     fun getMediaItem(): MediaItem?
 
     /**
@@ -217,7 +225,8 @@ interface MediaSource {
      */
     @Deprecated("")
     fun prepareSource(
-            caller: MediaSourceCaller?, mediaTransferListener: TransferListener?) {
+        caller: MediaSourceCaller?, mediaTransferListener: TransferListener?
+    ) {
         prepareSource(caller, mediaTransferListener, PlayerId.UNSET)
     }
 
@@ -244,9 +253,8 @@ interface MediaSource {
      * @param playerId The [PlayerId] of the player using this media source.
      */
     fun prepareSource(
-            caller: MediaSourceCaller?,
-            mediaTransferListener: TransferListener?,
-            playerId: PlayerId?)
+        caller: MediaSourceCaller?, mediaTransferListener: TransferListener?, playerId: PlayerId?
+    )
 
     /**
      * Throws any pending error encountered while loading or refreshing source information.

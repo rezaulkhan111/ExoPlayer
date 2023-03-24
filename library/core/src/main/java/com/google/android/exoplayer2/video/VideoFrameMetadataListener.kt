@@ -31,8 +31,9 @@ interface VideoFrameMetadataListener {
      * known or not applicable (e.g., because the frame was not output by a [     ]).
      */
     fun onVideoFrameAboutToBeRendered(
-            presentationTimeUs: Long,
-            releaseTimeNs: Long,
-            format: Format?,
-            mediaFormat: MediaFormat?)
+        presentationTimeUs: Long,
+        releaseTimeNs: Long,
+        format: Format?,
+        mediaFormat: MediaFormat?
+    )
 }

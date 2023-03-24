@@ -17,11 +17,9 @@ package com.google.android.exoplayer2.drm
 
 import android.os.Looper
 import com.google.android.exoplayer2.C
-import com.google.android.exoplayer2.C.CryptoType
 import com.google.android.exoplayer2.Format
 import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.analytics.PlayerId
-import com.google.android.exoplayer2.drm.DrmSession.DrmSessionException
 
 /** Manages a DRM session.  */
 interface DrmSessionManager {
@@ -44,6 +42,47 @@ interface DrmSessionManager {
          * underlying session once.
          */
         fun release()
+    }
+
+    companion object {
+        /**
+         * Returns [.DRM_UNSUPPORTED].
+         *
+         */
+        @get:Deprecated("Use {@link #DRM_UNSUPPORTED}.")
+        val dummyDrmSessionManager: DrmSessionManager?
+            get() = DRM_UNSUPPORTED
+
+        /** An instance that supports no DRM schemes.  */
+        val DRM_UNSUPPORTED: DrmSessionManager = object : DrmSessionManager {
+            override fun setPlayer(playbackLooper: Looper?, playerId: PlayerId?) {}
+            override fun acquireSession(
+                eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format
+            ): DrmSession? {
+                return if (format.drmInitData == null) {
+                    null
+                } else {
+                    ErrorStateDrmSession(
+                        DrmSessionException(
+                            UnsupportedDrmException(UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME),
+                            PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED
+                        )
+                    )
+                }
+            }
+
+            @CryptoType
+            override fun getCryptoType(format: Format): Int {
+                return if (format.drmInitData != null) C.CRYPTO_TYPE_UNSUPPORTED else C.CRYPTO_TYPE_NONE
+            }
+        }
+
+        /**
+         * An instance that supports no DRM schemes.
+         *
+         */
+        @Deprecated("Use {@link #DRM_UNSUPPORTED}.")
+        val DUMMY = DRM_UNSUPPORTED
     }
 
     /**
@@ -107,7 +146,9 @@ interface DrmSessionManager {
      * @return A releaser for the pre-acquired session. Guaranteed to be non-null even if the matching
      * [.acquireSession] would return null.
      */
-    fun preacquireSession(eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format?): DrmSessionReference? {
+    fun preacquireSession(
+        eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format?
+    ): DrmSessionReference? {
         return DrmSessionReference.EMPTY
     }
 
@@ -129,7 +170,9 @@ interface DrmSessionManager {
      * @param format The [Format] for which to acquire a [DrmSession].
      * @return The DRM session. May be null if the given [Format.drmInitData] is null.
      */
-    fun acquireSession(eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format): DrmSession?
+    fun acquireSession(
+        eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format
+    ): DrmSession?
 
     /**
      * Returns the [C.CryptoType] that the DRM session manager will use for a given [ ]. Returns [C.CRYPTO_TYPE_UNSUPPORTED] if the manager does not support any of the
@@ -143,44 +186,4 @@ interface DrmSessionManager {
      */
     @CryptoType
     fun getCryptoType(format: Format): Int
-
-    companion object {
-        /**
-         * Returns [.DRM_UNSUPPORTED].
-         *
-         */
-        @Deprecated("")
-        fun getDummyDrmSessionManager(): DrmSessionManager? {
-            return DRM_UNSUPPORTED
-        }
-
-        /** An instance that supports no DRM schemes.  */
-        val DRM_UNSUPPORTED: DrmSessionManager = object : DrmSessionManager {
-            override fun setPlayer(playbackLooper: Looper?, playerId: PlayerId?) {}
-
-            override fun acquireSession(
-                    eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format): DrmSession? {
-                return if (format.drmInitData == null) {
-                    null
-                } else {
-                    ErrorStateDrmSession(
-                            DrmSessionException(
-                                    UnsupportedDrmException(UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME),
-                                    PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED))
-                }
-            }
-
-            @CryptoType
-            override fun getCryptoType(format: Format): Int {
-                return if (format.drmInitData != null) C.CRYPTO_TYPE_UNSUPPORTED else C.CRYPTO_TYPE_NONE
-            }
-        }
-
-        /**
-         * An instance that supports no DRM schemes.
-         *
-         */
-        @Deprecated("Use {@link #DRM_UNSUPPORTED}.")
-        val DUMMY = DRM_UNSUPPORTED
-    }
 }

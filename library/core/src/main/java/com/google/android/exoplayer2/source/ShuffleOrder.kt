@@ -32,16 +32,18 @@ interface ShuffleOrder {
     /** The default [ShuffleOrder] implementation for random shuffle order.  */
     class DefaultShuffleOrder : ShuffleOrder {
 
-        private var random: Random? = null
-        private val shuffled: IntArray
-        private val indexInShuffled: IntArray
+        private var random: Random = Random()
+        private var shuffled: IntArray = IntArray(0)
+        private var indexInShuffled: IntArray = IntArray(0)
 
         /**
          * Creates an instance with a specified length.
          *
          * @param length The length of the shuffle order.
          */
-        constructor(length: Int) : this(length, Random()) {}
+        constructor(length: Int) {
+            DefaultShuffleOrder(length, Random())
+        }
 
         /**
          * Creates an instance with a specified length and the specified random seed. Shuffle orders of
@@ -50,7 +52,9 @@ interface ShuffleOrder {
          * @param length The length of the shuffle order.
          * @param randomSeed A random seed.
          */
-        constructor(length: Int, randomSeed: Long) : this(length, Random(randomSeed)) {}
+        constructor(length: Int, randomSeed: Long) {
+            DefaultShuffleOrder(length, Random(randomSeed))
+        }
 
         /**
          * Creates an instance with a specified shuffle order and the specified random seed. The random
@@ -59,14 +63,20 @@ interface ShuffleOrder {
          * @param shuffledIndices The shuffled indices to use as order.
          * @param randomSeed A random seed.
          */
-        constructor(shuffledIndices: IntArray, randomSeed: Long) : this(Arrays.copyOf(shuffledIndices, shuffledIndices.size), Random(randomSeed)) {}
+        constructor(shuffledIndices: IntArray, randomSeed: Long) {
+            DefaultShuffleOrder(
+                Arrays.copyOf(shuffledIndices, shuffledIndices.size), Random(randomSeed)
+            )
+        }
 
-        private constructor(length: Int, random: Random) : this(createShuffledList(length, random), random) {}
+        private constructor(length: Int, random: Random) {
+            DefaultShuffleOrder(createShuffledList(length, random), random)
+        }
 
         private constructor(shuffled: IntArray, random: Random) {
             this.shuffled = shuffled
             this.random = random
-            this.indexInShuffled = IntArray(shuffled.size)
+            indexInShuffled = IntArray(shuffled.size)
             for (i in shuffled.indices) {
                 indexInShuffled[shuffled[i]] = i
             }
@@ -98,8 +108,8 @@ interface ShuffleOrder {
             val insertionPoints = IntArray(insertionCount)
             val insertionValues = IntArray(insertionCount)
             for (i in 0 until insertionCount) {
-                insertionPoints[i] = random!!.nextInt(shuffled.size + 1)
-                val swapIndex = random!!.nextInt(i + 1)
+                insertionPoints[i] = random.nextInt(shuffled.size + 1)
+                val swapIndex = random.nextInt(i + 1)
                 insertionValues[i] = insertionValues[swapIndex]
                 insertionValues[swapIndex] = i + insertionIndex
             }
@@ -108,8 +118,7 @@ interface ShuffleOrder {
             var indexInOldShuffled = 0
             var indexInInsertionList = 0
             for (i in 0 until shuffled.size + insertionCount) {
-                if (indexInInsertionList < insertionCount
-                        && indexInOldShuffled == insertionPoints[indexInInsertionList]) {
+                if (indexInInsertionList < insertionCount && indexInOldShuffled == insertionPoints[indexInInsertionList]) {
                     newShuffled[i] = insertionValues[indexInInsertionList++]
                 } else {
                     newShuffled[i] = shuffled[indexInOldShuffled++]
@@ -118,7 +127,7 @@ interface ShuffleOrder {
                     }
                 }
             }
-            return DefaultShuffleOrder(newShuffled, Random(random!!.nextLong()))
+            return DefaultShuffleOrder(newShuffled, Random(random.nextLong()))
         }
 
         override fun cloneAndRemove(indexFrom: Int, indexToExclusive: Int): ShuffleOrder {
@@ -129,26 +138,25 @@ interface ShuffleOrder {
                 if (shuffled[i] >= indexFrom && shuffled[i] < indexToExclusive) {
                     foundElementsCount++
                 } else {
-                    newShuffled[i - foundElementsCount] = if (shuffled[i] >= indexFrom) shuffled[i] - numberOfElementsToRemove else shuffled[i]
+                    newShuffled[i - foundElementsCount] =
+                        if (shuffled[i] >= indexFrom) shuffled[i] - numberOfElementsToRemove else shuffled[i]
                 }
             }
-            return DefaultShuffleOrder(newShuffled, Random(random!!.nextLong()))
+            return DefaultShuffleOrder(newShuffled, Random(random.nextLong()))
         }
 
         override fun cloneAndClear(): ShuffleOrder {
-            return DefaultShuffleOrder( /* length= */0, Random(random!!.nextLong()))
+            return DefaultShuffleOrder( /* length= */0, Random(random.nextLong()))
         }
 
-        companion object {
-            private fun createShuffledList(length: Int, random: Random): IntArray {
-                val shuffled = IntArray(length)
-                for (i in 0 until length) {
-                    val swapIndex = random.nextInt(i + 1)
-                    shuffled[i] = shuffled[swapIndex]
-                    shuffled[swapIndex] = i
-                }
-                return shuffled
+        private fun createShuffledList(length: Int, random: Random): IntArray {
+            val shuffled = IntArray(length)
+            for (i in 0 until length) {
+                val swapIndex = random.nextInt(i + 1)
+                shuffled[i] = shuffled[swapIndex]
+                shuffled[swapIndex] = i
             }
+            return shuffled
         }
     }
 
@@ -171,13 +179,13 @@ interface ShuffleOrder {
         }
 
         override fun getNextIndex(index: Int): Int {
-            var index = index
-            return if (++index < length) index else C.INDEX_UNSET
+            var mIndex = index
+            return if (++mIndex < length) mIndex else C.INDEX_UNSET
         }
 
         override fun getPreviousIndex(index: Int): Int {
-            var index = index
-            return if (--index >= 0) index else C.INDEX_UNSET
+            var mIndex = index
+            return if (--mIndex >= 0) mIndex else C.INDEX_UNSET
         }
 
         override fun getLastIndex(): Int {

@@ -87,10 +87,13 @@ interface SubtitleDecoderFactory {
                         MimeTypes.APPLICATION_SUBRIP -> return SubripDecoder()
                         MimeTypes.APPLICATION_TX3G -> return Tx3gDecoder(format.initializationData)
                         MimeTypes.APPLICATION_CEA608, MimeTypes.APPLICATION_MP4CEA608 -> return Cea608Decoder(
-                                mimeType,
-                                format.accessibilityChannel,
-                                Cea608Decoder.MIN_DATA_CHANNEL_TIMEOUT_MS)
-                        MimeTypes.APPLICATION_CEA708 -> return Cea708Decoder(format.accessibilityChannel, format.initializationData)
+                            mimeType,
+                            format.accessibilityChannel,
+                            Cea608Decoder.MIN_DATA_CHANNEL_TIMEOUT_MS
+                        )
+                        MimeTypes.APPLICATION_CEA708 -> return Cea708Decoder(
+                            format.accessibilityChannel, format.initializationData
+                        )
                         MimeTypes.APPLICATION_DVBSUBS -> return DvbDecoder(format.initializationData)
                         MimeTypes.APPLICATION_PGS -> return PgsDecoder()
                         MimeTypes.TEXT_EXOPLAYER_CUES -> return ExoplayerCuesDecoder()
@@ -98,7 +101,8 @@ interface SubtitleDecoderFactory {
                     }
                 }
                 throw IllegalArgumentException(
-                        "Attempted to create decoder for unsupported MIME type: $mimeType")
+                    "Attempted to create decoder for unsupported MIME type: $mimeType"
+                )
             }
         }
     }

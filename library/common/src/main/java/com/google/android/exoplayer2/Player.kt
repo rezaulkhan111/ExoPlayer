@@ -1132,7 +1132,7 @@ interface Player {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER, ElementType.LOCAL_VARIABLE, ElementType.TYPE_USE)
+    @Target(AnnotationTarget.FIELD, ElementType.METHOD, ElementType.PARAMETER, ElementType.LOCAL_VARIABLE, ElementType.TYPE_USE)
     @IntDef([MEDIA_ITEM_TRANSITION_REASON_REPEAT, MEDIA_ITEM_TRANSITION_REASON_AUTO, MEDIA_ITEM_TRANSITION_REASON_SEEK, MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED])
     annotation class MediaItemTransitionReason
 

@@ -11,6 +11,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+apply from: 'javadoc_combined.gradle'
+
 buildscript {
     ext {
         kotlin_version = '1.7.21'
@@ -39,4 +42,3 @@ allprojects {
     group = 'com.google.android.exoplayer'
 }
 
-apply from: 'javadoc_combined.gradle'

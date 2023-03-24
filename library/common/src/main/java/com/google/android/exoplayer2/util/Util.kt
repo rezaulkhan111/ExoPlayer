@@ -16,6 +16,11 @@
 package com.google.android.exoplayer2.util
 
 import android.Manifest.permissionimport
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull
+import java.util.*
+import kotlin.NoSuchElementException
+import kotlin.collections.ArrayDeque
+import kotlin.collections.HashMap
 
 android.annotation .SuppressLintimport android.app.Activityimport android.app.UiModeManagerimport android.content.pm.PackageManagerimport android.database.DatabaseUtilsimport android.database.sqlite.SQLiteDatabaseimport android.hardware.display.DisplayManagerimport android.provider.MediaStoreimport android.security.NetworkSecurityPolicyimport android.telephony.TelephonyManagerimport android.text.TextUtilsimport android.util.SparseLongArrayimport androidx.annotation .RequiresApiimport com.google.android.exoplayer2.*import com.google.android.exoplayer2.C.*
 import com.google.android.exoplayer2.MediaItem.SubtitleConfigurationimport
@@ -104,7 +109,7 @@ import com.google.common.base.Asciiimport
 com.google.common.base.Charsetsimport com.google.common.util.concurrent.*import java.io.*
 import java.lang.Errorimport
 
-java.lang.Exceptionimport java.lang.IllegalArgumentExceptionimport java.lang.IllegalStateExceptionimport java.lang.NumberFormatExceptionimport java.lang.RuntimeExceptionimport java.lang.StringBuilderimport java.math.BigDecimalimport java.nio.ByteBufferimport java.nio.ByteOrderimport java.util.*import java.util.ArrayDequeimport
+java.lang.Exceptionimport java.lang.IllegalArgumentExceptionimport java.lang.IllegalStateExceptionimport java.lang.NumberFormatExceptionimport java.lang.RuntimeExceptionimport java.lang.StringBuilderimport java.math.BigDecimalimport java.nio.ByteBufferimport java.nio.ByteOrderimport java.util.*
 
 java.util.concurrent.CancellationExceptionimport java.util.concurrent.ExecutionExceptionimport java.util.concurrent.ExecutorServiceimport java.util.concurrent.Executorsimport java.util.regex.Patternimport java.util.zip.DataFormatExceptionimport java.util.zip.GZIPOutputStreamimport java.util.zip.Inflater
 /** Miscellaneous utility methods.  */

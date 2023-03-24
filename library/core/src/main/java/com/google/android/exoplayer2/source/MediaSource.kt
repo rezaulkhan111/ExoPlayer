@@ -13,324 +13,325 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source;
+package com.google.android.exoplayer2.source
 
-import android.os.Handler;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.analytics.PlayerId;
-import com.google.android.exoplayer2.drm.DrmSessionEventListener;
-import com.google.android.exoplayer2.drm.DrmSessionManager;
-import com.google.android.exoplayer2.drm.DrmSessionManagerProvider;
-import com.google.android.exoplayer2.upstream.Allocator;
-import com.google.android.exoplayer2.upstream.LoadErrorHandlingPolicy;
-import com.google.android.exoplayer2.upstream.TransferListener;
-import java.io.IOException;
+import android.os.Handler
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.C.ContentType
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.Timeline
+import com.google.android.exoplayer2.analytics.PlayerId
+import com.google.android.exoplayer2.drm.DrmSessionEventListener
+import com.google.android.exoplayer2.drm.DrmSessionManagerProvider
+import com.google.android.exoplayer2.source.MediaSource.MediaSourceCaller
+import com.google.android.exoplayer2.upstream.Allocator
+import com.google.android.exoplayer2.upstream.LoadErrorHandlingPolicy
+import com.google.android.exoplayer2.upstream.TransferListener
+import java.io.IOException
 
 /**
- * Defines and provides media to be played by an {@link ExoPlayer}. A MediaSource has two main
+ * Defines and provides media to be played by an [ExoPlayer]. A MediaSource has two main
  * responsibilities:
  *
- * <ul>
- *   <li>To provide the player with a {@link Timeline} defining the structure of its media, and to
- *       provide a new timeline whenever the structure of the media changes. The MediaSource
- *       provides these timelines by calling {@link MediaSourceCaller#onSourceInfoRefreshed} on the
- *       {@link MediaSourceCaller}s passed to {@link #prepareSource(MediaSourceCaller,
- *       TransferListener, PlayerId)}.
- *   <li>To provide {@link MediaPeriod} instances for the periods in its timeline. MediaPeriods are
- *       obtained by calling {@link #createPeriod(MediaPeriodId, Allocator, long)}, and provide a
- *       way for the player to load and read the media.
- * </ul>
  *
- * All methods are called on the player's internal playback thread, as described in the {@link
- * ExoPlayer} Javadoc. They should not be called directly from application code. Instances can be
- * re-used, but only for one {@link ExoPlayer} instance simultaneously.
+ *  * To provide the player with a [Timeline] defining the structure of its media, and to
+ * provide a new timeline whenever the structure of the media changes. The MediaSource
+ * provides these timelines by calling [MediaSourceCaller.onSourceInfoRefreshed] on the
+ * [MediaSourceCaller]s passed to [.prepareSource].
+ *  * To provide [MediaPeriod] instances for the periods in its timeline. MediaPeriods are
+ * obtained by calling [.createPeriod], and provide a
+ * way for the player to load and read the media.
+ *
+ *
+ * All methods are called on the player's internal playback thread, as described in the [ ] Javadoc. They should not be called directly from application code. Instances can be
+ * re-used, but only for one [ExoPlayer] instance simultaneously.
  */
-public interface MediaSource {
+interface MediaSource {
+    /** Factory for creating [MediaSources][MediaSource] from [MediaItems][MediaItem].  */
+    interface Factory {
+        /**
+         * Sets the [DrmSessionManagerProvider] used to obtain a [DrmSessionManager] for a
+         * [MediaItem].
+         *
+         * @return This factory, for convenience.
+         */
+        fun setDrmSessionManagerProvider(drmSessionManagerProvider: DrmSessionManagerProvider?): Factory?
 
-  /** Factory for creating {@link MediaSource MediaSources} from {@link MediaItem MediaItems}. */
-  interface Factory {
+        /**
+         * Sets an optional [LoadErrorHandlingPolicy].
+         *
+         * @return This factory, for convenience.
+         */
+        fun setLoadErrorHandlingPolicy(loadErrorHandlingPolicy: LoadErrorHandlingPolicy?): Factory?
 
+        /**
+         * Returns the [content types][C.ContentType] supported by media sources created by this
+         * factory.
+         */
+        @ContentType
+        fun getSupportedTypes(): IntArray?
+
+        /**
+         * Creates a new [MediaSource] with the specified [MediaItem].
+         *
+         * @param mediaItem The media item to play.
+         * @return The new [media source][MediaSource].
+         */
+        fun createMediaSource(mediaItem: MediaItem?): MediaSource?
+
+        companion object {
+            /**
+             * An instance that throws [UnsupportedOperationException] from [.createMediaSource]
+             * and [.getSupportedTypes].
+             */
+            val UNSUPPORTED: Factory = MediaSourceFactory.UNSUPPORTED
+        }
+    }
+
+    /** A caller of media sources, which will be notified of source events.  */
+    interface MediaSourceCaller {
+        /**
+         * Called when the [Timeline] has been refreshed.
+         *
+         *
+         * Called on the playback thread.
+         *
+         * @param source The [MediaSource] whose info has been refreshed.
+         * @param timeline The source's timeline.
+         */
+        fun onSourceInfoRefreshed(source: MediaSource?, timeline: Timeline?)
+    }
+    // TODO(b/172315872) Delete when all clients have been migrated to base class.
     /**
-     * An instance that throws {@link UnsupportedOperationException} from {@link #createMediaSource}
-     * and {@link #getSupportedTypes()}.
-     */
-    @SuppressWarnings("deprecation")
-    Factory UNSUPPORTED = MediaSourceFactory.UNSUPPORTED;
-
-    /**
-     * Sets the {@link DrmSessionManagerProvider} used to obtain a {@link DrmSessionManager} for a
-     * {@link MediaItem}.
+     * Identifier for a [MediaPeriod].
      *
-     * @return This factory, for convenience.
-     */
-    Factory setDrmSessionManagerProvider(DrmSessionManagerProvider drmSessionManagerProvider);
-
-    /**
-     * Sets an optional {@link LoadErrorHandlingPolicy}.
      *
-     * @return This factory, for convenience.
+     * Extends for backward-compatibility [ ].
      */
-    Factory setLoadErrorHandlingPolicy(LoadErrorHandlingPolicy loadErrorHandlingPolicy);
+    class MediaPeriodId : com.google.android.exoplayer2.source.MediaPeriodId {
+        /** See [com.google.android.exoplayer2.source.MediaPeriodId.MediaPeriodId].  */
+        constructor(periodUid: Any?) : super(periodUid!!)
+
+        /**
+         * See [com.google.android.exoplayer2.source.MediaPeriodId.MediaPeriodId].
+         */
+        constructor(periodUid: Any?, windowSequenceNumber: Long) : super(
+            periodUid!!, windowSequenceNumber
+        )
+
+        /**
+         * See [com.google.android.exoplayer2.source.MediaPeriodId.MediaPeriodId].
+         */
+        constructor(periodUid: Any?, windowSequenceNumber: Long, nextAdGroupIndex: Int) : super(
+            periodUid!!, windowSequenceNumber, nextAdGroupIndex
+        )
+
+        /**
+         * See [com.google.android.exoplayer2.source.MediaPeriodId.MediaPeriodId].
+         */
+        constructor(
+            periodUid: Any?, adGroupIndex: Int, adIndexInAdGroup: Int, windowSequenceNumber: Long
+        ) : super(
+            periodUid!!, adGroupIndex, adIndexInAdGroup, windowSequenceNumber
+        )
+
+        /** Wraps an [com.google.android.exoplayer2.source.MediaPeriodId] into a MediaPeriodId.  */
+        constructor(mediaPeriodId: com.google.android.exoplayer2.source.MediaPeriodId?) : super(
+            mediaPeriodId!!
+        )
+
+        /** See [com.google.android.exoplayer2.source.MediaPeriodId.copyWithPeriodUid].  */
+        override fun copyWithPeriodUid(newPeriodUid: Any): MediaPeriodId {
+            return MediaPeriodId(super.copyWithPeriodUid(newPeriodUid))
+        }
+
+        /**
+         * See [ ][com.google.android.exoplayer2.source.MediaPeriodId.copyWithWindowSequenceNumber].
+         */
+        override fun copyWithWindowSequenceNumber(windowSequenceNumber: Long): MediaPeriodId {
+            return MediaPeriodId(super.copyWithWindowSequenceNumber(windowSequenceNumber))
+        }
+    }
 
     /**
-     * Returns the {@link C.ContentType content types} supported by media sources created by this
-     * factory.
-     */
-    @C.ContentType
-    int[] getSupportedTypes();
-
-    /**
-     * Creates a new {@link MediaSource} with the specified {@link MediaItem}.
+     * Adds a [MediaSourceEventListener] to the list of listeners which are notified of media
+     * source events.
      *
-     * @param mediaItem The media item to play.
-     * @return The new {@link MediaSource media source}.
+     * @param handler A handler on the which listener events will be posted.
+     * @param eventListener The listener to be added.
      */
-    MediaSource createMediaSource(MediaItem mediaItem);
-  }
-
-  /** A caller of media sources, which will be notified of source events. */
-  interface MediaSourceCaller {
+    fun addEventListener(handler: Handler?, eventListener: MediaSourceEventListener?)
 
     /**
-     * Called when the {@link Timeline} has been refreshed.
+     * Removes a [MediaSourceEventListener] from the list of listeners which are notified of
+     * media source events.
      *
-     * <p>Called on the playback thread.
+     * @param eventListener The listener to be removed.
+     */
+    fun removeEventListener(eventListener: MediaSourceEventListener?)
+
+    /**
+     * Adds a [DrmSessionEventListener] to the list of listeners which are notified of DRM
+     * events for this media source.
      *
-     * @param source The {@link MediaSource} whose info has been refreshed.
-     * @param timeline The source's timeline.
+     * @param handler A handler on the which listener events will be posted.
+     * @param eventListener The listener to be added.
      */
-    void onSourceInfoRefreshed(MediaSource source, Timeline timeline);
-  }
+    fun addDrmEventListener(handler: Handler?, eventListener: DrmSessionEventListener?)
 
-  // TODO(b/172315872) Delete when all clients have been migrated to base class.
-  /**
-   * Identifier for a {@link MediaPeriod}.
-   *
-   * <p>Extends for backward-compatibility {@link
-   * com.google.android.exoplayer2.source.MediaPeriodId}.
-   */
-  final class MediaPeriodId extends com.google.android.exoplayer2.source.MediaPeriodId {
+    /**
+     * Removes a [DrmSessionEventListener] from the list of listeners which are notified of DRM
+     * events for this media source.
+     *
+     * @param eventListener The listener to be removed.
+     */
+    fun removeDrmEventListener(eventListener: DrmSessionEventListener?)
 
-    /** See {@link com.google.android.exoplayer2.source.MediaPeriodId#MediaPeriodId(Object)}. */
-    public MediaPeriodId(Object periodUid) {
-      super(periodUid);
+    /**
+     * Returns the initial placeholder timeline that is returned immediately when the real timeline is
+     * not yet known, or null to let the player create an initial timeline.
+     *
+     *
+     * The initial timeline must use the same uids for windows and periods that the real timeline
+     * will use. It also must provide windows which are marked as dynamic to indicate that the window
+     * is expected to change when the real timeline arrives.
+     *
+     *
+     * Any media source which has multiple windows should typically provide such an initial
+     * timeline to make sure the player reports the correct number of windows immediately.
+     */
+    fun getInitialTimeline(): Timeline? {
+        return null
     }
 
     /**
-     * See {@link com.google.android.exoplayer2.source.MediaPeriodId#MediaPeriodId(Object, long)}.
+     * Returns true if the media source is guaranteed to never have zero or more than one window.
+     *
+     *
+     * The default implementation returns `true`.
+     *
+     * @return true if the source has exactly one window.
      */
-    public MediaPeriodId(Object periodUid, long windowSequenceNumber) {
-      super(periodUid, windowSequenceNumber);
+    fun isSingleWindow(): Boolean {
+        return true
+    }
+
+    /** Returns the [MediaItem] whose media is provided by the source.  */
+    fun getMediaItem(): MediaItem?
+
+    /**
+     * @deprecated Implement {@link #prepareSource(MediaSourceCaller, TransferListener, PlayerId)}
+     * instead.
+     */
+    @Deprecated("")
+    fun prepareSource(
+        caller: MediaSourceCaller?, mediaTransferListener: TransferListener?
+    ) {
+        prepareSource(caller, mediaTransferListener, PlayerId.UNSET)
     }
 
     /**
-     * See {@link com.google.android.exoplayer2.source.MediaPeriodId#MediaPeriodId(Object, long,
-     * int)}.
+     * Registers a [MediaSourceCaller]. Starts source preparation if needed and enables the
+     * source for the creation of [MediaPerods][MediaPeriod].
+     *
+     *
+     * Should not be called directly from application code.
+     *
+     *
+     * [MediaSourceCaller.onSourceInfoRefreshed] will be called once
+     * the source has a [Timeline].
+     *
+     *
+     * For each call to this method, a call to [.releaseSource] is needed
+     * to remove the caller and to release the source if no longer required.
+     *
+     * @param caller The [MediaSourceCaller] to be registered.
+     * @param mediaTransferListener The transfer listener which should be informed of any media data
+     * transfers. May be null if no listener is available. Note that this listener should be only
+     * informed of transfers related to the media loads and not of auxiliary loads for manifests
+     * and other data.
+     * @param playerId The [PlayerId] of the player using this media source.
      */
-    public MediaPeriodId(Object periodUid, long windowSequenceNumber, int nextAdGroupIndex) {
-      super(periodUid, windowSequenceNumber, nextAdGroupIndex);
-    }
+    fun prepareSource(
+        caller: MediaSourceCaller?, mediaTransferListener: TransferListener?, playerId: PlayerId?
+    )
 
     /**
-     * See {@link com.google.android.exoplayer2.source.MediaPeriodId#MediaPeriodId(Object, int, int,
-     * long)}.
+     * Throws any pending error encountered while loading or refreshing source information.
+     *
+     *
+     * Should not be called directly from application code.
+     *
+     *
+     * Must only be called after [.prepareSource].
      */
-    public MediaPeriodId(
-        Object periodUid, int adGroupIndex, int adIndexInAdGroup, long windowSequenceNumber) {
-      super(periodUid, adGroupIndex, adIndexInAdGroup, windowSequenceNumber);
-    }
-
-    /** Wraps an {@link com.google.android.exoplayer2.source.MediaPeriodId} into a MediaPeriodId. */
-    public MediaPeriodId(com.google.android.exoplayer2.source.MediaPeriodId mediaPeriodId) {
-      super(mediaPeriodId);
-    }
-
-    /** See {@link com.google.android.exoplayer2.source.MediaPeriodId#copyWithPeriodUid(Object)}. */
-    @Override
-    public MediaPeriodId copyWithPeriodUid(Object newPeriodUid) {
-      return new MediaPeriodId(super.copyWithPeriodUid(newPeriodUid));
-    }
+    @Throws(IOException::class)
+    fun maybeThrowSourceInfoRefreshError()
 
     /**
-     * See {@link
-     * com.google.android.exoplayer2.source.MediaPeriodId#copyWithWindowSequenceNumber(long)}.
+     * Enables the source for the creation of [MediaPeriods][MediaPeriod].
+     *
+     *
+     * Should not be called directly from application code.
+     *
+     *
+     * Must only be called after [.prepareSource].
+     *
+     * @param caller The [MediaSourceCaller] enabling the source.
      */
-    @Override
-    public MediaPeriodId copyWithWindowSequenceNumber(long windowSequenceNumber) {
-      return new MediaPeriodId(super.copyWithWindowSequenceNumber(windowSequenceNumber));
-    }
-  }
+    fun enable(caller: MediaSourceCaller?)
 
-  /**
-   * Adds a {@link MediaSourceEventListener} to the list of listeners which are notified of media
-   * source events.
-   *
-   * @param handler A handler on the which listener events will be posted.
-   * @param eventListener The listener to be added.
-   */
-  void addEventListener(Handler handler, MediaSourceEventListener eventListener);
+    /**
+     * Returns a new [MediaPeriod] identified by `periodId`.
+     *
+     *
+     * Should not be called directly from application code.
+     *
+     *
+     * Must only be called if the source is enabled.
+     *
+     * @param id The identifier of the period.
+     * @param allocator An [Allocator] from which to obtain media buffer allocations.
+     * @param startPositionUs The expected start position, in microseconds.
+     * @return A new [MediaPeriod].
+     */
+    fun createPeriod(id: MediaPeriodId?, allocator: Allocator?, startPositionUs: Long): MediaPeriod?
 
-  /**
-   * Removes a {@link MediaSourceEventListener} from the list of listeners which are notified of
-   * media source events.
-   *
-   * @param eventListener The listener to be removed.
-   */
-  void removeEventListener(MediaSourceEventListener eventListener);
+    /**
+     * Releases the period.
+     *
+     *
+     * Should not be called directly from application code.
+     *
+     * @param mediaPeriod The period to release.
+     */
+    fun releasePeriod(mediaPeriod: MediaPeriod?)
 
-  /**
-   * Adds a {@link DrmSessionEventListener} to the list of listeners which are notified of DRM
-   * events for this media source.
-   *
-   * @param handler A handler on the which listener events will be posted.
-   * @param eventListener The listener to be added.
-   */
-  void addDrmEventListener(Handler handler, DrmSessionEventListener eventListener);
+    /**
+     * Disables the source for the creation of [MediaPeriods][MediaPeriod]. The implementation
+     * should not hold onto limited resources used for the creation of media periods.
+     *
+     *
+     * Should not be called directly from application code.
+     *
+     *
+     * Must only be called after all [MediaPeriods][MediaPeriod] previously created by [ ][.createPeriod] have been released by [ ][.releasePeriod].
+     *
+     * @param caller The [MediaSourceCaller] disabling the source.
+     */
+    fun disable(caller: MediaSourceCaller?)
 
-  /**
-   * Removes a {@link DrmSessionEventListener} from the list of listeners which are notified of DRM
-   * events for this media source.
-   *
-   * @param eventListener The listener to be removed.
-   */
-  void removeDrmEventListener(DrmSessionEventListener eventListener);
-
-  /**
-   * Returns the initial placeholder timeline that is returned immediately when the real timeline is
-   * not yet known, or null to let the player create an initial timeline.
-   *
-   * <p>The initial timeline must use the same uids for windows and periods that the real timeline
-   * will use. It also must provide windows which are marked as dynamic to indicate that the window
-   * is expected to change when the real timeline arrives.
-   *
-   * <p>Any media source which has multiple windows should typically provide such an initial
-   * timeline to make sure the player reports the correct number of windows immediately.
-   */
-  @Nullable
-  default Timeline getInitialTimeline() {
-    return null;
-  }
-
-  /**
-   * Returns true if the media source is guaranteed to never have zero or more than one window.
-   *
-   * <p>The default implementation returns {@code true}.
-   *
-   * @return true if the source has exactly one window.
-   */
-  default boolean isSingleWindow() {
-    return true;
-  }
-
-  /** Returns the {@link MediaItem} whose media is provided by the source. */
-  MediaItem getMediaItem();
-
-  /**
-   * @deprecated Implement {@link #prepareSource(MediaSourceCaller, TransferListener, PlayerId)}
-   *     instead.
-   */
-  @Deprecated
-  default void prepareSource(
-      MediaSourceCaller caller, @Nullable TransferListener mediaTransferListener) {
-    prepareSource(caller, mediaTransferListener, PlayerId.UNSET);
-  }
-
-  /**
-   * Registers a {@link MediaSourceCaller}. Starts source preparation if needed and enables the
-   * source for the creation of {@link MediaPeriod MediaPerods}.
-   *
-   * <p>Should not be called directly from application code.
-   *
-   * <p>{@link MediaSourceCaller#onSourceInfoRefreshed(MediaSource, Timeline)} will be called once
-   * the source has a {@link Timeline}.
-   *
-   * <p>For each call to this method, a call to {@link #releaseSource(MediaSourceCaller)} is needed
-   * to remove the caller and to release the source if no longer required.
-   *
-   * @param caller The {@link MediaSourceCaller} to be registered.
-   * @param mediaTransferListener The transfer listener which should be informed of any media data
-   *     transfers. May be null if no listener is available. Note that this listener should be only
-   *     informed of transfers related to the media loads and not of auxiliary loads for manifests
-   *     and other data.
-   * @param playerId The {@link PlayerId} of the player using this media source.
-   */
-  void prepareSource(
-      MediaSourceCaller caller,
-      @Nullable TransferListener mediaTransferListener,
-      PlayerId playerId);
-
-  /**
-   * Throws any pending error encountered while loading or refreshing source information.
-   *
-   * <p>Should not be called directly from application code.
-   *
-   * <p>Must only be called after {@link #prepareSource(MediaSourceCaller, TransferListener,
-   * PlayerId)}.
-   */
-  void maybeThrowSourceInfoRefreshError() throws IOException;
-
-  /**
-   * Enables the source for the creation of {@link MediaPeriod MediaPeriods}.
-   *
-   * <p>Should not be called directly from application code.
-   *
-   * <p>Must only be called after {@link #prepareSource(MediaSourceCaller, TransferListener,
-   * PlayerId)}.
-   *
-   * @param caller The {@link MediaSourceCaller} enabling the source.
-   */
-  void enable(MediaSourceCaller caller);
-
-  /**
-   * Returns a new {@link MediaPeriod} identified by {@code periodId}.
-   *
-   * <p>Should not be called directly from application code.
-   *
-   * <p>Must only be called if the source is enabled.
-   *
-   * @param id The identifier of the period.
-   * @param allocator An {@link Allocator} from which to obtain media buffer allocations.
-   * @param startPositionUs The expected start position, in microseconds.
-   * @return A new {@link MediaPeriod}.
-   */
-  MediaPeriod createPeriod(MediaPeriodId id, Allocator allocator, long startPositionUs);
-
-  /**
-   * Releases the period.
-   *
-   * <p>Should not be called directly from application code.
-   *
-   * @param mediaPeriod The period to release.
-   */
-  void releasePeriod(MediaPeriod mediaPeriod);
-
-  /**
-   * Disables the source for the creation of {@link MediaPeriod MediaPeriods}. The implementation
-   * should not hold onto limited resources used for the creation of media periods.
-   *
-   * <p>Should not be called directly from application code.
-   *
-   * <p>Must only be called after all {@link MediaPeriod MediaPeriods} previously created by {@link
-   * #createPeriod(MediaPeriodId, Allocator, long)} have been released by {@link
-   * #releasePeriod(MediaPeriod)}.
-   *
-   * @param caller The {@link MediaSourceCaller} disabling the source.
-   */
-  void disable(MediaSourceCaller caller);
-
-  /**
-   * Unregisters a caller, and disables and releases the source if no longer required.
-   *
-   * <p>Should not be called directly from application code.
-   *
-   * <p>Must only be called if all created {@link MediaPeriod MediaPeriods} have been released by
-   * {@link #releasePeriod(MediaPeriod)}.
-   *
-   * @param caller The {@link MediaSourceCaller} to be unregistered.
-   */
-  void releaseSource(MediaSourceCaller caller);
+    /**
+     * Unregisters a caller, and disables and releases the source if no longer required.
+     *
+     *
+     * Should not be called directly from application code.
+     *
+     *
+     * Must only be called if all created [MediaPeriods][MediaPeriod] have been released by
+     * [.releasePeriod].
+     *
+     * @param caller The [MediaSourceCaller] to be unregistered.
+     */
+    fun releaseSource(caller: MediaSourceCaller?)
 }

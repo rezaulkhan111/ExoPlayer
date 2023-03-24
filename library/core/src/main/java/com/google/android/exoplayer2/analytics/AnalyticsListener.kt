@@ -13,1291 +13,1319 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.analytics;
+package com.google.android.exoplayer2.analytics
 
-import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.LOCAL_VARIABLE;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE_USE;
-
-import android.media.MediaCodec;
-import android.media.MediaCodec.CodecException;
-import android.os.Looper;
-import android.os.SystemClock;
-import android.util.SparseArray;
-import android.view.Surface;
-import androidx.annotation.IntDef;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.DeviceInfo;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.MediaMetadata;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.PlaybackParameters;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.Player.DiscontinuityReason;
-import com.google.android.exoplayer2.Player.PlaybackSuppressionReason;
-import com.google.android.exoplayer2.Player.TimelineChangeReason;
-import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.Tracks;
-import com.google.android.exoplayer2.audio.AudioAttributes;
-import com.google.android.exoplayer2.audio.AudioSink;
-import com.google.android.exoplayer2.decoder.DecoderCounters;
-import com.google.android.exoplayer2.decoder.DecoderException;
-import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation;
-import com.google.android.exoplayer2.drm.DrmSession;
-import com.google.android.exoplayer2.metadata.Metadata;
-import com.google.android.exoplayer2.metadata.MetadataOutput;
-import com.google.android.exoplayer2.source.LoadEventInfo;
-import com.google.android.exoplayer2.source.MediaLoadData;
-import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId;
-import com.google.android.exoplayer2.text.Cue;
-import com.google.android.exoplayer2.text.CueGroup;
-import com.google.android.exoplayer2.trackselection.TrackSelection;
-import com.google.android.exoplayer2.trackselection.TrackSelectionParameters;
-import com.google.android.exoplayer2.util.FlagSet;
-import com.google.android.exoplayer2.video.VideoDecoderOutputBufferRenderer;
-import com.google.android.exoplayer2.video.VideoSize;
-import com.google.common.base.Objects;
-import java.io.IOException;
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.util.List;
+import android.util.SparseArray
+import androidx.annotation.IntDef
+import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.Player.*
+import com.google.android.exoplayer2.analytics.AnalyticsListener.EventTime
+import com.google.android.exoplayer2.audio.AudioAttributes
+import com.google.android.exoplayer2.decoder.DecoderCounters
+import com.google.android.exoplayer2.decoder.DecoderReuseEvaluation
+import com.google.android.exoplayer2.drm.DrmSession
+import com.google.android.exoplayer2.metadata.Metadata
+import com.google.android.exoplayer2.source.LoadEventInfo
+import com.google.android.exoplayer2.source.MediaLoadData
+import com.google.android.exoplayer2.source.MediaSource
+import com.google.android.exoplayer2.text.Cue
+import com.google.android.exoplayer2.text.CueGroup
+import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
+import com.google.android.exoplayer2.util.FlagSet
+import com.google.android.exoplayer2.video.VideoSize
+import com.google.android.exoplayer2import.DeviceInfo
+import com.google.common.base.Objects
+import java.io.IOException
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 
 /**
  * A listener for analytics events.
  *
- * <p>All events are recorded with an {@link EventTime} specifying the elapsed real time and media
+ *
+ * All events are recorded with an [EventTime] specifying the elapsed real time and media
  * time at the time of the event.
  *
- * <p>All methods have no-op default implementations to allow selective overrides.
  *
- * <p>Listeners can choose to implement individual events (e.g. {@link
- * #onIsPlayingChanged(EventTime, boolean)}) or {@link #onEvents(Player, Events)}, which is called
+ * All methods have no-op default implementations to allow selective overrides.
+ *
+ *
+ * Listeners can choose to implement individual events (e.g. [ ][.onIsPlayingChanged]) or [.onEvents], which is called
  * after one or more events occurred together.
  */
-public interface AnalyticsListener {
+interface AnalyticsListener {
+    /** A set of [EventFlags].  */
+    class Events {
+        private val flags: FlagSet
+        private val eventTimes: SparseArray<EventTime>
 
-  /** A set of {@link EventFlags}. */
-  final class Events {
+        /**
+         * Creates an instance.
+         *
+         * @param flags The [FlagSet] containing the [EventFlags] in the set.
+         * @param eventTimes A map from [EventFlags] to [EventTime]. Must at least contain
+         * all the events recorded in `flags`. Events that are not recorded in `flags`
+         * are ignored.
+         */
+        constructor(flags: FlagSet, eventTimes: SparseArray<EventTime?>) {
+            this.flags = flags
+            val flagsToTimes = SparseArray<EventTime>( /* initialCapacity= */flags.size())
+            for (i in 0 until flags.size()) {
+                val eventFlag = flags[i]
+                flagsToTimes.append(eventFlag, checkNotNull(eventTimes[eventFlag]))
+            }
+            this.eventTimes = flagsToTimes
+        }
 
-    private final FlagSet flags;
-    private final SparseArray<EventTime> eventTimes;
+        /**
+         * Returns the [EventTime] for the specified event.
+         *
+         * @param event The [event][EventFlags].
+         * @return The [EventTime] of this event.
+         */
+        fun getEventTime(@EventFlags event: Int): EventTime {
+            return checkNotNull(eventTimes[event])
+        }
+
+        /**
+         * Returns whether the given event occurred.
+         *
+         * @param event The [event][EventFlags].
+         * @return Whether the event occurred.
+         */
+        operator fun contains(@EventFlags event: Int): Boolean {
+            return flags.contains(event)
+        }
+
+        /**
+         * Returns whether any of the given events occurred.
+         *
+         * @param events The [events][EventFlags].
+         * @return Whether any of the events occurred.
+         */
+        fun containsAny(vararg events: Int): Boolean {
+            return flags.containsAny(*events)
+        }
+
+        /** Returns the number of events in the set.  */
+        fun size(): Int {
+            return flags.size()
+        }
+
+        /**
+         * Returns the [event][EventFlags] at the given index.
+         *
+         *
+         * Although index-based access is possible, it doesn't imply a particular order of these
+         * events.
+         *
+         * @param index The index. Must be between 0 (inclusive) and [.size] (exclusive).
+         * @return The [event][EventFlags] at the given index.
+         */
+        @EventFlags
+        operator fun get(index: Int): Int {
+            return flags[index]
+        }
+    }
 
     /**
-     * Creates an instance.
+     * Events that can be reported via [.onEvents].
      *
-     * @param flags The {@link FlagSet} containing the {@link EventFlags} in the set.
-     * @param eventTimes A map from {@link EventFlags} to {@link EventTime}. Must at least contain
-     *     all the events recorded in {@code flags}. Events that are not recorded in {@code flags}
-     *     are ignored.
-     */
-    public Events(FlagSet flags, SparseArray<EventTime> eventTimes) {
-      this.flags = flags;
-      SparseArray<EventTime> flagsToTimes = new SparseArray<>(/* initialCapacity= */ flags.size());
-      for (int i = 0; i < flags.size(); i++) {
-        @EventFlags int eventFlag = flags.get(i);
-        flagsToTimes.append(eventFlag, checkNotNull(eventTimes.get(eventFlag)));
-      }
-      this.eventTimes = flagsToTimes;
-    }
-
-    /**
-     * Returns the {@link EventTime} for the specified event.
      *
-     * @param event The {@link EventFlags event}.
-     * @return The {@link EventTime} of this event.
+     * One of the [AnalyticsListener]`.EVENT_*` flags.
      */
-    public EventTime getEventTime(@EventFlags int event) {
-      return checkNotNull(eventTimes.get(event));
+    // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
+    // with Kotlin usages from before TYPE_USE was added.
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(
+        value = [EVENT_TIMELINE_CHANGED, EVENT_MEDIA_ITEM_TRANSITION, EVENT_TRACKS_CHANGED, EVENT_IS_LOADING_CHANGED, EVENT_PLAYBACK_STATE_CHANGED, EVENT_PLAY_WHEN_READY_CHANGED, EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED, EVENT_IS_PLAYING_CHANGED, EVENT_REPEAT_MODE_CHANGED, EVENT_SHUFFLE_MODE_ENABLED_CHANGED, EVENT_PLAYER_ERROR, EVENT_POSITION_DISCONTINUITY, EVENT_PLAYBACK_PARAMETERS_CHANGED, EVENT_AVAILABLE_COMMANDS_CHANGED, EVENT_MEDIA_METADATA_CHANGED, EVENT_PLAYLIST_METADATA_CHANGED, EVENT_SEEK_BACK_INCREMENT_CHANGED, EVENT_SEEK_FORWARD_INCREMENT_CHANGED, EVENT_MAX_SEEK_TO_PREVIOUS_POSITION_CHANGED, EVENT_TRACK_SELECTION_PARAMETERS_CHANGED, EVENT_DEVICE_INFO_CHANGED, EVENT_DEVICE_VOLUME_CHANGED, EVENT_LOAD_STARTED, EVENT_LOAD_COMPLETED, EVENT_LOAD_CANCELED, EVENT_LOAD_ERROR, EVENT_DOWNSTREAM_FORMAT_CHANGED, EVENT_UPSTREAM_DISCARDED, EVENT_BANDWIDTH_ESTIMATE, EVENT_METADATA, EVENT_CUES, EVENT_AUDIO_ENABLED, EVENT_AUDIO_DECODER_INITIALIZED, EVENT_AUDIO_INPUT_FORMAT_CHANGED, EVENT_AUDIO_POSITION_ADVANCING, EVENT_AUDIO_UNDERRUN, EVENT_AUDIO_DECODER_RELEASED, EVENT_AUDIO_DISABLED, EVENT_AUDIO_SESSION_ID, EVENT_AUDIO_ATTRIBUTES_CHANGED, EVENT_SKIP_SILENCE_ENABLED_CHANGED, EVENT_AUDIO_SINK_ERROR, EVENT_VOLUME_CHANGED, EVENT_VIDEO_ENABLED, EVENT_VIDEO_DECODER_INITIALIZED, EVENT_VIDEO_INPUT_FORMAT_CHANGED, EVENT_DROPPED_VIDEO_FRAMES, EVENT_VIDEO_DECODER_RELEASED, EVENT_VIDEO_DISABLED, EVENT_VIDEO_FRAME_PROCESSING_OFFSET, EVENT_RENDERED_FIRST_FRAME, EVENT_VIDEO_SIZE_CHANGED, EVENT_SURFACE_SIZE_CHANGED, EVENT_DRM_SESSION_ACQUIRED, EVENT_DRM_KEYS_LOADED, EVENT_DRM_SESSION_MANAGER_ERROR, EVENT_DRM_KEYS_RESTORED, EVENT_DRM_KEYS_REMOVED, EVENT_DRM_SESSION_RELEASED, EVENT_PLAYER_RELEASED, EVENT_AUDIO_CODEC_ERROR, EVENT_VIDEO_CODEC_ERROR]
+    )
+    annotation class EventFlags
+
+    companion object {
+        /** [Player.getCurrentTimeline] changed.  */
+        const val EVENT_TIMELINE_CHANGED: Int = Player.EVENT_TIMELINE_CHANGED
+
+        /**
+         * [Player.getCurrentMediaItem] changed or the player started repeating the current item.
+         */
+        const val EVENT_MEDIA_ITEM_TRANSITION: Int = Player.EVENT_MEDIA_ITEM_TRANSITION
+
+        /** [Player.getCurrentTracks] changed.  */
+        const val EVENT_TRACKS_CHANGED: Int = Player.EVENT_TRACKS_CHANGED
+
+        /** [Player.isLoading] ()} changed.  */
+        const val EVENT_IS_LOADING_CHANGED: Int = Player.EVENT_IS_LOADING_CHANGED
+
+        /** [Player.getPlaybackState] changed.  */
+        const val EVENT_PLAYBACK_STATE_CHANGED: Int = Player.EVENT_PLAYBACK_STATE_CHANGED
+
+        /** [Player.getPlayWhenReady] changed.  */
+        const val EVENT_PLAY_WHEN_READY_CHANGED: Int = Player.EVENT_PLAY_WHEN_READY_CHANGED
+
+        /** [Player.getPlaybackSuppressionReason] changed.  */
+        const val EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED: Int =
+            Player.EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED
+
+        /** [Player.isPlaying] changed.  */
+        const val EVENT_IS_PLAYING_CHANGED: Int = Player.EVENT_IS_PLAYING_CHANGED
+
+        /** [Player.getRepeatMode] changed.  */
+        const val EVENT_REPEAT_MODE_CHANGED: Int = Player.EVENT_REPEAT_MODE_CHANGED
+
+        /** [Player.getShuffleModeEnabled] changed.  */
+        const val EVENT_SHUFFLE_MODE_ENABLED_CHANGED: Int =
+            Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED
+
+        /** [Player.getPlayerError] changed.  */
+        const val EVENT_PLAYER_ERROR: Int = Player.EVENT_PLAYER_ERROR
+
+        /**
+         * A position discontinuity occurred. See [ ][Player.Listener.onPositionDiscontinuity].
+         */
+        const val EVENT_POSITION_DISCONTINUITY: Int = Player.EVENT_POSITION_DISCONTINUITY
+
+        /** [Player.getPlaybackParameters] changed.  */
+        const val EVENT_PLAYBACK_PARAMETERS_CHANGED: Int = Player.EVENT_PLAYBACK_PARAMETERS_CHANGED
+
+        /** [Player.getAvailableCommands] changed.  */
+        const val EVENT_AVAILABLE_COMMANDS_CHANGED: Int = Player.EVENT_AVAILABLE_COMMANDS_CHANGED
+
+        /** [Player.getMediaMetadata] changed.  */
+        const val EVENT_MEDIA_METADATA_CHANGED: Int = Player.EVENT_MEDIA_METADATA_CHANGED
+
+        /** [Player.getPlaylistMetadata] changed.  */
+        const val EVENT_PLAYLIST_METADATA_CHANGED: Int = Player.EVENT_PLAYLIST_METADATA_CHANGED
+
+        /** [Player.getSeekBackIncrement] changed.  */
+        const val EVENT_SEEK_BACK_INCREMENT_CHANGED: Int = Player.EVENT_SEEK_BACK_INCREMENT_CHANGED
+
+        /** [Player.getSeekForwardIncrement] changed.  */
+        const val EVENT_SEEK_FORWARD_INCREMENT_CHANGED: Int =
+            Player.EVENT_SEEK_FORWARD_INCREMENT_CHANGED
+
+        /** [Player.getMaxSeekToPreviousPosition] changed.  */
+        const val EVENT_MAX_SEEK_TO_PREVIOUS_POSITION_CHANGED: Int =
+            Player.EVENT_MAX_SEEK_TO_PREVIOUS_POSITION_CHANGED
+
+        /** [Player.getTrackSelectionParameters] changed.  */
+        const val EVENT_TRACK_SELECTION_PARAMETERS_CHANGED: Int =
+            Player.EVENT_TRACK_SELECTION_PARAMETERS_CHANGED
+
+        /** Audio attributes changed.  */
+        const val EVENT_AUDIO_ATTRIBUTES_CHANGED: Int = Player.EVENT_AUDIO_ATTRIBUTES_CHANGED
+
+        /** An audio session id was set.  */
+        const val EVENT_AUDIO_SESSION_ID: Int = Player.EVENT_AUDIO_SESSION_ID
+
+        /** The volume changed.  */
+        const val EVENT_VOLUME_CHANGED: Int = Player.EVENT_VOLUME_CHANGED
+
+        /** Skipping silences was enabled or disabled in the audio stream.  */
+        const val EVENT_SKIP_SILENCE_ENABLED_CHANGED: Int =
+            Player.EVENT_SKIP_SILENCE_ENABLED_CHANGED
+
+        /** The surface size changed.  */
+        const val EVENT_SURFACE_SIZE_CHANGED: Int = Player.EVENT_SURFACE_SIZE_CHANGED
+
+        /** The video size changed.  */
+        const val EVENT_VIDEO_SIZE_CHANGED: Int = Player.EVENT_VIDEO_SIZE_CHANGED
+
+        /**
+         * The first frame has been rendered since setting the surface, since the renderer was reset or
+         * since the stream changed.
+         */
+        const val EVENT_RENDERED_FIRST_FRAME: Int = Player.EVENT_RENDERED_FIRST_FRAME
+
+        /** Metadata associated with the current playback time was reported.  */
+        const val EVENT_METADATA: Int = Player.EVENT_METADATA
+
+        /** [Player.getCurrentCues] changed.  */
+        const val EVENT_CUES: Int = Player.EVENT_CUES
+
+        /** [Player.getDeviceInfo] changed.  */
+        const val EVENT_DEVICE_INFO_CHANGED: Int = Player.EVENT_DEVICE_INFO_CHANGED
+
+        /** [Player.getDeviceVolume] changed.  */
+        const val EVENT_DEVICE_VOLUME_CHANGED: Int = Player.EVENT_DEVICE_VOLUME_CHANGED
+
+        /** A source started loading data.  */
+        const val EVENT_LOAD_STARTED = 1000 // Intentional gap to leave space for new Player events
+
+        /** A source started completed loading data.  */
+        const val EVENT_LOAD_COMPLETED = 1001
+
+        /** A source canceled loading data.  */
+        const val EVENT_LOAD_CANCELED = 1002
+
+        /** A source had a non-fatal error loading data.  */
+        const val EVENT_LOAD_ERROR = 1003
+
+        /** The downstream format sent to renderers changed.  */
+        const val EVENT_DOWNSTREAM_FORMAT_CHANGED = 1004
+
+        /** Data was removed from the end of the media buffer.  */
+        const val EVENT_UPSTREAM_DISCARDED = 1005
+
+        /** The bandwidth estimate has been updated.  */
+        const val EVENT_BANDWIDTH_ESTIMATE = 1006
+
+        /** An audio renderer was enabled.  */
+        const val EVENT_AUDIO_ENABLED = 1007
+
+        /** An audio renderer created a decoder.  */
+        const val EVENT_AUDIO_DECODER_INITIALIZED = 1008
+
+        /** The format consumed by an audio renderer changed.  */
+        const val EVENT_AUDIO_INPUT_FORMAT_CHANGED = 1009
+
+        /** The audio position has increased for the first time since the last pause or position reset.  */
+        const val EVENT_AUDIO_POSITION_ADVANCING = 1010
+
+        /** An audio underrun occurred.  */
+        const val EVENT_AUDIO_UNDERRUN = 1011
+
+        /** An audio renderer released a decoder.  */
+        const val EVENT_AUDIO_DECODER_RELEASED = 1012
+
+        /** An audio renderer was disabled.  */
+        const val EVENT_AUDIO_DISABLED = 1013
+
+        /** The audio sink encountered a non-fatal error.  */
+        const val EVENT_AUDIO_SINK_ERROR = 1014
+
+        /** A video renderer was enabled.  */
+        const val EVENT_VIDEO_ENABLED = 1015
+
+        /** A video renderer created a decoder.  */
+        const val EVENT_VIDEO_DECODER_INITIALIZED = 1016
+
+        /** The format consumed by a video renderer changed.  */
+        const val EVENT_VIDEO_INPUT_FORMAT_CHANGED = 1017
+
+        /** Video frames have been dropped.  */
+        const val EVENT_DROPPED_VIDEO_FRAMES = 1018
+
+        /** A video renderer released a decoder.  */
+        const val EVENT_VIDEO_DECODER_RELEASED = 1019
+
+        /** A video renderer was disabled.  */
+        const val EVENT_VIDEO_DISABLED = 1020
+
+        /** Video frame processing offset data has been reported.  */
+        const val EVENT_VIDEO_FRAME_PROCESSING_OFFSET = 1021
+
+        /** A DRM session has been acquired.  */
+        const val EVENT_DRM_SESSION_ACQUIRED = 1022
+
+        /** DRM keys were loaded.  */
+        const val EVENT_DRM_KEYS_LOADED = 1023
+
+        /** A non-fatal DRM session manager error occurred.  */
+        const val EVENT_DRM_SESSION_MANAGER_ERROR = 1024
+
+        /** DRM keys were restored.  */
+        const val EVENT_DRM_KEYS_RESTORED = 1025
+
+        /** DRM keys were removed.  */
+        const val EVENT_DRM_KEYS_REMOVED = 1026
+
+        /** A DRM session has been released.  */
+        const val EVENT_DRM_SESSION_RELEASED = 1027
+
+        /** The player was released.  */
+        const val EVENT_PLAYER_RELEASED = 1028
+
+        /** The audio codec encountered an error.  */
+        const val EVENT_AUDIO_CODEC_ERROR = 1029
+
+        /** The video codec encountered an error.  */
+        const val EVENT_VIDEO_CODEC_ERROR = 1030
+    }
+
+    /** Time information of an event.  */
+    class EventTime {
+
+        /**
+         * Elapsed real-time as returned by `SystemClock.elapsedRealtime()` at the time of the
+         * event, in milliseconds.
+         */
+        var realtimeMs: Long = 0
+
+        /** Most recent [Timeline] that contains the event position.  */
+        var timeline: Timeline? = null
+
+        /**
+         * Window index in the [.timeline] this event belongs to, or the prospective window index
+         * if the timeline is not yet known and empty.
+         */
+        var windowIndex = 0
+
+        /**
+         * [Media period identifier][MediaPeriodId] for the media period this event belongs to, or
+         * `null` if the event is not associated with a specific media period.
+         */
+        var mediaPeriodId: MediaSource.MediaPeriodId? = null
+
+        /**
+         * Position in the window or ad this event belongs to at the time of the event, in milliseconds.
+         */
+        var eventPlaybackPositionMs: Long = 0
+
+        /**
+         * The current [Timeline] at the time of the event (equivalent to [ ][Player.getCurrentTimeline]).
+         */
+        var currentTimeline: Timeline? = null
+
+        /**
+         * The current window index in [.currentTimeline] at the time of the event, or the
+         * prospective window index if the timeline is not yet known and empty (equivalent to [ ][Player.getCurrentMediaItemIndex]).
+         */
+        var currentWindowIndex = 0
+
+        /**
+         * [Media period identifier][MediaPeriodId] for the currently playing media period at the
+         * time of the event, or `null` if no current media period identifier is available.
+         */
+        var currentMediaPeriodId: MediaSource.MediaPeriodId? = null
+
+        /**
+         * Position in the [current timeline window][.currentWindowIndex] or the currently playing
+         * ad at the time of the event, in milliseconds.
+         */
+        var currentPlaybackPositionMs: Long = 0
+
+        /**
+         * Total buffered duration from [.currentPlaybackPositionMs] at the time of the event, in
+         * milliseconds. This includes pre-buffered data for subsequent ads and windows.
+         */
+        var totalBufferedDurationMs: Long = 0
+
+        /**
+         * @param realtimeMs Elapsed real-time as returned by {@code SystemClock.elapsedRealtime()} at
+         *     the time of the event, in milliseconds.
+         * @param timeline Most recent {@link Timeline} that contains the event position.
+         * @param windowIndex Window index in the {@code timeline} this event belongs to, or the
+         *     prospective window index if the timeline is not yet known and empty.
+         * @param mediaPeriodId {@link MediaPeriodId Media period identifier} for the media period this
+         *     event belongs to, or {@code null} if the event is not associated with a specific media
+         *     period.
+         * @param eventPlaybackPositionMs Position in the window or ad this event belongs to at the time
+         *     of the event, in milliseconds.
+         * @param currentTimeline The current {@link Timeline} at the time of the event (equivalent to
+         *     {@link Player#getCurrentTimeline()}).
+         * @param currentWindowIndex The current window index in {@code currentTimeline} at the time of
+         *     the event, or the prospective window index if the timeline is not yet known and empty
+         *     (equivalent to {@link Player#getCurrentMediaItemIndex()}).
+         * @param currentMediaPeriodId {@link MediaPeriodId Media period identifier} for the currently
+         *     playing media period at the time of the event, or {@code null} if no current media period
+         *     identifier is available.
+         * @param currentPlaybackPositionMs Position in the current timeline window or the currently
+         *     playing ad at the time of the event, in milliseconds.
+         * @param totalBufferedDurationMs Total buffered duration from {@code currentPlaybackPositionMs}
+         *     at the time of the event, in milliseconds. This includes pre-buffered data for subsequent
+         *     ads and windows.
+         */
+        constructor(
+            realtimeMs: Long,
+            timeline: Timeline?,
+            windowIndex: Int,
+            mediaPeriodId: MediaSource.MediaPeriodId?,
+            eventPlaybackPositionMs: Long,
+            currentTimeline: Timeline?,
+            currentWindowIndex: Int,
+            currentMediaPeriodId: MediaSource.MediaPeriodId?,
+            currentPlaybackPositionMs: Long,
+            totalBufferedDurationMs: Long
+        ) {
+            this.realtimeMs = realtimeMs
+            this.timeline = timeline
+            this.windowIndex = windowIndex
+            this.mediaPeriodId = mediaPeriodId
+            this.eventPlaybackPositionMs = eventPlaybackPositionMs
+            this.currentTimeline = currentTimeline
+            this.currentWindowIndex = currentWindowIndex
+            this.currentMediaPeriodId = currentMediaPeriodId
+            this.currentPlaybackPositionMs = currentPlaybackPositionMs
+            this.totalBufferedDurationMs = totalBufferedDurationMs
+        }
+
+        override fun equals(o: Any?): Boolean {
+            if (this === o) {
+                return true
+            }
+            if (o == null || javaClass != o.javaClass) {
+                return false
+            }
+            val eventTime = o as EventTime
+            return (realtimeMs == eventTime.realtimeMs && windowIndex == eventTime.windowIndex && eventPlaybackPositionMs == eventTime.eventPlaybackPositionMs && currentWindowIndex == eventTime.currentWindowIndex && currentPlaybackPositionMs == eventTime.currentPlaybackPositionMs && totalBufferedDurationMs == eventTime.totalBufferedDurationMs && Objects.equal(
+                timeline, eventTime.timeline
+            ) && Objects.equal(mediaPeriodId, eventTime.mediaPeriodId) && Objects.equal(
+                currentTimeline, eventTime.currentTimeline
+            ) && Objects.equal(currentMediaPeriodId, eventTime.currentMediaPeriodId))
+        }
+
+        override fun hashCode(): Int {
+            return Objects.hashCode(
+                realtimeMs,
+                timeline,
+                windowIndex,
+                mediaPeriodId,
+                eventPlaybackPositionMs,
+                currentTimeline,
+                currentWindowIndex,
+                currentMediaPeriodId,
+                currentPlaybackPositionMs,
+                totalBufferedDurationMs
+            )
+        }
+    }
+
+
+    @Deprecated(
+        """Use {@link #onPlaybackStateChanged(EventTime, int)} and {@link
+   *     #onPlayWhenReadyChanged(EventTime, boolean, int)} instead."""
+    )
+    fun onPlayerStateChanged(
+        eventTime: EventTime?, playWhenReady: Boolean, @State playbackState: Int
+    ) {
     }
 
     /**
-     * Returns whether the given event occurred.
+     * Called when the playback state changed.
      *
-     * @param event The {@link EventFlags event}.
-     * @return Whether the event occurred.
+     * @param eventTime The event time.
+     * @param state The new [playback state][Player.State].
      */
-    public boolean contains(@EventFlags int event) {
-      return flags.contains(event);
-    }
+    fun onPlaybackStateChanged(eventTime: EventTime?, @State state: Int) {}
 
     /**
-     * Returns whether any of the given events occurred.
+     * Called when the value changed that indicates whether playback will proceed when ready.
      *
-     * @param events The {@link EventFlags events}.
-     * @return Whether any of the events occurred.
+     * @param eventTime The event time.
+     * @param playWhenReady Whether playback will proceed when ready.
+     * @param reason The [reason][Player.PlayWhenReadyChangeReason] of the change.
      */
-    public boolean containsAny(@EventFlags int... events) {
-      return flags.containsAny(events);
-    }
-
-    /** Returns the number of events in the set. */
-    public int size() {
-      return flags.size();
+    fun onPlayWhenReadyChanged(
+        eventTime: EventTime?, playWhenReady: Boolean, @PlayWhenReadyChangeReason reason: Int
+    ) {
     }
 
     /**
-     * Returns the {@link EventFlags event} at the given index.
+     * Called when playback suppression reason changed.
      *
-     * <p>Although index-based access is possible, it doesn't imply a particular order of these
-     * events.
+     * @param eventTime The event time.
+     * @param playbackSuppressionReason The new [PlaybackSuppressionReason].
+     */
+    fun onPlaybackSuppressionReasonChanged(
+        eventTime: EventTime?, @PlaybackSuppressionReason playbackSuppressionReason: Int
+    ) {
+    }
+
+    /**
+     * Called when the player starts or stops playing.
      *
-     * @param index The index. Must be between 0 (inclusive) and {@link #size()} (exclusive).
-     * @return The {@link EventFlags event} at the given index.
+     * @param eventTime The event time.
+     * @param isPlaying Whether the player is playing.
      */
-    public @EventFlags int get(int index) {
-      return flags.get(index);
-    }
-  }
-
-  /**
-   * Events that can be reported via {@link #onEvents(Player, Events)}.
-   *
-   * <p>One of the {@link AnalyticsListener}{@code .EVENT_*} flags.
-   */
-  // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
-  // with Kotlin usages from before TYPE_USE was added.
-  @Documented
-  @Retention(RetentionPolicy.SOURCE)
-  @Target({FIELD, METHOD, PARAMETER, LOCAL_VARIABLE, TYPE_USE})
-  @IntDef({
-    EVENT_TIMELINE_CHANGED,
-    EVENT_MEDIA_ITEM_TRANSITION,
-    EVENT_TRACKS_CHANGED,
-    EVENT_IS_LOADING_CHANGED,
-    EVENT_PLAYBACK_STATE_CHANGED,
-    EVENT_PLAY_WHEN_READY_CHANGED,
-    EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED,
-    EVENT_IS_PLAYING_CHANGED,
-    EVENT_REPEAT_MODE_CHANGED,
-    EVENT_SHUFFLE_MODE_ENABLED_CHANGED,
-    EVENT_PLAYER_ERROR,
-    EVENT_POSITION_DISCONTINUITY,
-    EVENT_PLAYBACK_PARAMETERS_CHANGED,
-    EVENT_AVAILABLE_COMMANDS_CHANGED,
-    EVENT_MEDIA_METADATA_CHANGED,
-    EVENT_PLAYLIST_METADATA_CHANGED,
-    EVENT_SEEK_BACK_INCREMENT_CHANGED,
-    EVENT_SEEK_FORWARD_INCREMENT_CHANGED,
-    EVENT_MAX_SEEK_TO_PREVIOUS_POSITION_CHANGED,
-    EVENT_TRACK_SELECTION_PARAMETERS_CHANGED,
-    EVENT_DEVICE_INFO_CHANGED,
-    EVENT_DEVICE_VOLUME_CHANGED,
-    EVENT_LOAD_STARTED,
-    EVENT_LOAD_COMPLETED,
-    EVENT_LOAD_CANCELED,
-    EVENT_LOAD_ERROR,
-    EVENT_DOWNSTREAM_FORMAT_CHANGED,
-    EVENT_UPSTREAM_DISCARDED,
-    EVENT_BANDWIDTH_ESTIMATE,
-    EVENT_METADATA,
-    EVENT_CUES,
-    EVENT_AUDIO_ENABLED,
-    EVENT_AUDIO_DECODER_INITIALIZED,
-    EVENT_AUDIO_INPUT_FORMAT_CHANGED,
-    EVENT_AUDIO_POSITION_ADVANCING,
-    EVENT_AUDIO_UNDERRUN,
-    EVENT_AUDIO_DECODER_RELEASED,
-    EVENT_AUDIO_DISABLED,
-    EVENT_AUDIO_SESSION_ID,
-    EVENT_AUDIO_ATTRIBUTES_CHANGED,
-    EVENT_SKIP_SILENCE_ENABLED_CHANGED,
-    EVENT_AUDIO_SINK_ERROR,
-    EVENT_VOLUME_CHANGED,
-    EVENT_VIDEO_ENABLED,
-    EVENT_VIDEO_DECODER_INITIALIZED,
-    EVENT_VIDEO_INPUT_FORMAT_CHANGED,
-    EVENT_DROPPED_VIDEO_FRAMES,
-    EVENT_VIDEO_DECODER_RELEASED,
-    EVENT_VIDEO_DISABLED,
-    EVENT_VIDEO_FRAME_PROCESSING_OFFSET,
-    EVENT_RENDERED_FIRST_FRAME,
-    EVENT_VIDEO_SIZE_CHANGED,
-    EVENT_SURFACE_SIZE_CHANGED,
-    EVENT_DRM_SESSION_ACQUIRED,
-    EVENT_DRM_KEYS_LOADED,
-    EVENT_DRM_SESSION_MANAGER_ERROR,
-    EVENT_DRM_KEYS_RESTORED,
-    EVENT_DRM_KEYS_REMOVED,
-    EVENT_DRM_SESSION_RELEASED,
-    EVENT_PLAYER_RELEASED,
-    EVENT_AUDIO_CODEC_ERROR,
-    EVENT_VIDEO_CODEC_ERROR,
-  })
-  @interface EventFlags {}
-  /** {@link Player#getCurrentTimeline()} changed. */
-  int EVENT_TIMELINE_CHANGED = Player.EVENT_TIMELINE_CHANGED;
-  /**
-   * {@link Player#getCurrentMediaItem()} changed or the player started repeating the current item.
-   */
-  int EVENT_MEDIA_ITEM_TRANSITION = Player.EVENT_MEDIA_ITEM_TRANSITION;
-  /** {@link Player#getCurrentTracks()} changed. */
-  int EVENT_TRACKS_CHANGED = Player.EVENT_TRACKS_CHANGED;
-  /** {@link Player#isLoading()} ()} changed. */
-  int EVENT_IS_LOADING_CHANGED = Player.EVENT_IS_LOADING_CHANGED;
-  /** {@link Player#getPlaybackState()} changed. */
-  int EVENT_PLAYBACK_STATE_CHANGED = Player.EVENT_PLAYBACK_STATE_CHANGED;
-  /** {@link Player#getPlayWhenReady()} changed. */
-  int EVENT_PLAY_WHEN_READY_CHANGED = Player.EVENT_PLAY_WHEN_READY_CHANGED;
-  /** {@link Player#getPlaybackSuppressionReason()} changed. */
-  int EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED = Player.EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED;
-  /** {@link Player#isPlaying()} changed. */
-  int EVENT_IS_PLAYING_CHANGED = Player.EVENT_IS_PLAYING_CHANGED;
-  /** {@link Player#getRepeatMode()} changed. */
-  int EVENT_REPEAT_MODE_CHANGED = Player.EVENT_REPEAT_MODE_CHANGED;
-  /** {@link Player#getShuffleModeEnabled()} changed. */
-  int EVENT_SHUFFLE_MODE_ENABLED_CHANGED = Player.EVENT_SHUFFLE_MODE_ENABLED_CHANGED;
-  /** {@link Player#getPlayerError()} changed. */
-  int EVENT_PLAYER_ERROR = Player.EVENT_PLAYER_ERROR;
-  /**
-   * A position discontinuity occurred. See {@link
-   * Player.Listener#onPositionDiscontinuity(Player.PositionInfo, Player.PositionInfo, int)}.
-   */
-  int EVENT_POSITION_DISCONTINUITY = Player.EVENT_POSITION_DISCONTINUITY;
-  /** {@link Player#getPlaybackParameters()} changed. */
-  int EVENT_PLAYBACK_PARAMETERS_CHANGED = Player.EVENT_PLAYBACK_PARAMETERS_CHANGED;
-  /** {@link Player#getAvailableCommands()} changed. */
-  int EVENT_AVAILABLE_COMMANDS_CHANGED = Player.EVENT_AVAILABLE_COMMANDS_CHANGED;
-  /** {@link Player#getMediaMetadata()} changed. */
-  int EVENT_MEDIA_METADATA_CHANGED = Player.EVENT_MEDIA_METADATA_CHANGED;
-  /** {@link Player#getPlaylistMetadata()} changed. */
-  int EVENT_PLAYLIST_METADATA_CHANGED = Player.EVENT_PLAYLIST_METADATA_CHANGED;
-  /** {@link Player#getSeekBackIncrement()} changed. */
-  int EVENT_SEEK_BACK_INCREMENT_CHANGED = Player.EVENT_SEEK_BACK_INCREMENT_CHANGED;
-  /** {@link Player#getSeekForwardIncrement()} changed. */
-  int EVENT_SEEK_FORWARD_INCREMENT_CHANGED = Player.EVENT_SEEK_FORWARD_INCREMENT_CHANGED;
-  /** {@link Player#getMaxSeekToPreviousPosition()} changed. */
-  int EVENT_MAX_SEEK_TO_PREVIOUS_POSITION_CHANGED =
-      Player.EVENT_MAX_SEEK_TO_PREVIOUS_POSITION_CHANGED;
-  /** {@link Player#getTrackSelectionParameters()} changed. */
-  int EVENT_TRACK_SELECTION_PARAMETERS_CHANGED = Player.EVENT_TRACK_SELECTION_PARAMETERS_CHANGED;
-  /** Audio attributes changed. */
-  int EVENT_AUDIO_ATTRIBUTES_CHANGED = Player.EVENT_AUDIO_ATTRIBUTES_CHANGED;
-  /** An audio session id was set. */
-  int EVENT_AUDIO_SESSION_ID = Player.EVENT_AUDIO_SESSION_ID;
-  /** The volume changed. */
-  int EVENT_VOLUME_CHANGED = Player.EVENT_VOLUME_CHANGED;
-  /** Skipping silences was enabled or disabled in the audio stream. */
-  int EVENT_SKIP_SILENCE_ENABLED_CHANGED = Player.EVENT_SKIP_SILENCE_ENABLED_CHANGED;
-  /** The surface size changed. */
-  int EVENT_SURFACE_SIZE_CHANGED = Player.EVENT_SURFACE_SIZE_CHANGED;
-  /** The video size changed. */
-  int EVENT_VIDEO_SIZE_CHANGED = Player.EVENT_VIDEO_SIZE_CHANGED;
-  /**
-   * The first frame has been rendered since setting the surface, since the renderer was reset or
-   * since the stream changed.
-   */
-  int EVENT_RENDERED_FIRST_FRAME = Player.EVENT_RENDERED_FIRST_FRAME;
-  /** Metadata associated with the current playback time was reported. */
-  int EVENT_METADATA = Player.EVENT_METADATA;
-  /** {@link Player#getCurrentCues()} changed. */
-  int EVENT_CUES = Player.EVENT_CUES;
-  /** {@link Player#getDeviceInfo()} changed. */
-  int EVENT_DEVICE_INFO_CHANGED = Player.EVENT_DEVICE_INFO_CHANGED;
-  /** {@link Player#getDeviceVolume()} changed. */
-  int EVENT_DEVICE_VOLUME_CHANGED = Player.EVENT_DEVICE_VOLUME_CHANGED;
-  /** A source started loading data. */
-  int EVENT_LOAD_STARTED = 1000; // Intentional gap to leave space for new Player events
-  /** A source started completed loading data. */
-  int EVENT_LOAD_COMPLETED = 1001;
-  /** A source canceled loading data. */
-  int EVENT_LOAD_CANCELED = 1002;
-  /** A source had a non-fatal error loading data. */
-  int EVENT_LOAD_ERROR = 1003;
-  /** The downstream format sent to renderers changed. */
-  int EVENT_DOWNSTREAM_FORMAT_CHANGED = 1004;
-  /** Data was removed from the end of the media buffer. */
-  int EVENT_UPSTREAM_DISCARDED = 1005;
-  /** The bandwidth estimate has been updated. */
-  int EVENT_BANDWIDTH_ESTIMATE = 1006;
-  /** An audio renderer was enabled. */
-  int EVENT_AUDIO_ENABLED = 1007;
-  /** An audio renderer created a decoder. */
-  int EVENT_AUDIO_DECODER_INITIALIZED = 1008;
-  /** The format consumed by an audio renderer changed. */
-  int EVENT_AUDIO_INPUT_FORMAT_CHANGED = 1009;
-  /** The audio position has increased for the first time since the last pause or position reset. */
-  int EVENT_AUDIO_POSITION_ADVANCING = 1010;
-  /** An audio underrun occurred. */
-  int EVENT_AUDIO_UNDERRUN = 1011;
-  /** An audio renderer released a decoder. */
-  int EVENT_AUDIO_DECODER_RELEASED = 1012;
-  /** An audio renderer was disabled. */
-  int EVENT_AUDIO_DISABLED = 1013;
-  /** The audio sink encountered a non-fatal error. */
-  int EVENT_AUDIO_SINK_ERROR = 1014;
-  /** A video renderer was enabled. */
-  int EVENT_VIDEO_ENABLED = 1015;
-  /** A video renderer created a decoder. */
-  int EVENT_VIDEO_DECODER_INITIALIZED = 1016;
-  /** The format consumed by a video renderer changed. */
-  int EVENT_VIDEO_INPUT_FORMAT_CHANGED = 1017;
-  /** Video frames have been dropped. */
-  int EVENT_DROPPED_VIDEO_FRAMES = 1018;
-  /** A video renderer released a decoder. */
-  int EVENT_VIDEO_DECODER_RELEASED = 1019;
-  /** A video renderer was disabled. */
-  int EVENT_VIDEO_DISABLED = 1020;
-  /** Video frame processing offset data has been reported. */
-  int EVENT_VIDEO_FRAME_PROCESSING_OFFSET = 1021;
-  /** A DRM session has been acquired. */
-  int EVENT_DRM_SESSION_ACQUIRED = 1022;
-  /** DRM keys were loaded. */
-  int EVENT_DRM_KEYS_LOADED = 1023;
-  /** A non-fatal DRM session manager error occurred. */
-  int EVENT_DRM_SESSION_MANAGER_ERROR = 1024;
-  /** DRM keys were restored. */
-  int EVENT_DRM_KEYS_RESTORED = 1025;
-  /** DRM keys were removed. */
-  int EVENT_DRM_KEYS_REMOVED = 1026;
-  /** A DRM session has been released. */
-  int EVENT_DRM_SESSION_RELEASED = 1027;
-  /** The player was released. */
-  int EVENT_PLAYER_RELEASED = 1028;
-  /** The audio codec encountered an error. */
-  int EVENT_AUDIO_CODEC_ERROR = 1029;
-  /** The video codec encountered an error. */
-  int EVENT_VIDEO_CODEC_ERROR = 1030;
-
-  /** Time information of an event. */
-  final class EventTime {
+    fun onIsPlayingChanged(eventTime: EventTime?, isPlaying: Boolean) {}
 
     /**
-     * Elapsed real-time as returned by {@code SystemClock.elapsedRealtime()} at the time of the
-     * event, in milliseconds.
+     * Called when the timeline changed.
+     *
+     * @param eventTime The event time.
+     * @param reason The reason for the timeline change.
      */
-    public final long realtimeMs;
-
-    /** Most recent {@link Timeline} that contains the event position. */
-    public final Timeline timeline;
-
-    /**
-     * Window index in the {@link #timeline} this event belongs to, or the prospective window index
-     * if the timeline is not yet known and empty.
-     */
-    public final int windowIndex;
+    fun onTimelineChanged(eventTime: EventTime?, reason: @TimelineChangeReason Int) {}
 
     /**
-     * {@link MediaPeriodId Media period identifier} for the media period this event belongs to, or
-     * {@code null} if the event is not associated with a specific media period.
+     * Called when playback transitions to a different media item.
+     *
+     * @param eventTime The event time.
+     * @param mediaItem The media item.
+     * @param reason The reason for the media item transition.
      */
-    @Nullable public final MediaPeriodId mediaPeriodId;
-
-    /**
-     * Position in the window or ad this event belongs to at the time of the event, in milliseconds.
-     */
-    public final long eventPlaybackPositionMs;
-
-    /**
-     * The current {@link Timeline} at the time of the event (equivalent to {@link
-     * Player#getCurrentTimeline()}).
-     */
-    public final Timeline currentTimeline;
-
-    /**
-     * The current window index in {@link #currentTimeline} at the time of the event, or the
-     * prospective window index if the timeline is not yet known and empty (equivalent to {@link
-     * Player#getCurrentMediaItemIndex()}).
-     */
-    public final int currentWindowIndex;
-
-    /**
-     * {@link MediaPeriodId Media period identifier} for the currently playing media period at the
-     * time of the event, or {@code null} if no current media period identifier is available.
-     */
-    @Nullable public final MediaPeriodId currentMediaPeriodId;
-
-    /**
-     * Position in the {@link #currentWindowIndex current timeline window} or the currently playing
-     * ad at the time of the event, in milliseconds.
-     */
-    public final long currentPlaybackPositionMs;
-
-    /**
-     * Total buffered duration from {@link #currentPlaybackPositionMs} at the time of the event, in
-     * milliseconds. This includes pre-buffered data for subsequent ads and windows.
-     */
-    public final long totalBufferedDurationMs;
-
-    /**
-     * @param realtimeMs Elapsed real-time as returned by {@code SystemClock.elapsedRealtime()} at
-     *     the time of the event, in milliseconds.
-     * @param timeline Most recent {@link Timeline} that contains the event position.
-     * @param windowIndex Window index in the {@code timeline} this event belongs to, or the
-     *     prospective window index if the timeline is not yet known and empty.
-     * @param mediaPeriodId {@link MediaPeriodId Media period identifier} for the media period this
-     *     event belongs to, or {@code null} if the event is not associated with a specific media
-     *     period.
-     * @param eventPlaybackPositionMs Position in the window or ad this event belongs to at the time
-     *     of the event, in milliseconds.
-     * @param currentTimeline The current {@link Timeline} at the time of the event (equivalent to
-     *     {@link Player#getCurrentTimeline()}).
-     * @param currentWindowIndex The current window index in {@code currentTimeline} at the time of
-     *     the event, or the prospective window index if the timeline is not yet known and empty
-     *     (equivalent to {@link Player#getCurrentMediaItemIndex()}).
-     * @param currentMediaPeriodId {@link MediaPeriodId Media period identifier} for the currently
-     *     playing media period at the time of the event, or {@code null} if no current media period
-     *     identifier is available.
-     * @param currentPlaybackPositionMs Position in the current timeline window or the currently
-     *     playing ad at the time of the event, in milliseconds.
-     * @param totalBufferedDurationMs Total buffered duration from {@code currentPlaybackPositionMs}
-     *     at the time of the event, in milliseconds. This includes pre-buffered data for subsequent
-     *     ads and windows.
-     */
-    public EventTime(
-        long realtimeMs,
-        Timeline timeline,
-        int windowIndex,
-        @Nullable MediaPeriodId mediaPeriodId,
-        long eventPlaybackPositionMs,
-        Timeline currentTimeline,
-        int currentWindowIndex,
-        @Nullable MediaPeriodId currentMediaPeriodId,
-        long currentPlaybackPositionMs,
-        long totalBufferedDurationMs) {
-      this.realtimeMs = realtimeMs;
-      this.timeline = timeline;
-      this.windowIndex = windowIndex;
-      this.mediaPeriodId = mediaPeriodId;
-      this.eventPlaybackPositionMs = eventPlaybackPositionMs;
-      this.currentTimeline = currentTimeline;
-      this.currentWindowIndex = currentWindowIndex;
-      this.currentMediaPeriodId = currentMediaPeriodId;
-      this.currentPlaybackPositionMs = currentPlaybackPositionMs;
-      this.totalBufferedDurationMs = totalBufferedDurationMs;
+    fun onMediaItemTransition(
+        eventTime: EventTime?,
+        mediaItem: MediaItem?,
+        @Player.MediaItemTransitionReason reason: Int
+    ) {
     }
 
-    @Override
-    public boolean equals(@Nullable Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      EventTime eventTime = (EventTime) o;
-      return realtimeMs == eventTime.realtimeMs
-          && windowIndex == eventTime.windowIndex
-          && eventPlaybackPositionMs == eventTime.eventPlaybackPositionMs
-          && currentWindowIndex == eventTime.currentWindowIndex
-          && currentPlaybackPositionMs == eventTime.currentPlaybackPositionMs
-          && totalBufferedDurationMs == eventTime.totalBufferedDurationMs
-          && Objects.equal(timeline, eventTime.timeline)
-          && Objects.equal(mediaPeriodId, eventTime.mediaPeriodId)
-          && Objects.equal(currentTimeline, eventTime.currentTimeline)
-          && Objects.equal(currentMediaPeriodId, eventTime.currentMediaPeriodId);
+
+    @Deprecated(
+        """Use {@link #onPositionDiscontinuity(EventTime, Player.PositionInfo,
+   *     Player.PositionInfo, int)} instead."""
+    )
+    fun onPositionDiscontinuity(eventTime: EventTime?, @DiscontinuityReason reason: Int) {
     }
 
-    @Override
-    public int hashCode() {
-      return Objects.hashCode(
-          realtimeMs,
-          timeline,
-          windowIndex,
-          mediaPeriodId,
-          eventPlaybackPositionMs,
-          currentTimeline,
-          currentWindowIndex,
-          currentMediaPeriodId,
-          currentPlaybackPositionMs,
-          totalBufferedDurationMs);
+    /**
+     * Called when a position discontinuity occurred.
+     *
+     * @param eventTime The event time.
+     * @param oldPosition The position before the discontinuity.
+     * @param newPosition The position after the discontinuity.
+     * @param reason The reason for the position discontinuity.
+     */
+    fun onPositionDiscontinuity(
+        eventTime: EventTime?,
+        oldPosition: PositionInfo?,
+        newPosition: PositionInfo?,
+        @DiscontinuityReason reason: Int
+    ) {
     }
-  }
 
-  /**
-   * @deprecated Use {@link #onPlaybackStateChanged(EventTime, int)} and {@link
-   *     #onPlayWhenReadyChanged(EventTime, boolean, int)} instead.
-   */
-  @Deprecated
-  default void onPlayerStateChanged(
-      EventTime eventTime, boolean playWhenReady, @Player.State int playbackState) {}
 
-  /**
-   * Called when the playback state changed.
-   *
-   * @param eventTime The event time.
-   * @param state The new {@link Player.State playback state}.
-   */
-  default void onPlaybackStateChanged(EventTime eventTime, @Player.State int state) {}
-
-  /**
-   * Called when the value changed that indicates whether playback will proceed when ready.
-   *
-   * @param eventTime The event time.
-   * @param playWhenReady Whether playback will proceed when ready.
-   * @param reason The {@link Player.PlayWhenReadyChangeReason reason} of the change.
-   */
-  default void onPlayWhenReadyChanged(
-      EventTime eventTime, boolean playWhenReady, @Player.PlayWhenReadyChangeReason int reason) {}
-
-  /**
-   * Called when playback suppression reason changed.
-   *
-   * @param eventTime The event time.
-   * @param playbackSuppressionReason The new {@link PlaybackSuppressionReason}.
-   */
-  default void onPlaybackSuppressionReasonChanged(
-      EventTime eventTime, @PlaybackSuppressionReason int playbackSuppressionReason) {}
-
-  /**
-   * Called when the player starts or stops playing.
-   *
-   * @param eventTime The event time.
-   * @param isPlaying Whether the player is playing.
-   */
-  default void onIsPlayingChanged(EventTime eventTime, boolean isPlaying) {}
-
-  /**
-   * Called when the timeline changed.
-   *
-   * @param eventTime The event time.
-   * @param reason The reason for the timeline change.
-   */
-  default void onTimelineChanged(EventTime eventTime, @TimelineChangeReason int reason) {}
-
-  /**
-   * Called when playback transitions to a different media item.
-   *
-   * @param eventTime The event time.
-   * @param mediaItem The media item.
-   * @param reason The reason for the media item transition.
-   */
-  default void onMediaItemTransition(
-      EventTime eventTime,
-      @Nullable MediaItem mediaItem,
-      @Player.MediaItemTransitionReason int reason) {}
-
-  /**
-   * @deprecated Use {@link #onPositionDiscontinuity(EventTime, Player.PositionInfo,
-   *     Player.PositionInfo, int)} instead.
-   */
-  @Deprecated
-  default void onPositionDiscontinuity(EventTime eventTime, @DiscontinuityReason int reason) {}
-
-  /**
-   * Called when a position discontinuity occurred.
-   *
-   * @param eventTime The event time.
-   * @param oldPosition The position before the discontinuity.
-   * @param newPosition The position after the discontinuity.
-   * @param reason The reason for the position discontinuity.
-   */
-  default void onPositionDiscontinuity(
-      EventTime eventTime,
-      Player.PositionInfo oldPosition,
-      Player.PositionInfo newPosition,
-      @DiscontinuityReason int reason) {}
-
-  /**
-   * @deprecated Use {@link #onPositionDiscontinuity(EventTime, Player.PositionInfo,
+    @Deprecated(
+        """Use {@link #onPositionDiscontinuity(EventTime, Player.PositionInfo,
    *     Player.PositionInfo, int)} instead, listening to changes with {@link
-   *     Player#DISCONTINUITY_REASON_SEEK}.
-   */
-  @Deprecated
-  default void onSeekStarted(EventTime eventTime) {}
-
-  /**
-   * @deprecated Seeks are processed without delay. Use {@link #onPositionDiscontinuity(EventTime,
-   *     int)} with reason {@link Player#DISCONTINUITY_REASON_SEEK} instead.
-   */
-  @Deprecated
-  default void onSeekProcessed(EventTime eventTime) {}
-
-  /**
-   * Called when the playback parameters changed.
-   *
-   * @param eventTime The event time.
-   * @param playbackParameters The new playback parameters.
-   */
-  default void onPlaybackParametersChanged(
-      EventTime eventTime, PlaybackParameters playbackParameters) {}
-
-  /**
-   * Called when the seek back increment changed.
-   *
-   * @param eventTime The event time.
-   * @param seekBackIncrementMs The seek back increment, in milliseconds.
-   */
-  default void onSeekBackIncrementChanged(EventTime eventTime, long seekBackIncrementMs) {}
-
-  /**
-   * Called when the seek forward increment changed.
-   *
-   * @param eventTime The event time.
-   * @param seekForwardIncrementMs The seek forward increment, in milliseconds.
-   */
-  default void onSeekForwardIncrementChanged(EventTime eventTime, long seekForwardIncrementMs) {}
-
-  /**
-   * Called when the maximum position for which {@link Player#seekToPrevious()} seeks to the
-   * previous window changes.
-   *
-   * @param eventTime The event time.
-   * @param maxSeekToPreviousPositionMs The maximum seek to previous position, in milliseconds.
-   */
-  default void onMaxSeekToPreviousPositionChanged(
-      EventTime eventTime, long maxSeekToPreviousPositionMs) {}
-
-  /**
-   * Called when the repeat mode changed.
-   *
-   * @param eventTime The event time.
-   * @param repeatMode The new repeat mode.
-   */
-  default void onRepeatModeChanged(EventTime eventTime, @Player.RepeatMode int repeatMode) {}
-
-  /**
-   * Called when the shuffle mode changed.
-   *
-   * @param eventTime The event time.
-   * @param shuffleModeEnabled Whether the shuffle mode is enabled.
-   */
-  default void onShuffleModeChanged(EventTime eventTime, boolean shuffleModeEnabled) {}
-
-  /**
-   * Called when the player starts or stops loading data from a source.
-   *
-   * @param eventTime The event time.
-   * @param isLoading Whether the player is loading.
-   */
-  default void onIsLoadingChanged(EventTime eventTime, boolean isLoading) {}
-
-  /**
-   * @deprecated Use {@link #onIsLoadingChanged(EventTime, boolean)} instead.
-   */
-  @Deprecated
-  default void onLoadingChanged(EventTime eventTime, boolean isLoading) {}
-
-  /**
-   * Called when the player's available commands changed.
-   *
-   * @param eventTime The event time.
-   * @param availableCommands The available commands.
-   */
-  default void onAvailableCommandsChanged(EventTime eventTime, Player.Commands availableCommands) {}
-
-  /**
-   * Called when a fatal player error occurred.
-   *
-   * <p>Implementations of {@link Player} may pass an instance of a subclass of {@link
-   * PlaybackException} to this method in order to include more information about the error.
-   *
-   * @param eventTime The event time.
-   * @param error The error.
-   */
-  default void onPlayerError(EventTime eventTime, PlaybackException error) {}
-
-  /**
-   * Called when the {@link PlaybackException} returned by {@link Player#getPlayerError()} changes.
-   *
-   * <p>Implementations of Player may pass an instance of a subclass of {@link PlaybackException} to
-   * this method in order to include more information about the error.
-   *
-   * @param eventTime The event time.
-   * @param error The new error, or null if the error is being cleared.
-   */
-  default void onPlayerErrorChanged(EventTime eventTime, @Nullable PlaybackException error) {}
-
-  /**
-   * Called when the tracks change.
-   *
-   * @param eventTime The event time.
-   * @param tracks The tracks. Never null, but may be of length zero.
-   */
-  default void onTracksChanged(EventTime eventTime, Tracks tracks) {}
-
-  /**
-   * Called when track selection parameters change.
-   *
-   * @param eventTime The event time.
-   * @param trackSelectionParameters The new {@link TrackSelectionParameters}.
-   */
-  default void onTrackSelectionParametersChanged(
-      EventTime eventTime, TrackSelectionParameters trackSelectionParameters) {}
-
-  /**
-   * Called when the combined {@link MediaMetadata} changes.
-   *
-   * <p>The provided {@link MediaMetadata} is a combination of the {@link MediaItem#mediaMetadata}
-   * and the static and dynamic metadata from the {@link TrackSelection#getFormat(int) track
-   * selections' formats} and {@link MetadataOutput#onMetadata(Metadata)}.
-   *
-   * @param eventTime The event time.
-   * @param mediaMetadata The combined {@link MediaMetadata}.
-   */
-  default void onMediaMetadataChanged(EventTime eventTime, MediaMetadata mediaMetadata) {}
-
-  /**
-   * Called when the playlist {@link MediaMetadata} changes.
-   *
-   * @param eventTime The event time.
-   * @param playlistMetadata The playlist {@link MediaMetadata}.
-   */
-  default void onPlaylistMetadataChanged(EventTime eventTime, MediaMetadata playlistMetadata) {}
-
-  /**
-   * Called when a media source started loading data.
-   *
-   * @param eventTime The event time.
-   * @param loadEventInfo The {@link LoadEventInfo} defining the load event.
-   * @param mediaLoadData The {@link MediaLoadData} defining the data being loaded.
-   */
-  default void onLoadStarted(
-      EventTime eventTime, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData) {}
-
-  /**
-   * Called when a media source completed loading data.
-   *
-   * @param eventTime The event time.
-   * @param loadEventInfo The {@link LoadEventInfo} defining the load event.
-   * @param mediaLoadData The {@link MediaLoadData} defining the data being loaded.
-   */
-  default void onLoadCompleted(
-      EventTime eventTime, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData) {}
-
-  /**
-   * Called when a media source canceled loading data.
-   *
-   * @param eventTime The event time.
-   * @param loadEventInfo The {@link LoadEventInfo} defining the load event.
-   * @param mediaLoadData The {@link MediaLoadData} defining the data being loaded.
-   */
-  default void onLoadCanceled(
-      EventTime eventTime, LoadEventInfo loadEventInfo, MediaLoadData mediaLoadData) {}
-
-  /**
-   * Called when a media source loading error occurred.
-   *
-   * <p>This method being called does not indicate that playback has failed, or that it will fail.
-   * The player may be able to recover from the error. Hence applications should <em>not</em>
-   * implement this method to display a user visible error or initiate an application level retry.
-   * {@link Player.Listener#onPlayerError} is the appropriate place to implement such behavior. This
-   * method is called to provide the application with an opportunity to log the error if it wishes
-   * to do so.
-   *
-   * @param eventTime The event time.
-   * @param loadEventInfo The {@link LoadEventInfo} defining the load event.
-   * @param mediaLoadData The {@link MediaLoadData} defining the data being loaded.
-   * @param error The load error.
-   * @param wasCanceled Whether the load was canceled as a result of the error.
-   */
-  default void onLoadError(
-      EventTime eventTime,
-      LoadEventInfo loadEventInfo,
-      MediaLoadData mediaLoadData,
-      IOException error,
-      boolean wasCanceled) {}
-
-  /**
-   * Called when the downstream format sent to the renderers changed.
-   *
-   * @param eventTime The event time.
-   * @param mediaLoadData The {@link MediaLoadData} defining the newly selected media data.
-   */
-  default void onDownstreamFormatChanged(EventTime eventTime, MediaLoadData mediaLoadData) {}
-
-  /**
-   * Called when data is removed from the back of a media buffer, typically so that it can be
-   * re-buffered in a different format.
-   *
-   * @param eventTime The event time.
-   * @param mediaLoadData The {@link MediaLoadData} defining the media being discarded.
-   */
-  default void onUpstreamDiscarded(EventTime eventTime, MediaLoadData mediaLoadData) {}
-
-  /**
-   * Called when the bandwidth estimate for the current data source has been updated.
-   *
-   * @param eventTime The event time.
-   * @param totalLoadTimeMs The total time spend loading this update is based on, in milliseconds.
-   * @param totalBytesLoaded The total bytes loaded this update is based on.
-   * @param bitrateEstimate The bandwidth estimate, in bits per second.
-   */
-  default void onBandwidthEstimate(
-      EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {}
-
-  /**
-   * Called when there is {@link Metadata} associated with the current playback time.
-   *
-   * @param eventTime The event time.
-   * @param metadata The metadata.
-   */
-  default void onMetadata(EventTime eventTime, Metadata metadata) {}
-
-  /**
-   * Called when there is a change in the {@link Cue Cues}.
-   *
-   * <p>Both {@link #onCues(EventTime, List)} and {@link #onCues(EventTime, CueGroup)} are called
-   * when there is a change in the cues. You should only implement one or the other.
-   *
-   * @param eventTime The event time.
-   * @param cues The {@link Cue Cues}.
-   * @deprecated Use {@link #onCues(EventTime, CueGroup)} instead.
-   */
-  @Deprecated
-  default void onCues(EventTime eventTime, List<Cue> cues) {}
-
-  /**
-   * Called when there is a change in the {@link CueGroup}.
-   *
-   * <p>Both {@link #onCues(EventTime, List)} and {@link #onCues(EventTime, CueGroup)} are called
-   * when there is a change in the cues. You should only implement one or the other.
-   *
-   * @param eventTime The event time.
-   * @param cueGroup The {@link CueGroup}.
-   */
-  default void onCues(EventTime eventTime, CueGroup cueGroup) {}
-
-  /**
-   * @deprecated Use {@link #onAudioEnabled} and {@link #onVideoEnabled} instead.
-   */
-  @Deprecated
-  default void onDecoderEnabled(
-      EventTime eventTime, int trackType, DecoderCounters decoderCounters) {}
-
-  /**
-   * @deprecated Use {@link #onAudioDecoderInitialized} and {@link #onVideoDecoderInitialized}
-   *     instead.
-   */
-  @Deprecated
-  default void onDecoderInitialized(
-      EventTime eventTime, int trackType, String decoderName, long initializationDurationMs) {}
-
-  /**
-   * @deprecated Use {@link #onAudioInputFormatChanged(EventTime, Format, DecoderReuseEvaluation)}
-   *     and {@link #onVideoInputFormatChanged(EventTime, Format, DecoderReuseEvaluation)}. instead.
-   */
-  @Deprecated
-  default void onDecoderInputFormatChanged(EventTime eventTime, int trackType, Format format) {}
-
-  /**
-   * @deprecated Use {@link #onAudioDisabled} and {@link #onVideoDisabled} instead.
-   */
-  @Deprecated
-  default void onDecoderDisabled(
-      EventTime eventTime, int trackType, DecoderCounters decoderCounters) {}
-
-  /**
-   * Called when an audio renderer is enabled.
-   *
-   * @param eventTime The event time.
-   * @param decoderCounters {@link DecoderCounters} that will be updated by the renderer for as long
-   *     as it remains enabled.
-   */
-  default void onAudioEnabled(EventTime eventTime, DecoderCounters decoderCounters) {}
-
-  /**
-   * Called when an audio renderer creates a decoder.
-   *
-   * @param eventTime The event time.
-   * @param decoderName The decoder that was created.
-   * @param initializedTimestampMs {@link SystemClock#elapsedRealtime()} when initialization
-   *     finished.
-   * @param initializationDurationMs The time taken to initialize the decoder in milliseconds.
-   */
-  default void onAudioDecoderInitialized(
-      EventTime eventTime,
-      String decoderName,
-      long initializedTimestampMs,
-      long initializationDurationMs) {}
-
-  /**
-   * @deprecated Use {@link #onAudioDecoderInitialized(EventTime, String, long, long)}.
-   */
-  @Deprecated
-  default void onAudioDecoderInitialized(
-      EventTime eventTime, String decoderName, long initializationDurationMs) {}
-
-  /**
-   * @deprecated Use {@link #onAudioInputFormatChanged(EventTime, Format, DecoderReuseEvaluation)}.
-   */
-  @Deprecated
-  default void onAudioInputFormatChanged(EventTime eventTime, Format format) {}
-
-  /**
-   * Called when the format of the media being consumed by an audio renderer changes.
-   *
-   * @param eventTime The event time.
-   * @param format The new format.
-   * @param decoderReuseEvaluation The result of the evaluation to determine whether an existing
-   *     decoder instance can be reused for the new format, or {@code null} if the renderer did not
-   *     have a decoder.
-   */
-  default void onAudioInputFormatChanged(
-      EventTime eventTime,
-      Format format,
-      @Nullable DecoderReuseEvaluation decoderReuseEvaluation) {}
-
-  /**
-   * Called when the audio position has increased for the first time since the last pause or
-   * position reset.
-   *
-   * @param eventTime The event time.
-   * @param playoutStartSystemTimeMs The approximate derived {@link System#currentTimeMillis()} at
-   *     which playout started.
-   */
-  default void onAudioPositionAdvancing(EventTime eventTime, long playoutStartSystemTimeMs) {}
-
-  /**
-   * Called when an audio underrun occurs.
-   *
-   * @param eventTime The event time.
-   * @param bufferSize The size of the audio output buffer, in bytes.
-   * @param bufferSizeMs The size of the audio output buffer, in milliseconds, if it contains PCM
-   *     encoded audio. {@link C#TIME_UNSET} if the output buffer contains non-PCM encoded audio.
-   * @param elapsedSinceLastFeedMs The time since audio was last written to the output buffer.
-   */
-  default void onAudioUnderrun(
-      EventTime eventTime, int bufferSize, long bufferSizeMs, long elapsedSinceLastFeedMs) {}
-
-  /**
-   * Called when an audio renderer releases a decoder.
-   *
-   * @param eventTime The event time.
-   * @param decoderName The decoder that was released.
-   */
-  default void onAudioDecoderReleased(EventTime eventTime, String decoderName) {}
-
-  /**
-   * Called when an audio renderer is disabled.
-   *
-   * @param eventTime The event time.
-   * @param decoderCounters {@link DecoderCounters} that were updated by the renderer.
-   */
-  default void onAudioDisabled(EventTime eventTime, DecoderCounters decoderCounters) {}
-
-  /**
-   * Called when the audio session ID changes.
-   *
-   * @param eventTime The event time.
-   * @param audioSessionId The audio session ID.
-   */
-  default void onAudioSessionIdChanged(EventTime eventTime, int audioSessionId) {}
-
-  /**
-   * Called when the audio attributes change.
-   *
-   * @param eventTime The event time.
-   * @param audioAttributes The audio attributes.
-   */
-  default void onAudioAttributesChanged(EventTime eventTime, AudioAttributes audioAttributes) {}
-
-  /**
-   * Called when skipping silences is enabled or disabled in the audio stream.
-   *
-   * @param eventTime The event time.
-   * @param skipSilenceEnabled Whether skipping silences in the audio stream is enabled.
-   */
-  default void onSkipSilenceEnabledChanged(EventTime eventTime, boolean skipSilenceEnabled) {}
-
-  /**
-   * Called when {@link AudioSink} has encountered an error.
-   *
-   * <p>This method being called does not indicate that playback has failed, or that it will fail.
-   * The player may be able to recover from the error. Hence applications should <em>not</em>
-   * implement this method to display a user visible error or initiate an application level retry.
-   * {@link Player.Listener#onPlayerError} is the appropriate place to implement such behavior. This
-   * method is called to provide the application with an opportunity to log the error if it wishes
-   * to do so.
-   *
-   * @param eventTime The event time.
-   * @param audioSinkError The error that occurred. Typically an {@link
-   *     AudioSink.InitializationException}, a {@link AudioSink.WriteException}, or an {@link
-   *     AudioSink.UnexpectedDiscontinuityException}.
-   */
-  default void onAudioSinkError(EventTime eventTime, Exception audioSinkError) {}
-
-  /**
-   * Called when an audio decoder encounters an error.
-   *
-   * <p>This method being called does not indicate that playback has failed, or that it will fail.
-   * The player may be able to recover from the error. Hence applications should <em>not</em>
-   * implement this method to display a user visible error or initiate an application level retry.
-   * {@link Player.Listener#onPlayerError} is the appropriate place to implement such behavior. This
-   * method is called to provide the application with an opportunity to log the error if it wishes
-   * to do so.
-   *
-   * @param eventTime The event time.
-   * @param audioCodecError The error. Typically a {@link CodecException} if the renderer uses
-   *     {@link MediaCodec}, or a {@link DecoderException} if the renderer uses a software decoder.
-   */
-  default void onAudioCodecError(EventTime eventTime, Exception audioCodecError) {}
-
-  /**
-   * Called when the volume changes.
-   *
-   * @param eventTime The event time.
-   * @param volume The new volume, with 0 being silence and 1 being unity gain.
-   */
-  default void onVolumeChanged(EventTime eventTime, float volume) {}
-
-  /**
-   * Called when the device information changes
-   *
-   * @param eventTime The event time.
-   * @param deviceInfo The new {@link DeviceInfo}.
-   */
-  default void onDeviceInfoChanged(EventTime eventTime, DeviceInfo deviceInfo) {}
-
-  /**
-   * Called when the device volume or mute state changes.
-   *
-   * @param eventTime The event time.
-   * @param volume The new device volume, with 0 being silence and 1 being unity gain.
-   * @param muted Whether the device is muted.
-   */
-  default void onDeviceVolumeChanged(EventTime eventTime, int volume, boolean muted) {}
-
-  /**
-   * Called when a video renderer is enabled.
-   *
-   * @param eventTime The event time.
-   * @param decoderCounters {@link DecoderCounters} that will be updated by the renderer for as long
-   *     as it remains enabled.
-   */
-  default void onVideoEnabled(EventTime eventTime, DecoderCounters decoderCounters) {}
-
-  /**
-   * Called when a video renderer creates a decoder.
-   *
-   * @param eventTime The event time.
-   * @param decoderName The decoder that was created.
-   * @param initializedTimestampMs {@link SystemClock#elapsedRealtime()} when initialization
-   *     finished.
-   * @param initializationDurationMs The time taken to initialize the decoder in milliseconds.
-   */
-  default void onVideoDecoderInitialized(
-      EventTime eventTime,
-      String decoderName,
-      long initializedTimestampMs,
-      long initializationDurationMs) {}
-
-  /**
-   * @deprecated Use {@link #onVideoDecoderInitialized(EventTime, String, long, long)}.
-   */
-  @Deprecated
-  default void onVideoDecoderInitialized(
-      EventTime eventTime, String decoderName, long initializationDurationMs) {}
-
-  /**
-   * @deprecated Use {@link #onVideoInputFormatChanged(EventTime, Format, DecoderReuseEvaluation)}.
-   */
-  @Deprecated
-  default void onVideoInputFormatChanged(EventTime eventTime, Format format) {}
-
-  /**
-   * Called when the format of the media being consumed by a video renderer changes.
-   *
-   * @param eventTime The event time.
-   * @param format The new format.
-   * @param decoderReuseEvaluation The result of the evaluation to determine whether an existing
-   *     decoder instance can be reused for the new format, or {@code null} if the renderer did not
-   *     have a decoder.
-   */
-  default void onVideoInputFormatChanged(
-      EventTime eventTime,
-      Format format,
-      @Nullable DecoderReuseEvaluation decoderReuseEvaluation) {}
-
-  /**
-   * Called after video frames have been dropped.
-   *
-   * @param eventTime The event time.
-   * @param droppedFrames The number of dropped frames since the last call to this method.
-   * @param elapsedMs The duration in milliseconds over which the frames were dropped. This duration
-   *     is timed from when the renderer was started or from when dropped frames were last reported
-   *     (whichever was more recent), and not from when the first of the reported drops occurred.
-   */
-  default void onDroppedVideoFrames(EventTime eventTime, int droppedFrames, long elapsedMs) {}
-
-  /**
-   * Called when a video renderer releases a decoder.
-   *
-   * @param eventTime The event time.
-   * @param decoderName The decoder that was released.
-   */
-  default void onVideoDecoderReleased(EventTime eventTime, String decoderName) {}
-
-  /**
-   * Called when a video renderer is disabled.
-   *
-   * @param eventTime The event time.
-   * @param decoderCounters {@link DecoderCounters} that were updated by the renderer.
-   */
-  default void onVideoDisabled(EventTime eventTime, DecoderCounters decoderCounters) {}
-
-  /**
-   * Called when there is an update to the video frame processing offset reported by a video
-   * renderer.
-   *
-   * <p>The processing offset for a video frame is the difference between the time at which the
-   * frame became available to render, and the time at which it was scheduled to be rendered. A
-   * positive value indicates the frame became available early enough, whereas a negative value
-   * indicates that the frame wasn't available until after the time at which it should have been
-   * rendered.
-   *
-   * @param eventTime The event time.
-   * @param totalProcessingOffsetUs The sum of the video frame processing offsets for frames
-   *     rendered since the last call to this method.
-   * @param frameCount The number to samples included in {@code totalProcessingOffsetUs}.
-   */
-  default void onVideoFrameProcessingOffset(
-      EventTime eventTime, long totalProcessingOffsetUs, int frameCount) {}
-
-  /**
-   * Called when a video decoder encounters an error.
-   *
-   * <p>This method being called does not indicate that playback has failed, or that it will fail.
-   * The player may be able to recover from the error. Hence applications should <em>not</em>
-   * implement this method to display a user visible error or initiate an application level retry.
-   * {@link Player.Listener#onPlayerError} is the appropriate place to implement such behavior. This
-   * method is called to provide the application with an opportunity to log the error if it wishes
-   * to do so.
-   *
-   * @param eventTime The event time.
-   * @param videoCodecError The error. Typically a {@link CodecException} if the renderer uses
-   *     {@link MediaCodec}, or a {@link DecoderException} if the renderer uses a software decoder.
-   */
-  default void onVideoCodecError(EventTime eventTime, Exception videoCodecError) {}
-
-  /**
-   * Called when a frame is rendered for the first time since setting the surface, or since the
-   * renderer was reset, or since the stream being rendered was changed.
-   *
-   * @param eventTime The event time.
-   * @param output The output to which a frame has been rendered. Normally a {@link Surface},
-   *     however may also be other output types (e.g., a {@link VideoDecoderOutputBufferRenderer}).
-   * @param renderTimeMs {@link SystemClock#elapsedRealtime()} when the first frame was rendered.
-   */
-  default void onRenderedFirstFrame(EventTime eventTime, Object output, long renderTimeMs) {}
-
-  /**
-   * Called before a frame is rendered for the first time since setting the surface, and each time
-   * there's a change in the size or pixel aspect ratio of the video being rendered.
-   *
-   * @param eventTime The event time.
-   * @param videoSize The new size of the video.
-   */
-  default void onVideoSizeChanged(EventTime eventTime, VideoSize videoSize) {}
-
-  /**
-   * @deprecated Implement {@link #onVideoSizeChanged(EventTime eventTime, VideoSize)} instead.
-   */
-  @Deprecated
-  default void onVideoSizeChanged(
-      EventTime eventTime,
-      int width,
-      int height,
-      int unappliedRotationDegrees,
-      float pixelWidthHeightRatio) {}
-
-  /**
-   * Called when the output surface size changed.
-   *
-   * @param eventTime The event time.
-   * @param width The surface width in pixels. May be {@link C#LENGTH_UNSET} if unknown, or 0 if the
-   *     video is not rendered onto a surface.
-   * @param height The surface height in pixels. May be {@link C#LENGTH_UNSET} if unknown, or 0 if
-   *     the video is not rendered onto a surface.
-   */
-  default void onSurfaceSizeChanged(EventTime eventTime, int width, int height) {}
-
-  /**
-   * @deprecated Implement {@link #onDrmSessionAcquired(EventTime, int)} instead.
-   */
-  @Deprecated
-  default void onDrmSessionAcquired(EventTime eventTime) {}
-
-  /**
-   * Called each time a drm session is acquired.
-   *
-   * @param eventTime The event time.
-   * @param state The {@link DrmSession.State} of the session when the acquisition completed.
-   */
-  default void onDrmSessionAcquired(EventTime eventTime, @DrmSession.State int state) {}
-
-  /**
-   * Called each time drm keys are loaded.
-   *
-   * @param eventTime The event time.
-   */
-  default void onDrmKeysLoaded(EventTime eventTime) {}
-
-  /**
-   * Called when a drm error occurs.
-   *
-   * <p>This method being called does not indicate that playback has failed, or that it will fail.
-   * The player may be able to recover from the error. Hence applications should <em>not</em>
-   * implement this method to display a user visible error or initiate an application level retry.
-   * {@link Player.Listener#onPlayerError} is the appropriate place to implement such behavior. This
-   * method is called to provide the application with an opportunity to log the error if it wishes
-   * to do so.
-   *
-   * @param eventTime The event time.
-   * @param error The error.
-   */
-  default void onDrmSessionManagerError(EventTime eventTime, Exception error) {}
-
-  /**
-   * Called each time offline drm keys are restored.
-   *
-   * @param eventTime The event time.
-   */
-  default void onDrmKeysRestored(EventTime eventTime) {}
-
-  /**
-   * Called each time offline drm keys are removed.
-   *
-   * @param eventTime The event time.
-   */
-  default void onDrmKeysRemoved(EventTime eventTime) {}
-
-  /**
-   * Called each time a drm session is released.
-   *
-   * @param eventTime The event time.
-   */
-  default void onDrmSessionReleased(EventTime eventTime) {}
-
-  /**
-   * Called when the {@link Player} is released.
-   *
-   * @param eventTime The event time.
-   */
-  default void onPlayerReleased(EventTime eventTime) {}
-
-  /**
-   * Called after one or more events occurred.
-   *
-   * <p>State changes and events that happen within one {@link Looper} message queue iteration are
-   * reported together and only after all individual callbacks were triggered.
-   *
-   * <p>Listeners should prefer this method over individual callbacks in the following cases:
-   *
-   * <ul>
-   *   <li>They intend to trigger the same logic for multiple events (e.g. when updating a UI for
-   *       both {@link #onPlaybackStateChanged(EventTime, int)} and {@link
-   *       #onPlayWhenReadyChanged(EventTime, boolean, int)}).
-   *   <li>They need access to the {@link Player} object to trigger further events (e.g. to call
-   *       {@link Player#seekTo(long)} after a {@link
-   *       AnalyticsListener#onMediaItemTransition(EventTime, MediaItem, int)}).
-   *   <li>They intend to use multiple state values together or in combination with {@link Player}
-   *       getter methods. For example using {@link Player#getCurrentMediaItemIndex()} with the
-   *       {@code timeline} provided in {@link #onTimelineChanged(EventTime, int)} is only safe from
-   *       within this method.
-   *   <li>They are interested in events that logically happened together (e.g {@link
-   *       #onPlaybackStateChanged(EventTime, int)} to {@link Player#STATE_BUFFERING} because of
-   *       {@link #onMediaItemTransition(EventTime, MediaItem, int)}).
-   * </ul>
-   *
-   * @param player The {@link Player}.
-   * @param events The {@link Events} that occurred in this iteration.
-   */
-  default void onEvents(Player player, Events events) {}
+   *     Player#DISCONTINUITY_REASON_SEEK}."""
+    )
+    fun onSeekStarted(eventTime: EventTime?) {
+    }
+
+
+    @Deprecated(
+        """Seeks are processed without delay. Use {@link #onPositionDiscontinuity(EventTime,
+   *     int)} with reason {@link Player#DISCONTINUITY_REASON_SEEK} instead."""
+    )
+    fun onSeekProcessed(eventTime: EventTime?) {
+    }
+
+    /**
+     * Called when the playback parameters changed.
+     *
+     * @param eventTime The event time.
+     * @param playbackParameters The new playback parameters.
+     */
+    fun onPlaybackParametersChanged(
+        eventTime: EventTime?, playbackParameters: PlaybackParameters?
+    ) {
+    }
+
+    /**
+     * Called when the seek back increment changed.
+     *
+     * @param eventTime The event time.
+     * @param seekBackIncrementMs The seek back increment, in milliseconds.
+     */
+    fun onSeekBackIncrementChanged(eventTime: EventTime?, seekBackIncrementMs: Long) {}
+
+    /**
+     * Called when the seek forward increment changed.
+     *
+     * @param eventTime The event time.
+     * @param seekForwardIncrementMs The seek forward increment, in milliseconds.
+     */
+    fun onSeekForwardIncrementChanged(eventTime: EventTime?, seekForwardIncrementMs: Long) {}
+
+    /**
+     * Called when the maximum position for which [Player.seekToPrevious] seeks to the
+     * previous window changes.
+     *
+     * @param eventTime The event time.
+     * @param maxSeekToPreviousPositionMs The maximum seek to previous position, in milliseconds.
+     */
+    fun onMaxSeekToPreviousPositionChanged(
+        eventTime: EventTime?, maxSeekToPreviousPositionMs: Long
+    ) {
+    }
+
+    /**
+     * Called when the repeat mode changed.
+     *
+     * @param eventTime The event time.
+     * @param repeatMode The new repeat mode.
+     */
+    fun onRepeatModeChanged(eventTime: EventTime?, @RepeatMode repeatMode: Int) {}
+
+    /**
+     * Called when the shuffle mode changed.
+     *
+     * @param eventTime The event time.
+     * @param shuffleModeEnabled Whether the shuffle mode is enabled.
+     */
+    fun onShuffleModeChanged(eventTime: EventTime?, shuffleModeEnabled: Boolean) {}
+
+    /**
+     * Called when the player starts or stops loading data from a source.
+     *
+     * @param eventTime The event time.
+     * @param isLoading Whether the player is loading.
+     */
+    fun onIsLoadingChanged(eventTime: EventTime?, isLoading: Boolean) {}
+
+
+    @Deprecated("Use {@link #onIsLoadingChanged(EventTime, boolean)} instead.")
+    fun onLoadingChanged(eventTime: EventTime?, isLoading: Boolean) {
+    }
+
+    /**
+     * Called when the player's available commands changed.
+     *
+     * @param eventTime The event time.
+     * @param availableCommands The available commands.
+     */
+    fun onAvailableCommandsChanged(eventTime: EventTime?, availableCommands: Commands?) {}
+
+    /**
+     * Called when a fatal player error occurred.
+     *
+     *
+     * Implementations of [Player] may pass an instance of a subclass of [ ] to this method in order to include more information about the error.
+     *
+     * @param eventTime The event time.
+     * @param error The error.
+     */
+    fun onPlayerError(eventTime: EventTime?, error: PlaybackException?) {}
+
+    /**
+     * Called when the [PlaybackException] returned by [Player.getPlayerError] changes.
+     *
+     *
+     * Implementations of Player may pass an instance of a subclass of [PlaybackException] to
+     * this method in order to include more information about the error.
+     *
+     * @param eventTime The event time.
+     * @param error The new error, or null if the error is being cleared.
+     */
+    fun onPlayerErrorChanged(eventTime: EventTime?, error: PlaybackException?) {}
+
+    /**
+     * Called when the tracks change.
+     *
+     * @param eventTime The event time.
+     * @param tracks The tracks. Never null, but may be of length zero.
+     */
+    fun onTracksChanged(eventTime: EventTime?, tracks: Tracks?) {}
+
+    /**
+     * Called when track selection parameters change.
+     *
+     * @param eventTime The event time.
+     * @param trackSelectionParameters The new [TrackSelectionParameters].
+     */
+    fun onTrackSelectionParametersChanged(
+        eventTime: EventTime?, trackSelectionParameters: TrackSelectionParameters?
+    ) {
+    }
+
+    /**
+     * Called when the combined [MediaMetadata] changes.
+     *
+     *
+     * The provided [MediaMetadata] is a combination of the [MediaItem.mediaMetadata]
+     * and the static and dynamic metadata from the [track][TrackSelection.getFormat] and [MetadataOutput.onMetadata].
+     *
+     * @param eventTime The event time.
+     * @param mediaMetadata The combined [MediaMetadata].
+     */
+    fun onMediaMetadataChanged(eventTime: EventTime?, mediaMetadata: MediaMetadata?) {}
+
+    /**
+     * Called when the playlist [MediaMetadata] changes.
+     *
+     * @param eventTime The event time.
+     * @param playlistMetadata The playlist [MediaMetadata].
+     */
+    fun onPlaylistMetadataChanged(eventTime: EventTime?, playlistMetadata: MediaMetadata?) {}
+
+    /**
+     * Called when a media source started loading data.
+     *
+     * @param eventTime The event time.
+     * @param loadEventInfo The [LoadEventInfo] defining the load event.
+     * @param mediaLoadData The [MediaLoadData] defining the data being loaded.
+     */
+    fun onLoadStarted(
+        eventTime: EventTime?, loadEventInfo: LoadEventInfo?, mediaLoadData: MediaLoadData?
+    ) {
+    }
+
+    /**
+     * Called when a media source completed loading data.
+     *
+     * @param eventTime The event time.
+     * @param loadEventInfo The [LoadEventInfo] defining the load event.
+     * @param mediaLoadData The [MediaLoadData] defining the data being loaded.
+     */
+    fun onLoadCompleted(
+        eventTime: EventTime?, loadEventInfo: LoadEventInfo?, mediaLoadData: MediaLoadData?
+    ) {
+    }
+
+    /**
+     * Called when a media source canceled loading data.
+     *
+     * @param eventTime The event time.
+     * @param loadEventInfo The [LoadEventInfo] defining the load event.
+     * @param mediaLoadData The [MediaLoadData] defining the data being loaded.
+     */
+    fun onLoadCanceled(
+        eventTime: EventTime?, loadEventInfo: LoadEventInfo?, mediaLoadData: MediaLoadData?
+    ) {
+    }
+
+    /**
+     * Called when a media source loading error occurred.
+     *
+     *
+     * This method being called does not indicate that playback has failed, or that it will fail.
+     * The player may be able to recover from the error. Hence applications should *not*
+     * implement this method to display a user visible error or initiate an application level retry.
+     * [Player.Listener.onPlayerError] is the appropriate place to implement such behavior. This
+     * method is called to provide the application with an opportunity to log the error if it wishes
+     * to do so.
+     *
+     * @param eventTime The event time.
+     * @param loadEventInfo The [LoadEventInfo] defining the load event.
+     * @param mediaLoadData The [MediaLoadData] defining the data being loaded.
+     * @param error The load error.
+     * @param wasCanceled Whether the load was canceled as a result of the error.
+     */
+    fun onLoadError(
+        eventTime: EventTime?,
+        loadEventInfo: LoadEventInfo?,
+        mediaLoadData: MediaLoadData?,
+        error: IOException?,
+        wasCanceled: Boolean
+    ) {
+    }
+
+    /**
+     * Called when the downstream format sent to the renderers changed.
+     *
+     * @param eventTime The event time.
+     * @param mediaLoadData The [MediaLoadData] defining the newly selected media data.
+     */
+    fun onDownstreamFormatChanged(eventTime: EventTime?, mediaLoadData: MediaLoadData?) {}
+
+    /**
+     * Called when data is removed from the back of a media buffer, typically so that it can be
+     * re-buffered in a different format.
+     *
+     * @param eventTime The event time.
+     * @param mediaLoadData The [MediaLoadData] defining the media being discarded.
+     */
+    fun onUpstreamDiscarded(eventTime: EventTime?, mediaLoadData: MediaLoadData?) {}
+
+    /**
+     * Called when the bandwidth estimate for the current data source has been updated.
+     *
+     * @param eventTime The event time.
+     * @param totalLoadTimeMs The total time spend loading this update is based on, in milliseconds.
+     * @param totalBytesLoaded The total bytes loaded this update is based on.
+     * @param bitrateEstimate The bandwidth estimate, in bits per second.
+     */
+    fun onBandwidthEstimate(
+        eventTime: EventTime?, totalLoadTimeMs: Int, totalBytesLoaded: Long, bitrateEstimate: Long
+    ) {
+    }
+
+    /**
+     * Called when there is [Metadata] associated with the current playback time.
+     *
+     * @param eventTime The event time.
+     * @param metadata The metadata.
+     */
+    fun onMetadata(eventTime: EventTime?, metadata: Metadata?) {}
+
+    /**
+     * Called when there is a change in the [Cues][Cue].
+     *
+     *
+     * Both [.onCues] and [.onCues] are called
+     * when there is a change in the cues. You should only implement one or the other.
+     *
+     * @param eventTime The event time.
+     * @param cues The [Cues][Cue].
+     */
+    @Deprecated("Use {@link #onCues(EventTime, CueGroup)} instead.")
+    fun onCues(eventTime: EventTime?, cues: List<Cue?>?) {
+    }
+
+    /**
+     * Called when there is a change in the [CueGroup].
+     *
+     *
+     * Both [.onCues] and [.onCues] are called
+     * when there is a change in the cues. You should only implement one or the other.
+     *
+     * @param eventTime The event time.
+     * @param cueGroup The [CueGroup].
+     */
+    fun onCues(eventTime: EventTime?, cueGroup: CueGroup?) {}
+
+
+    @Deprecated("Use {@link #onAudioEnabled} and {@link #onVideoEnabled} instead.")
+    fun onDecoderEnabled(
+        eventTime: EventTime?, trackType: Int, decoderCounters: DecoderCounters?
+    ) {
+    }
+
+
+    @Deprecated(
+        """Use {@link #onAudioDecoderInitialized} and {@link #onVideoDecoderInitialized}
+        instead."""
+    )
+    fun onDecoderInitialized(
+        eventTime: EventTime?, trackType: Int, decoderName: String?, initializationDurationMs: Long
+    ) {
+    }
+
+
+    @Deprecated(
+        """Use {@link #onAudioInputFormatChanged(EventTime, Format, DecoderReuseEvaluation)}
+        and {@link #onVideoInputFormatChanged(EventTime, Format, DecoderReuseEvaluation)}. instead."""
+    )
+    fun onDecoderInputFormatChanged(eventTime: EventTime?, trackType: Int, format: Format?) {
+    }
+
+
+    @Deprecated("Use {@link #onAudioDisabled} and {@link #onVideoDisabled} instead.")
+    fun onDecoderDisabled(
+        eventTime: EventTime?, trackType: Int, decoderCounters: DecoderCounters?
+    ) {
+    }
+
+    /**
+     * Called when an audio renderer is enabled.
+     *
+     * @param eventTime The event time.
+     * @param decoderCounters [DecoderCounters] that will be updated by the renderer for as long
+     * as it remains enabled.
+     */
+    fun onAudioEnabled(eventTime: EventTime?, decoderCounters: DecoderCounters?) {}
+
+    /**
+     * Called when an audio renderer creates a decoder.
+     *
+     * @param eventTime The event time.
+     * @param decoderName The decoder that was created.
+     * @param initializedTimestampMs [SystemClock.elapsedRealtime] when initialization
+     * finished.
+     * @param initializationDurationMs The time taken to initialize the decoder in milliseconds.
+     */
+    fun onAudioDecoderInitialized(
+        eventTime: EventTime?,
+        decoderName: String?,
+        initializedTimestampMs: Long,
+        initializationDurationMs: Long
+    ) {
+    }
+
+
+    @Deprecated("Use {@link #onAudioDecoderInitialized(EventTime, String, long, long)}.")
+    fun onAudioDecoderInitialized(
+        eventTime: EventTime?, decoderName: String?, initializationDurationMs: Long
+    ) {
+    }
+
+
+    @Deprecated("Use {@link #onAudioInputFormatChanged(EventTime, Format, DecoderReuseEvaluation)}.")
+    fun onAudioInputFormatChanged(eventTime: EventTime?, format: Format?) {
+    }
+
+    /**
+     * Called when the format of the media being consumed by an audio renderer changes.
+     *
+     * @param eventTime The event time.
+     * @param format The new format.
+     * @param decoderReuseEvaluation The result of the evaluation to determine whether an existing
+     * decoder instance can be reused for the new format, or `null` if the renderer did not
+     * have a decoder.
+     */
+    fun onAudioInputFormatChanged(
+        eventTime: EventTime?,
+        format: Format?,
+        decoderReuseEvaluation: DecoderReuseEvaluation?
+    ) {
+    }
+
+    /**
+     * Called when the audio position has increased for the first time since the last pause or
+     * position reset.
+     *
+     * @param eventTime The event time.
+     * @param playoutStartSystemTimeMs The approximate derived [System.currentTimeMillis] at
+     * which playout started.
+     */
+    fun onAudioPositionAdvancing(eventTime: EventTime?, playoutStartSystemTimeMs: Long) {}
+
+    /**
+     * Called when an audio underrun occurs.
+     *
+     * @param eventTime The event time.
+     * @param bufferSize The size of the audio output buffer, in bytes.
+     * @param bufferSizeMs The size of the audio output buffer, in milliseconds, if it contains PCM
+     * encoded audio. [C.TIME_UNSET] if the output buffer contains non-PCM encoded audio.
+     * @param elapsedSinceLastFeedMs The time since audio was last written to the output buffer.
+     */
+    fun onAudioUnderrun(
+        eventTime: EventTime?, bufferSize: Int, bufferSizeMs: Long, elapsedSinceLastFeedMs: Long
+    ) {
+    }
+
+    /**
+     * Called when an audio renderer releases a decoder.
+     *
+     * @param eventTime The event time.
+     * @param decoderName The decoder that was released.
+     */
+    fun onAudioDecoderReleased(eventTime: EventTime?, decoderName: String?) {}
+
+    /**
+     * Called when an audio renderer is disabled.
+     *
+     * @param eventTime The event time.
+     * @param decoderCounters [DecoderCounters] that were updated by the renderer.
+     */
+    fun onAudioDisabled(eventTime: EventTime?, decoderCounters: DecoderCounters?) {}
+
+    /**
+     * Called when the audio session ID changes.
+     *
+     * @param eventTime The event time.
+     * @param audioSessionId The audio session ID.
+     */
+    fun onAudioSessionIdChanged(eventTime: EventTime?, audioSessionId: Int) {}
+
+    /**
+     * Called when the audio attributes change.
+     *
+     * @param eventTime The event time.
+     * @param audioAttributes The audio attributes.
+     */
+    fun onAudioAttributesChanged(eventTime: EventTime?, audioAttributes: AudioAttributes?) {}
+
+    /**
+     * Called when skipping silences is enabled or disabled in the audio stream.
+     *
+     * @param eventTime The event time.
+     * @param skipSilenceEnabled Whether skipping silences in the audio stream is enabled.
+     */
+    fun onSkipSilenceEnabledChanged(eventTime: EventTime?, skipSilenceEnabled: Boolean) {}
+
+    /**
+     * Called when [AudioSink] has encountered an error.
+     *
+     *
+     * This method being called does not indicate that playback has failed, or that it will fail.
+     * The player may be able to recover from the error. Hence applications should *not*
+     * implement this method to display a user visible error or initiate an application level retry.
+     * [Player.Listener.onPlayerError] is the appropriate place to implement such behavior. This
+     * method is called to provide the application with an opportunity to log the error if it wishes
+     * to do so.
+     *
+     * @param eventTime The event time.
+     * @param audioSinkError The error that occurred. Typically an [     ], a [AudioSink.WriteException], or an [     ].
+     */
+    fun onAudioSinkError(eventTime: EventTime?, audioSinkError: Exception?) {}
+
+    /**
+     * Called when an audio decoder encounters an error.
+     *
+     *
+     * This method being called does not indicate that playback has failed, or that it will fail.
+     * The player may be able to recover from the error. Hence applications should *not*
+     * implement this method to display a user visible error or initiate an application level retry.
+     * [Player.Listener.onPlayerError] is the appropriate place to implement such behavior. This
+     * method is called to provide the application with an opportunity to log the error if it wishes
+     * to do so.
+     *
+     * @param eventTime The event time.
+     * @param audioCodecError The error. Typically a [CodecException] if the renderer uses
+     * [MediaCodec], or a [DecoderException] if the renderer uses a software decoder.
+     */
+    fun onAudioCodecError(eventTime: EventTime?, audioCodecError: Exception?) {}
+
+    /**
+     * Called when the volume changes.
+     *
+     * @param eventTime The event time.
+     * @param volume The new volume, with 0 being silence and 1 being unity gain.
+     */
+    fun onVolumeChanged(eventTime: EventTime?, volume: Float) {}
+
+    /**
+     * Called when the device information changes
+     *
+     * @param eventTime The event time.
+     * @param deviceInfo The new [DeviceInfo].
+     */
+    fun onDeviceInfoChanged(eventTime: EventTime?, deviceInfo: DeviceInfo?) {}
+
+    /**
+     * Called when the device volume or mute state changes.
+     *
+     * @param eventTime The event time.
+     * @param volume The new device volume, with 0 being silence and 1 being unity gain.
+     * @param muted Whether the device is muted.
+     */
+    fun onDeviceVolumeChanged(eventTime: EventTime?, volume: Int, muted: Boolean) {}
+
+    /**
+     * Called when a video renderer is enabled.
+     *
+     * @param eventTime The event time.
+     * @param decoderCounters [DecoderCounters] that will be updated by the renderer for as long
+     * as it remains enabled.
+     */
+    fun onVideoEnabled(eventTime: EventTime?, decoderCounters: DecoderCounters?) {}
+
+    /**
+     * Called when a video renderer creates a decoder.
+     *
+     * @param eventTime The event time.
+     * @param decoderName The decoder that was created.
+     * @param initializedTimestampMs [SystemClock.elapsedRealtime] when initialization
+     * finished.
+     * @param initializationDurationMs The time taken to initialize the decoder in milliseconds.
+     */
+    fun onVideoDecoderInitialized(
+        eventTime: EventTime?,
+        decoderName: String?,
+        initializedTimestampMs: Long,
+        initializationDurationMs: Long
+    ) {
+    }
+
+
+    @Deprecated("Use {@link #onVideoDecoderInitialized(EventTime, String, long, long)}.")
+    fun onVideoDecoderInitialized(
+        eventTime: EventTime?, decoderName: String?, initializationDurationMs: Long
+    ) {
+    }
+
+
+    @Deprecated("Use {@link #onVideoInputFormatChanged(EventTime, Format, DecoderReuseEvaluation)}.")
+    fun onVideoInputFormatChanged(eventTime: EventTime?, format: Format?) {
+    }
+
+    /**
+     * Called when the format of the media being consumed by a video renderer changes.
+     *
+     * @param eventTime The event time.
+     * @param format The new format.
+     * @param decoderReuseEvaluation The result of the evaluation to determine whether an existing
+     * decoder instance can be reused for the new format, or `null` if the renderer did not
+     * have a decoder.
+     */
+    fun onVideoInputFormatChanged(
+        eventTime: EventTime?,
+        format: Format?,
+        decoderReuseEvaluation: DecoderReuseEvaluation?
+    ) {
+    }
+
+    /**
+     * Called after video frames have been dropped.
+     *
+     * @param eventTime The event time.
+     * @param droppedFrames The number of dropped frames since the last call to this method.
+     * @param elapsedMs The duration in milliseconds over which the frames were dropped. This duration
+     * is timed from when the renderer was started or from when dropped frames were last reported
+     * (whichever was more recent), and not from when the first of the reported drops occurred.
+     */
+    fun onDroppedVideoFrames(eventTime: EventTime?, droppedFrames: Int, elapsedMs: Long) {}
+
+    /**
+     * Called when a video renderer releases a decoder.
+     *
+     * @param eventTime The event time.
+     * @param decoderName The decoder that was released.
+     */
+    fun onVideoDecoderReleased(eventTime: EventTime?, decoderName: String?) {}
+
+    /**
+     * Called when a video renderer is disabled.
+     *
+     * @param eventTime The event time.
+     * @param decoderCounters [DecoderCounters] that were updated by the renderer.
+     */
+    fun onVideoDisabled(eventTime: EventTime?, decoderCounters: DecoderCounters?) {}
+
+    /**
+     * Called when there is an update to the video frame processing offset reported by a video
+     * renderer.
+     *
+     *
+     * The processing offset for a video frame is the difference between the time at which the
+     * frame became available to render, and the time at which it was scheduled to be rendered. A
+     * positive value indicates the frame became available early enough, whereas a negative value
+     * indicates that the frame wasn't available until after the time at which it should have been
+     * rendered.
+     *
+     * @param eventTime The event time.
+     * @param totalProcessingOffsetUs The sum of the video frame processing offsets for frames
+     * rendered since the last call to this method.
+     * @param frameCount The number to samples included in `totalProcessingOffsetUs`.
+     */
+    fun onVideoFrameProcessingOffset(
+        eventTime: EventTime?, totalProcessingOffsetUs: Long, frameCount: Int
+    ) {
+    }
+
+    /**
+     * Called when a video decoder encounters an error.
+     *
+     *
+     * This method being called does not indicate that playback has failed, or that it will fail.
+     * The player may be able to recover from the error. Hence applications should *not*
+     * implement this method to display a user visible error or initiate an application level retry.
+     * [Player.Listener.onPlayerError] is the appropriate place to implement such behavior. This
+     * method is called to provide the application with an opportunity to log the error if it wishes
+     * to do so.
+     *
+     * @param eventTime The event time.
+     * @param videoCodecError The error. Typically a [CodecException] if the renderer uses
+     * [MediaCodec], or a [DecoderException] if the renderer uses a software decoder.
+     */
+    fun onVideoCodecError(eventTime: EventTime?, videoCodecError: Exception?) {}
+
+    /**
+     * Called when a frame is rendered for the first time since setting the surface, or since the
+     * renderer was reset, or since the stream being rendered was changed.
+     *
+     * @param eventTime The event time.
+     * @param output The output to which a frame has been rendered. Normally a [Surface],
+     * however may also be other output types (e.g., a [VideoDecoderOutputBufferRenderer]).
+     * @param renderTimeMs [SystemClock.elapsedRealtime] when the first frame was rendered.
+     */
+    fun onRenderedFirstFrame(eventTime: EventTime?, output: Any?, renderTimeMs: Long) {}
+
+    /**
+     * Called before a frame is rendered for the first time since setting the surface, and each time
+     * there's a change in the size or pixel aspect ratio of the video being rendered.
+     *
+     * @param eventTime The event time.
+     * @param videoSize The new size of the video.
+     */
+    fun onVideoSizeChanged(eventTime: EventTime?, videoSize: VideoSize?) {}
+
+
+    @Deprecated("Implement {@link #onVideoSizeChanged(EventTime eventTime, VideoSize)} instead.")
+    fun onVideoSizeChanged(
+        eventTime: EventTime?,
+        width: Int,
+        height: Int,
+        unappliedRotationDegrees: Int,
+        pixelWidthHeightRatio: Float
+    ) {
+    }
+
+    /**
+     * Called when the output surface size changed.
+     *
+     * @param eventTime The event time.
+     * @param width The surface width in pixels. May be [C.LENGTH_UNSET] if unknown, or 0 if the
+     * video is not rendered onto a surface.
+     * @param height The surface height in pixels. May be [C.LENGTH_UNSET] if unknown, or 0 if
+     * the video is not rendered onto a surface.
+     */
+    fun onSurfaceSizeChanged(eventTime: EventTime?, width: Int, height: Int) {}
+
+
+    @Deprecated("Implement {@link #onDrmSessionAcquired(EventTime, int)} instead.")
+    fun onDrmSessionAcquired(eventTime: EventTime?) {
+    }
+
+    /**
+     * Called each time a drm session is acquired.
+     *
+     * @param eventTime The event time.
+     * @param state The [DrmSession.State] of the session when the acquisition completed.
+     */
+    fun onDrmSessionAcquired(eventTime: EventTime?, @DrmSession.State state: Int) {}
+
+    /**
+     * Called each time drm keys are loaded.
+     *
+     * @param eventTime The event time.
+     */
+    fun onDrmKeysLoaded(eventTime: EventTime?) {}
+
+    /**
+     * Called when a drm error occurs.
+     *
+     *
+     * This method being called does not indicate that playback has failed, or that it will fail.
+     * The player may be able to recover from the error. Hence applications should *not*
+     * implement this method to display a user visible error or initiate an application level retry.
+     * [Player.Listener.onPlayerError] is the appropriate place to implement such behavior. This
+     * method is called to provide the application with an opportunity to log the error if it wishes
+     * to do so.
+     *
+     * @param eventTime The event time.
+     * @param error The error.
+     */
+    fun onDrmSessionManagerError(eventTime: EventTime?, error: Exception?) {}
+
+    /**
+     * Called each time offline drm keys are restored.
+     *
+     * @param eventTime The event time.
+     */
+    fun onDrmKeysRestored(eventTime: EventTime?) {}
+
+    /**
+     * Called each time offline drm keys are removed.
+     *
+     * @param eventTime The event time.
+     */
+    fun onDrmKeysRemoved(eventTime: EventTime?) {}
+
+    /**
+     * Called each time a drm session is released.
+     *
+     * @param eventTime The event time.
+     */
+    fun onDrmSessionReleased(eventTime: EventTime?) {}
+
+    /**
+     * Called when the [Player] is released.
+     *
+     * @param eventTime The event time.
+     */
+    fun onPlayerReleased(eventTime: EventTime?) {}
+
+    /**
+     * Called after one or more events occurred.
+     *
+     *
+     * State changes and events that happen within one [Looper] message queue iteration are
+     * reported together and only after all individual callbacks were triggered.
+     *
+     *
+     * Listeners should prefer this method over individual callbacks in the following cases:
+     *
+     *
+     *  * They intend to trigger the same logic for multiple events (e.g. when updating a UI for
+     * both [.onPlaybackStateChanged] and [       ][.onPlayWhenReadyChanged]).
+     *  * They need access to the [Player] object to trigger further events (e.g. to call
+     * [Player.seekTo] after a [       ][AnalyticsListener.onMediaItemTransition]).
+     *  * They intend to use multiple state values together or in combination with [Player]
+     * getter methods. For example using [Player.getCurrentMediaItemIndex] with the
+     * `timeline` provided in [.onTimelineChanged] is only safe from
+     * within this method.
+     *  * They are interested in events that logically happened together (e.g [       ][.onPlaybackStateChanged] to [Player.STATE_BUFFERING] because of
+     * [.onMediaItemTransition]).
+     *
+     *
+     * @param player The [Player].
+     * @param events The [Events] that occurred in this iteration.
+     */
+    fun onEvents(player: Player?, events: Events?) {}
 }

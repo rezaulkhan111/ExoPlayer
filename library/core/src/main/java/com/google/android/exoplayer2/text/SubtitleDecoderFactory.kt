@@ -13,119 +13,97 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.text;
+package com.google.android.exoplayer2.text
 
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.text.cea.Cea608Decoder;
-import com.google.android.exoplayer2.text.cea.Cea708Decoder;
-import com.google.android.exoplayer2.text.dvb.DvbDecoder;
-import com.google.android.exoplayer2.text.pgs.PgsDecoder;
-import com.google.android.exoplayer2.text.ssa.SsaDecoder;
-import com.google.android.exoplayer2.text.subrip.SubripDecoder;
-import com.google.android.exoplayer2.text.ttml.TtmlDecoder;
-import com.google.android.exoplayer2.text.tx3g.Tx3gDecoder;
-import com.google.android.exoplayer2.text.webvtt.Mp4WebvttDecoder;
-import com.google.android.exoplayer2.text.webvtt.WebvttDecoder;
-import com.google.android.exoplayer2.util.MimeTypes;
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.text.cea.Cea608Decoder
+import com.google.android.exoplayer2.text.cea.Cea708Decoder
+import com.google.android.exoplayer2.text.dvb.DvbDecoder
+import com.google.android.exoplayer2.text.pgs.PgsDecoder
+import com.google.android.exoplayer2.text.ssa.SsaDecoder
+import com.google.android.exoplayer2.text.subrip.SubripDecoder
+import com.google.android.exoplayer2.text.ttml.TtmlDecoder
+import com.google.android.exoplayer2.text.tx3g.Tx3gDecoder
+import com.google.android.exoplayer2.text.webvtt.Mp4WebvttDecoder
+import com.google.android.exoplayer2.text.webvtt.WebvttDecoder
+import com.google.android.exoplayer2.util.MimeTypes
 
-/** A factory for {@link SubtitleDecoder} instances. */
-public interface SubtitleDecoderFactory {
+/** A factory for [SubtitleDecoder] instances.  */
+interface SubtitleDecoderFactory {
+    /**
+     * Returns whether the factory is able to instantiate a [SubtitleDecoder] for the given
+     * [Format].
+     *
+     * @param format The [Format].
+     * @return Whether the factory can instantiate a suitable [SubtitleDecoder].
+     */
+    fun supportsFormat(format: Format): Boolean
 
-  /**
-   * Returns whether the factory is able to instantiate a {@link SubtitleDecoder} for the given
-   * {@link Format}.
-   *
-   * @param format The {@link Format}.
-   * @return Whether the factory can instantiate a suitable {@link SubtitleDecoder}.
-   */
-  boolean supportsFormat(Format format);
+    /**
+     * Creates a [SubtitleDecoder] for the given [Format].
+     *
+     * @param format The [Format].
+     * @return A new [SubtitleDecoder].
+     * @throws IllegalArgumentException If the [Format] is not supported.
+     */
+    fun createDecoder(format: Format): SubtitleDecoder
 
-  /**
-   * Creates a {@link SubtitleDecoder} for the given {@link Format}.
-   *
-   * @param format The {@link Format}.
-   * @return A new {@link SubtitleDecoder}.
-   * @throws IllegalArgumentException If the {@link Format} is not supported.
-   */
-  SubtitleDecoder createDecoder(Format format);
-
-  /**
-   * Default {@link SubtitleDecoderFactory} implementation.
-   *
-   * <p>The formats supported by this factory are:
-   *
-   * <ul>
-   *   <li>WebVTT ({@link WebvttDecoder})
-   *   <li>WebVTT (MP4) ({@link Mp4WebvttDecoder})
-   *   <li>TTML ({@link TtmlDecoder})
-   *   <li>SubRip ({@link SubripDecoder})
-   *   <li>SSA/ASS ({@link SsaDecoder})
-   *   <li>TX3G ({@link Tx3gDecoder})
-   *   <li>Cea608 ({@link Cea608Decoder})
-   *   <li>Cea708 ({@link Cea708Decoder})
-   *   <li>DVB ({@link DvbDecoder})
-   *   <li>PGS ({@link PgsDecoder})
-   *   <li>Exoplayer Cues ({@link ExoplayerCuesDecoder})
-   * </ul>
-   */
-  SubtitleDecoderFactory DEFAULT =
-      new SubtitleDecoderFactory() {
-
-        @Override
-        public boolean supportsFormat(Format format) {
-          @Nullable String mimeType = format.sampleMimeType;
-          return MimeTypes.TEXT_VTT.equals(mimeType)
-              || MimeTypes.TEXT_SSA.equals(mimeType)
-              || MimeTypes.APPLICATION_TTML.equals(mimeType)
-              || MimeTypes.APPLICATION_MP4VTT.equals(mimeType)
-              || MimeTypes.APPLICATION_SUBRIP.equals(mimeType)
-              || MimeTypes.APPLICATION_TX3G.equals(mimeType)
-              || MimeTypes.APPLICATION_CEA608.equals(mimeType)
-              || MimeTypes.APPLICATION_MP4CEA608.equals(mimeType)
-              || MimeTypes.APPLICATION_CEA708.equals(mimeType)
-              || MimeTypes.APPLICATION_DVBSUBS.equals(mimeType)
-              || MimeTypes.APPLICATION_PGS.equals(mimeType)
-              || MimeTypes.TEXT_EXOPLAYER_CUES.equals(mimeType);
-        }
-
-        @Override
-        public SubtitleDecoder createDecoder(Format format) {
-          @Nullable String mimeType = format.sampleMimeType;
-          if (mimeType != null) {
-            switch (mimeType) {
-              case MimeTypes.TEXT_VTT:
-                return new WebvttDecoder();
-              case MimeTypes.TEXT_SSA:
-                return new SsaDecoder(format.initializationData);
-              case MimeTypes.APPLICATION_MP4VTT:
-                return new Mp4WebvttDecoder();
-              case MimeTypes.APPLICATION_TTML:
-                return new TtmlDecoder();
-              case MimeTypes.APPLICATION_SUBRIP:
-                return new SubripDecoder();
-              case MimeTypes.APPLICATION_TX3G:
-                return new Tx3gDecoder(format.initializationData);
-              case MimeTypes.APPLICATION_CEA608:
-              case MimeTypes.APPLICATION_MP4CEA608:
-                return new Cea608Decoder(
-                    mimeType,
-                    format.accessibilityChannel,
-                    Cea608Decoder.MIN_DATA_CHANNEL_TIMEOUT_MS);
-              case MimeTypes.APPLICATION_CEA708:
-                return new Cea708Decoder(format.accessibilityChannel, format.initializationData);
-              case MimeTypes.APPLICATION_DVBSUBS:
-                return new DvbDecoder(format.initializationData);
-              case MimeTypes.APPLICATION_PGS:
-                return new PgsDecoder();
-              case MimeTypes.TEXT_EXOPLAYER_CUES:
-                return new ExoplayerCuesDecoder();
-              default:
-                break;
+    companion object {
+        /**
+         * Default [SubtitleDecoderFactory] implementation.
+         *
+         *
+         * The formats supported by this factory are:
+         *
+         *
+         *  * WebVTT ([WebvttDecoder])
+         *  * WebVTT (MP4) ([Mp4WebvttDecoder])
+         *  * TTML ([TtmlDecoder])
+         *  * SubRip ([SubripDecoder])
+         *  * SSA/ASS ([SsaDecoder])
+         *  * TX3G ([Tx3gDecoder])
+         *  * Cea608 ([Cea608Decoder])
+         *  * Cea708 ([Cea708Decoder])
+         *  * DVB ([DvbDecoder])
+         *  * PGS ([PgsDecoder])
+         *  * Exoplayer Cues ([ExoplayerCuesDecoder])
+         *
+         */
+        @JvmField
+        val DEFAULT: SubtitleDecoderFactory = object : SubtitleDecoderFactory {
+            override fun supportsFormat(format: Format): Boolean {
+                val mimeType = format.sampleMimeType
+                return MimeTypes.TEXT_VTT == mimeType || MimeTypes.TEXT_SSA == mimeType || MimeTypes.APPLICATION_TTML == mimeType || MimeTypes.APPLICATION_MP4VTT == mimeType || MimeTypes.APPLICATION_SUBRIP == mimeType || MimeTypes.APPLICATION_TX3G == mimeType || MimeTypes.APPLICATION_CEA608 == mimeType || MimeTypes.APPLICATION_MP4CEA608 == mimeType || MimeTypes.APPLICATION_CEA708 == mimeType || MimeTypes.APPLICATION_DVBSUBS == mimeType || MimeTypes.APPLICATION_PGS == mimeType || MimeTypes.TEXT_EXOPLAYER_CUES == mimeType
             }
-          }
-          throw new IllegalArgumentException(
-              "Attempted to create decoder for unsupported MIME type: " + mimeType);
+
+            override fun createDecoder(format: Format): SubtitleDecoder {
+                val mimeType = format.sampleMimeType
+                if (mimeType != null) {
+                    when (mimeType) {
+                        MimeTypes.TEXT_VTT -> return WebvttDecoder()
+                        MimeTypes.TEXT_SSA -> return SsaDecoder(format.initializationData)
+                        MimeTypes.APPLICATION_MP4VTT -> return Mp4WebvttDecoder()
+                        MimeTypes.APPLICATION_TTML -> return TtmlDecoder()
+                        MimeTypes.APPLICATION_SUBRIP -> return SubripDecoder()
+                        MimeTypes.APPLICATION_TX3G -> return Tx3gDecoder(format.initializationData)
+                        MimeTypes.APPLICATION_CEA608, MimeTypes.APPLICATION_MP4CEA608 -> return Cea608Decoder(
+                            mimeType,
+                            format.accessibilityChannel,
+                            Cea608Decoder.MIN_DATA_CHANNEL_TIMEOUT_MS
+                        )
+                        MimeTypes.APPLICATION_CEA708 -> return Cea708Decoder(
+                            format.accessibilityChannel, format.initializationData
+                        )
+                        MimeTypes.APPLICATION_DVBSUBS -> return DvbDecoder(format.initializationData)
+                        MimeTypes.APPLICATION_PGS -> return PgsDecoder()
+                        MimeTypes.TEXT_EXOPLAYER_CUES -> return ExoplayerCuesDecoder()
+                        else -> {}
+                    }
+                }
+                throw IllegalArgumentException(
+                    "Attempted to create decoder for unsupported MIME type: $mimeType"
+                )
+            }
         }
-      };
+    }
 }

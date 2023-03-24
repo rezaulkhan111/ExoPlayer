@@ -13,179 +13,177 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.drm;
+package com.google.android.exoplayer2.drm
 
-import android.os.Looper;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.analytics.PlayerId;
+import android.os.Looper
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.PlaybackException
+import com.google.android.exoplayer2.analytics.PlayerId
 
-/** Manages a DRM session. */
-public interface DrmSessionManager {
+/** Manages a DRM session.  */
+interface DrmSessionManager {
+    /**
+     * Represents a single reference count of a [DrmSession], while deliberately not giving
+     * access to the underlying session.
+     */
+    interface DrmSessionReference {
+        companion object {
+            /** A reference that is never populated with an underlying [DrmSession].  */
+            @JvmField
+            val EMPTY: DrmSessionReference = DrmSessionReference {}
+        }
 
-  /**
-   * Represents a single reference count of a {@link DrmSession}, while deliberately not giving
-   * access to the underlying session.
-   */
-  interface DrmSessionReference {
-    /** A reference that is never populated with an underlying {@link DrmSession}. */
-    DrmSessionReference EMPTY = () -> {};
+        /**
+         * Releases the underlying session at most once.
+         *
+         *
+         * Can be called from any thread. Calling this method more than once will only release the
+         * underlying session once.
+         */
+        fun release()
+    }
+
+    companion object {
+        /**
+         * Returns [.DRM_UNSUPPORTED].
+         *
+         */
+        @get:Deprecated("Use {@link #DRM_UNSUPPORTED}.")
+        val dummyDrmSessionManager: DrmSessionManager?
+            get() = DRM_UNSUPPORTED
+
+        /** An instance that supports no DRM schemes.  */
+        val DRM_UNSUPPORTED: DrmSessionManager = object : DrmSessionManager {
+            override fun setPlayer(playbackLooper: Looper?, playerId: PlayerId?) {}
+            override fun acquireSession(
+                eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format
+            ): DrmSession? {
+                return if (format.drmInitData == null) {
+                    null
+                } else {
+                    ErrorStateDrmSession(
+                        DrmSessionException(
+                            UnsupportedDrmException(UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME),
+                            PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED
+                        )
+                    )
+                }
+            }
+
+            @CryptoType
+            override fun getCryptoType(format: Format): Int {
+                return if (format.drmInitData != null) C.CRYPTO_TYPE_UNSUPPORTED else C.CRYPTO_TYPE_NONE
+            }
+        }
+
+        /**
+         * An instance that supports no DRM schemes.
+         *
+         */
+        @Deprecated("Use {@link #DRM_UNSUPPORTED}.")
+        val DUMMY = DRM_UNSUPPORTED
+    }
 
     /**
-     * Releases the underlying session at most once.
+     * Acquires any required resources.
      *
-     * <p>Can be called from any thread. Calling this method more than once will only release the
-     * underlying session once.
+     *
+     * [.release] must be called to ensure the acquired resources are released. After
+     * releasing, an instance may be re-prepared.
      */
-    void release();
-  }
+    fun prepare() {
+        // Do nothing.
+    }
 
-  /** An instance that supports no DRM schemes. */
-  DrmSessionManager DRM_UNSUPPORTED =
-      new DrmSessionManager() {
+    /** Releases any acquired resources.  */
+    fun release() {
+        // Do nothing.
+    }
 
-        @Override
-        public void setPlayer(Looper playbackLooper, PlayerId playerId) {}
+    /**
+     * Sets information about the player using this DRM session manager.
+     *
+     * @param playbackLooper The [Looper] associated with the player's playback thread.
+     * @param playerId The [PlayerId] of the player.
+     */
+    fun setPlayer(playbackLooper: Looper?, playerId: PlayerId?)
 
-        @Override
-        @Nullable
-        public DrmSession acquireSession(
-            @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format) {
-          if (format.drmInitData == null) {
-            return null;
-          } else {
-            return new ErrorStateDrmSession(
-                new DrmSession.DrmSessionException(
-                    new UnsupportedDrmException(UnsupportedDrmException.REASON_UNSUPPORTED_SCHEME),
-                    PlaybackException.ERROR_CODE_DRM_SCHEME_UNSUPPORTED));
-          }
-        }
+    /**
+     * Pre-acquires a DRM session for the specified [Format].
+     *
+     *
+     * This notifies the manager that a subsequent call to [.acquireSession] with the same [Format] is likely,
+     * allowing a manager that supports pre-acquisition to get the required [DrmSession] ready
+     * in the background.
+     *
+     *
+     * The caller must call [DrmSessionReference.release] on the returned instance when
+     * they no longer require the pre-acquisition (i.e. they know they won't be making a matching call
+     * to [.acquireSession] in the near
+     * future).
+     *
+     *
+     * This manager may silently release the underlying session in order to allow another operation
+     * to complete. This will result in a subsequent call to [.acquireSession] re-initializing a new session, including
+     * repeating key loads and other async initialization steps.
+     *
+     *
+     * The caller must separately call [.acquireSession] in order to obtain a session suitable for
+     * playback. The pre-acquired [DrmSessionReference] and full [DrmSession] instances
+     * are distinct. The caller must release both, and can release the [DrmSessionReference]
+     * before the [DrmSession] without affecting playback.
+     *
+     *
+     * This can be called from any thread.
+     *
+     *
+     * Implementations that do not support pre-acquisition always return an empty [ ] instance.
+     *
+     * @param eventDispatcher The [DrmSessionEventListener.EventDispatcher] used to distribute
+     * events, and passed on to [     ][DrmSession.acquire].
+     * @param format The [Format] for which to pre-acquire a [DrmSession].
+     * @return A releaser for the pre-acquired session. Guaranteed to be non-null even if the matching
+     * [.acquireSession] would return null.
+     */
+    fun preacquireSession(
+        eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format?
+    ): DrmSessionReference? {
+        return DrmSessionReference.EMPTY
+    }
 
-        @Override
-        public @C.CryptoType int getCryptoType(Format format) {
-          return format.drmInitData != null ? C.CRYPTO_TYPE_UNSUPPORTED : C.CRYPTO_TYPE_NONE;
-        }
-      };
+    /**
+     * Returns a [DrmSession] for the specified [Format], with an incremented reference
+     * count. May return null if the [Format.drmInitData] is null and the DRM session manager is
+     * not configured to attach a [DrmSession] to clear content. When the caller no longer needs
+     * to use a returned [DrmSession], it must call [ ][DrmSession.release] to decrement the reference count.
+     *
+     *
+     * If the provided [Format] contains a null [Format.drmInitData], the returned
+     * [DrmSession] (if not null) will be a placeholder session which does not execute key
+     * requests, and cannot be used to handle encrypted content. However, a placeholder session may be
+     * used to configure secure decoders for playback of clear content periods, which can reduce the
+     * cost of transitioning between clear and encrypted content.
+     *
+     * @param eventDispatcher The [DrmSessionEventListener.EventDispatcher] used to distribute
+     * events, and passed on to [     ][DrmSession.acquire].
+     * @param format The [Format] for which to acquire a [DrmSession].
+     * @return The DRM session. May be null if the given [Format.drmInitData] is null.
+     */
+    fun acquireSession(
+        eventDispatcher: DrmSessionEventListener.EventDispatcher?, format: Format
+    ): DrmSession?
 
-  /**
-   * An instance that supports no DRM schemes.
-   *
-   * @deprecated Use {@link #DRM_UNSUPPORTED}.
-   */
-  @Deprecated DrmSessionManager DUMMY = DRM_UNSUPPORTED;
-
-  /**
-   * Returns {@link #DRM_UNSUPPORTED}.
-   *
-   * @deprecated Use {@link #DRM_UNSUPPORTED}.
-   */
-  @Deprecated
-  static DrmSessionManager getDummyDrmSessionManager() {
-    return DRM_UNSUPPORTED;
-  }
-
-  /**
-   * Acquires any required resources.
-   *
-   * <p>{@link #release()} must be called to ensure the acquired resources are released. After
-   * releasing, an instance may be re-prepared.
-   */
-  default void prepare() {
-    // Do nothing.
-  }
-
-  /** Releases any acquired resources. */
-  default void release() {
-    // Do nothing.
-  }
-
-  /**
-   * Sets information about the player using this DRM session manager.
-   *
-   * @param playbackLooper The {@link Looper} associated with the player's playback thread.
-   * @param playerId The {@link PlayerId} of the player.
-   */
-  void setPlayer(Looper playbackLooper, PlayerId playerId);
-
-  /**
-   * Pre-acquires a DRM session for the specified {@link Format}.
-   *
-   * <p>This notifies the manager that a subsequent call to {@link #acquireSession(
-   * DrmSessionEventListener.EventDispatcher, Format)} with the same {@link Format} is likely,
-   * allowing a manager that supports pre-acquisition to get the required {@link DrmSession} ready
-   * in the background.
-   *
-   * <p>The caller must call {@link DrmSessionReference#release()} on the returned instance when
-   * they no longer require the pre-acquisition (i.e. they know they won't be making a matching call
-   * to {@link #acquireSession(DrmSessionEventListener.EventDispatcher, Format)} in the near
-   * future).
-   *
-   * <p>This manager may silently release the underlying session in order to allow another operation
-   * to complete. This will result in a subsequent call to {@link #acquireSession(
-   * DrmSessionEventListener.EventDispatcher, Format)} re-initializing a new session, including
-   * repeating key loads and other async initialization steps.
-   *
-   * <p>The caller must separately call {@link #acquireSession(
-   * DrmSessionEventListener.EventDispatcher, Format)} in order to obtain a session suitable for
-   * playback. The pre-acquired {@link DrmSessionReference} and full {@link DrmSession} instances
-   * are distinct. The caller must release both, and can release the {@link DrmSessionReference}
-   * before the {@link DrmSession} without affecting playback.
-   *
-   * <p>This can be called from any thread.
-   *
-   * <p>Implementations that do not support pre-acquisition always return an empty {@link
-   * DrmSessionReference} instance.
-   *
-   * @param eventDispatcher The {@link DrmSessionEventListener.EventDispatcher} used to distribute
-   *     events, and passed on to {@link
-   *     DrmSession#acquire(DrmSessionEventListener.EventDispatcher)}.
-   * @param format The {@link Format} for which to pre-acquire a {@link DrmSession}.
-   * @return A releaser for the pre-acquired session. Guaranteed to be non-null even if the matching
-   *     {@link #acquireSession(DrmSessionEventListener.EventDispatcher, Format)} would return null.
-   */
-  default DrmSessionReference preacquireSession(
-      @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format) {
-    return DrmSessionReference.EMPTY;
-  }
-
-  /**
-   * Returns a {@link DrmSession} for the specified {@link Format}, with an incremented reference
-   * count. May return null if the {@link Format#drmInitData} is null and the DRM session manager is
-   * not configured to attach a {@link DrmSession} to clear content. When the caller no longer needs
-   * to use a returned {@link DrmSession}, it must call {@link
-   * DrmSession#release(DrmSessionEventListener.EventDispatcher)} to decrement the reference count.
-   *
-   * <p>If the provided {@link Format} contains a null {@link Format#drmInitData}, the returned
-   * {@link DrmSession} (if not null) will be a placeholder session which does not execute key
-   * requests, and cannot be used to handle encrypted content. However, a placeholder session may be
-   * used to configure secure decoders for playback of clear content periods, which can reduce the
-   * cost of transitioning between clear and encrypted content.
-   *
-   * @param eventDispatcher The {@link DrmSessionEventListener.EventDispatcher} used to distribute
-   *     events, and passed on to {@link
-   *     DrmSession#acquire(DrmSessionEventListener.EventDispatcher)}.
-   * @param format The {@link Format} for which to acquire a {@link DrmSession}.
-   * @return The DRM session. May be null if the given {@link Format#drmInitData} is null.
-   */
-  @Nullable
-  DrmSession acquireSession(
-      @Nullable DrmSessionEventListener.EventDispatcher eventDispatcher, Format format);
-
-  /**
-   * Returns the {@link C.CryptoType} that the DRM session manager will use for a given {@link
-   * Format}. Returns {@link C#CRYPTO_TYPE_UNSUPPORTED} if the manager does not support any of the
-   * DRM schemes defined in the {@link Format}. Returns {@link C#CRYPTO_TYPE_NONE} if {@link
-   * Format#drmInitData} is null and {@link #acquireSession} will return {@code null} for the given
-   * {@link Format}.
-   *
-   * @param format The {@link Format}.
-   * @return The {@link C.CryptoType} that the manager will use, or @link C#CRYPTO_TYPE_UNSUPPORTED}
-   *     if the manager does not support any of the DRM schemes defined in the {@link Format}. Will
-   *     be {@link C#CRYPTO_TYPE_NONE} if {@link Format#drmInitData} is null and {@link
-   *     #acquireSession} will return null for the given {@link Format}.
-   */
-  @C.CryptoType
-  int getCryptoType(Format format);
+    /**
+     * Returns the [C.CryptoType] that the DRM session manager will use for a given [ ]. Returns [C.CRYPTO_TYPE_UNSUPPORTED] if the manager does not support any of the
+     * DRM schemes defined in the [Format]. Returns [C.CRYPTO_TYPE_NONE] if [ ][Format.drmInitData] is null and [.acquireSession] will return `null` for the given
+     * [Format].
+     *
+     * @param format The [Format].
+     * @return The [C.CryptoType] that the manager will use, or @link C#CRYPTO_TYPE_UNSUPPORTED}
+     * if the manager does not support any of the DRM schemes defined in the [Format]. Will
+     * be [C.CRYPTO_TYPE_NONE] if [Format.drmInitData] is null and [     ][.acquireSession] will return null for the given [Format].
+     */
+    @CryptoType
+    fun getCryptoType(format: Format): Int
 }

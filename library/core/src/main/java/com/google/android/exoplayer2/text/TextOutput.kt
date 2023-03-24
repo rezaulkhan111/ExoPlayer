@@ -13,29 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.text;
+package com.google.android.exoplayer2.text
 
-import java.util.List;
+/** Receives text output.  */
+interface TextOutput {
+    /**
+     * Called when there is a change in the [Cues][Cue].
+     *
+     *
+     * Both [.onCues] and [.onCues] are called when there is a change
+     * in the cues. You should only implement one or the other.
+     *
+     */
+    @Deprecated("Use {@link #onCues(CueGroup)} instead.")
+    fun onCues(cues: List<Cue?>?) {
+    }
 
-/** Receives text output. */
-public interface TextOutput {
-
-  /**
-   * Called when there is a change in the {@link Cue Cues}.
-   *
-   * <p>Both {@link #onCues(List)} and {@link #onCues(CueGroup)} are called when there is a change
-   * in the cues. You should only implement one or the other.
-   *
-   * @deprecated Use {@link #onCues(CueGroup)} instead.
-   */
-  @Deprecated
-  default void onCues(List<Cue> cues) {}
-
-  /**
-   * Called when there is a change in the {@link CueGroup}.
-   *
-   * <p>Both {@link #onCues(List)} and {@link #onCues(CueGroup)} are called when there is a change
-   * in the cues. You should only implement one or the other.
-   */
-  void onCues(CueGroup cueGroup);
+    /**
+     * Called when there is a change in the [CueGroup].
+     *
+     *
+     * Both [.onCues] and [.onCues] are called when there is a change
+     * in the cues. You should only implement one or the other.
+     */
+    fun onCues(cueGroup: CueGroup?)
 }

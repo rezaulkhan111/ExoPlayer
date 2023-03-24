@@ -13,24 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.util;
+package com.google.android.exoplayer2.util
 
-import com.google.android.exoplayer2.PlaybackParameters;
+import com.google.android.exoplayer2.PlaybackParameters
 
-/** Tracks the progression of media time. */
-public interface MediaClock {
+/**
+ * Tracks the progression of media time.
+ */
+interface MediaClock {
 
-  /** Returns the current media position in microseconds. */
-  long getPositionUs();
+    /** Returns the current media position in microseconds.  */
+    fun getPositionUs(): Long
 
-  /**
-   * Attempts to set the playback parameters. The media clock may override the speed if changing the
-   * playback parameters is not supported.
-   *
-   * @param playbackParameters The playback parameters to attempt to set.
-   */
-  void setPlaybackParameters(PlaybackParameters playbackParameters);
+    /**
+     * Attempts to set the playback parameters. The media clock may override the speed if changing the
+     * playback parameters is not supported.
+     *
+     * @param playbackParameters The playback parameters to attempt to set.
+     */
+    fun setPlaybackParameters(playbackParameters: PlaybackParameters?)
 
-  /** Returns the active playback parameters. */
-  PlaybackParameters getPlaybackParameters();
+    /** Returns the active playback parameters.  */
+    fun getPlaybackParameters(): PlaybackParameters?
 }

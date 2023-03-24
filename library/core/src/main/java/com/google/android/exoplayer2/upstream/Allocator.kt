@@ -13,58 +13,53 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.upstream;
+package com.google.android.exoplayer2.upstream
 
-import androidx.annotation.Nullable;
+/** A source of allocations.  */
+interface Allocator {
+    /** A node in a chain of [Allocations][Allocation].  */
+    interface AllocationNode {
+        /** Returns the [Allocation] associated to this chain node.  */
+        fun getAllocation(): Allocation?
 
-/** A source of allocations. */
-public interface Allocator {
+        /** Returns the next chain node, or `null` if this is the last node in the chain.  */
+        operator fun next(): AllocationNode?
+    }
 
-  /** A node in a chain of {@link Allocation Allocations}. */
-  interface AllocationNode {
+    /**
+     * Obtain an [Allocation].
+     *
+     *
+     * When the caller has finished with the [Allocation], it should be returned by calling
+     * [.release].
+     *
+     * @return The [Allocation].
+     */
+    fun allocate(): Allocation?
 
-    /** Returns the {@link Allocation} associated to this chain node. */
-    Allocation getAllocation();
+    /**
+     * Releases an [Allocation] back to the allocator.
+     *
+     * @param allocation The [Allocation] being released.
+     */
+    fun release(allocation: Allocation?)
 
-    /** Returns the next chain node, or {@code null} if this is the last node in the chain. */
-    @Nullable
-    AllocationNode next();
-  }
+    /**
+     * Releases all [Allocations][Allocation] in the chain starting at the given [ ].
+     *
+     *
+     * Implementations must not make memory allocations.
+     */
+    fun release(allocationNode: AllocationNode?)
 
-  /**
-   * Obtain an {@link Allocation}.
-   *
-   * <p>When the caller has finished with the {@link Allocation}, it should be returned by calling
-   * {@link #release(Allocation)}.
-   *
-   * @return The {@link Allocation}.
-   */
-  Allocation allocate();
+    /**
+     * Hints to the allocator that it should make a best effort to release any excess [ ].
+     */
+    fun trim()
 
-  /**
-   * Releases an {@link Allocation} back to the allocator.
-   *
-   * @param allocation The {@link Allocation} being released.
-   */
-  void release(Allocation allocation);
+    /** Returns the total number of bytes currently allocated.  */
+    fun getTotalBytesAllocated(): Int
 
-  /**
-   * Releases all {@link Allocation Allocations} in the chain starting at the given {@link
-   * AllocationNode}.
-   *
-   * <p>Implementations must not make memory allocations.
-   */
-  void release(AllocationNode allocationNode);
-
-  /**
-   * Hints to the allocator that it should make a best effort to release any excess {@link
-   * Allocation Allocations}.
-   */
-  void trim();
-
-  /** Returns the total number of bytes currently allocated. */
-  int getTotalBytesAllocated();
-
-  /** Returns the length of each individual {@link Allocation}. */
-  int getIndividualAllocationLength();
+    /** Returns the length of each individual [Allocation].  */
+    fun getIndividualAllocationLength(): Int
 }

@@ -13,168 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2import
+package com.google.android.exoplayer2
 
 import android.net.ConnectivityManager
 import android.os.*
 import android.os.SystemClock
 import android.text.TextUtils
 import androidx.annotation.*
-import com.google.android.exoplayer2.Bundleable
 import com.google.android.exoplayer2.PlaybackException
-import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.util.*
 import java.lang.annotation.Documented
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
-
-androidx.annotation .IntDef
-import com.google.android.exoplayer2.ui.AdOverlayInfo
-import android.view.ViewGroup
-import com.google.common.collect.ImmutableList
-import com.google.android.exoplayer2.drm.DrmInitData.SchemeData
-import android.text.TextUtils
-import com.google.android.exoplayer2.text.span.TextAnnotation
-import com.google.android.exoplayer2.text.span.LanguageFeatureSpan
-import android.text.Spannable
-import com.google.android.exoplayer2.text.span.TextEmphasisSpan.MarkFill
-import com.google.android.exoplayer2.text.span.TextEmphasisSpan
-import android.graphics.Bitmap
-import com.google.android.exoplayer2.text.Cue.LineType
-import com.google.android.exoplayer2.text.Cue.TextSizeType
-import com.google.android.exoplayer2.text.Cue.VerticalType
-import com.google.android.exoplayer2.Bundleable
-import com.google.android.exoplayer2.text.Cue
-import org.checkerframework.dataflow.qual.Pure
-import android.text.Spanned
-import android.text.SpannedString
-import com.google.android.exoplayer2.text.CueGroup
-import android.content.IntentFilter
-import android.content.Intent
-import android.content.ComponentName
-import android.app.Activity
-import com.google.android.exoplayer2.MediaItem.SubtitleConfiguration
-import android.provider.MediaStore
-import org.checkerframework.checker.nullness.qual.EnsuresNonNull
-import org.checkerframework.checker.initialization.qual.UnknownInitialization
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
-import com.google.common.util.concurrent.Futures
-import org.checkerframework.checker.nullness.qual.PolyNull
-import android.util.SparseLongArray
-import android.content.pm.PackageInfo
-import android.content.pm.PackageManager
-import com.google.android.exoplayer2.ExoPlayerLibraryInfo
-import com.google.android.exoplayer2.C.TrackType
-import com.google.android.exoplayer2.C.PcmEncoding
-import android.annotation.SuppressLint
-import com.google.android.exoplayer2.C.AudioUsage
-import com.google.android.exoplayer2.C.AudioContentType
-import android.media.MediaDrm
-import com.google.android.exoplayer2.PlaybackException
-import android.telephony.TelephonyManager
-import android.app.UiModeManager
-import android.hardware.display.DisplayManager
-import android.view.WindowManager
-import android.database.sqlite.SQLiteDatabase
-import android.database.DatabaseUtils
-import com.google.android.exoplayer2.Player
-import android.Manifest.permission
-import android.security.NetworkSecurityPolicy
-import android.opengl.EGL14
-import javax.microedition.khronos.egl.EGL10
-import android.opengl.GLES20
-import com.google.android.exoplayer2.util.GlUtil.GlException
-import com.google.android.exoplayer2.util.GlUtil.Api17
-import android.opengl.GLU
-import android.opengl.GLES11Ext
-import android.opengl.GLES30
-import android.util.SparseBooleanArray
-import com.google.android.exoplayer2.util.GlProgram.Uniform
-import com.google.android.exoplayer2.util.MimeTypes.CustomMimeType
-import com.google.android.exoplayer2.util.MimeTypes.Mp4aObjectType
-import com.google.android.exoplayer2.util.AtomicFile.AtomicFileOutputStream
-import kotlin.annotations.jvm.UnderMigration
-import kotlin.annotations.jvm.MigrationStatus
-import com.google.android.exoplayer2.util.ListenerSet.IterationFinishedEvent
-import android.util.SparseArray
-import com.google.android.exoplayer2.video.ColorInfo
-import android.media.MediaFormat
-import android.app.NotificationManager
-import com.google.android.exoplayer2.util.NotificationUtil.Importance
-import android.app.NotificationChannel
-import android.view.SurfaceView
-import com.google.android.exoplayer2.util.EGLSurfaceTexture.TextureImageListener
-import android.graphics.SurfaceTexture
-import com.google.android.exoplayer2.util.EGLSurfaceTexture.SecureMode
-import org.xmlpull.v1.XmlPullParserException
-import org.xmlpull.v1.XmlPullParser
-import android.net.ConnectivityManager
-import com.google.android.exoplayer2.util.NetworkTypeObserver.Api31.DisplayInfoCallback
-import android.telephony.TelephonyCallback
-import android.telephony.TelephonyCallback.DisplayInfoListener
-import android.telephony.TelephonyDisplayInfo
-import android.net.NetworkInfo
-import com.google.android.exoplayer2.util.PriorityTaskManager.PriorityTooLowException
-import com.google.android.exoplayer2.util.SystemHandlerWrapper.SystemMessage
-import com.google.android.exoplayer2.audio.AuxEffectInfo
-import com.google.android.exoplayer2.audio.AudioProcessor.UnhandledAudioFormatException
-import com.google.android.exoplayer2.C.AudioFlags
-import com.google.android.exoplayer2.C.AudioAllowedCapturePolicy
-import com.google.android.exoplayer2.C.SpatializationBehavior
-import com.google.android.exoplayer2.audio.AudioAttributes.Api32
-import com.google.android.exoplayer2.audio.AudioAttributes.AudioAttributesV21
-import com.google.android.exoplayer2.audio.AudioProcessor
-import com.google.android.exoplayer2.PlaybackParameters
-import com.google.android.exoplayer2.C.ColorRange
-import com.google.android.exoplayer2.C.ColorTransfer
-import android.media.MediaCodec
-import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdGroup
-import com.google.android.exoplayer2.source.ads.AdPlaybackState
-import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdState
-import com.google.android.exoplayer2.source.TrackGroup
-import com.google.android.exoplayer2.C.RoleFlags
-import com.google.android.exoplayer2.offline.StreamKey
-import com.google.android.exoplayer2.C.SelectionFlags
-import com.google.android.exoplayer2.C.StereoMode
-import com.google.android.exoplayer2.C.CryptoType
-import com.google.android.exoplayer2.Player.PositionInfo
-import com.google.android.exoplayer2.Timeline
-import com.google.android.exoplayer2.Player.TimelineChangeReason
-import com.google.android.exoplayer2.Player.MediaItemTransitionReason
-import com.google.android.exoplayer2.Tracks
-import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
-import com.google.android.exoplayer2.Player.PlayWhenReadyChangeReason
-import com.google.android.exoplayer2.Player.PlaybackSuppressionReason
-import com.google.android.exoplayer2.Player.DiscontinuityReason
-import com.google.android.exoplayer2.DeviceInfo
-import android.view.SurfaceHolder
-import android.view.TextureView
-import com.google.android.exoplayer2.Rating.RatingType
-import com.google.common.primitives.Booleans
-import com.google.common.base.MoreObjects
-import com.google.android.exoplayer2.MediaItem.LiveConfiguration
-import com.google.android.exoplayer2.BundleListRetriever
-import com.google.android.exoplayer2.Timeline.RemotableTimeline
-import com.google.android.exoplayer2.MediaItem.ClippingProperties
-import com.google.android.exoplayer2.MediaItem.PlaybackProperties
-import com.google.android.exoplayer2.MediaItem.RequestMetadata
-import com.google.android.exoplayer2.MediaItem.AdsConfiguration
-import com.google.android.exoplayer2.MediaItem.LocalConfiguration
-import com.google.android.exoplayer2.MediaItem.ClippingConfiguration
-import com.google.android.exoplayer2.MediaItem.DrmConfiguration
-import com.google.android.exoplayer2.trackselection.TrackSelectionOverride
-import com.google.common.primitives.Ints
-import android.view.accessibility.CaptioningManager
-import com.google.android.exoplayer2.DeviceInfo.PlaybackType
-import com.google.android.exoplayer2.MediaMetadata.PictureType
-import com.google.android.exoplayer2.MediaMetadata.FolderType
-import com.google.android.exoplayer2.ForwardingPlayer
-import com.google.android.exoplayer2.BasePlayer
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull
-import org.checkerframework.checker.nullness.qual.RequiresNonNull
-import com.google.android.exoplayer2.SimpleBasePlayer
-import android.media.MediaPlayer
 
 /** Thrown when a non locally recoverable playback failure occurs.  */
 open class PlaybackException
@@ -185,12 +35,12 @@ open class PlaybackException
  * @param cause See [.getCause].
  * @param message See [.getMessage].
  */ @JvmOverloads constructor(
-        message: String?,
-        cause: Throwable?,
-        /** An error code which identifies the cause of the playback failure.  */
-        val errorCode: @PlaybackException.ErrorCode Int,
-        /** The value of [SystemClock.elapsedRealtime] when this exception was created.  */
-        val timestampMs: Long = Clock.Companion.DEFAULT.elapsedRealtime()) : Exception(message, cause), Bundleable {
+    message: String?, cause: Throwable?,
+    /** An error code which identifies the cause of the playback failure.  */
+    val errorCode: @PlaybackException.ErrorCode Int,
+    /** The value of [SystemClock.elapsedRealtime] when this exception was created.  */
+    val timestampMs: Long = Clock.Companion.DEFAULT.elapsedRealtime()
+) : Exception(message, cause), Bundleable {
     /**
      * Codes that identify causes of player errors.
      *
@@ -202,8 +52,19 @@ open class PlaybackException
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef(open = true, value = [PlaybackException.Companion.ERROR_CODE_UNSPECIFIED, PlaybackException.Companion.ERROR_CODE_REMOTE_ERROR, PlaybackException.Companion.ERROR_CODE_BEHIND_LIVE_WINDOW, PlaybackException.Companion.ERROR_CODE_TIMEOUT, PlaybackException.Companion.ERROR_CODE_FAILED_RUNTIME_CHECK, PlaybackException.Companion.ERROR_CODE_IO_UNSPECIFIED, PlaybackException.Companion.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED, PlaybackException.Companion.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT, PlaybackException.Companion.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE, PlaybackException.Companion.ERROR_CODE_IO_BAD_HTTP_STATUS, PlaybackException.Companion.ERROR_CODE_IO_FILE_NOT_FOUND, PlaybackException.Companion.ERROR_CODE_IO_NO_PERMISSION, PlaybackException.Companion.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED, PlaybackException.Companion.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE, PlaybackException.Companion.ERROR_CODE_PARSING_CONTAINER_MALFORMED, PlaybackException.Companion.ERROR_CODE_PARSING_MANIFEST_MALFORMED, PlaybackException.Companion.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED, PlaybackException.Companion.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED, PlaybackException.Companion.ERROR_CODE_DECODER_INIT_FAILED, PlaybackException.Companion.ERROR_CODE_DECODER_QUERY_FAILED, PlaybackException.Companion.ERROR_CODE_DECODING_FAILED, PlaybackException.Companion.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES, PlaybackException.Companion.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED, PlaybackException.Companion.ERROR_CODE_AUDIO_TRACK_INIT_FAILED, PlaybackException.Companion.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED, PlaybackException.Companion.ERROR_CODE_DRM_UNSPECIFIED, PlaybackException.Companion.ERROR_CODE_DRM_SCHEME_UNSUPPORTED, PlaybackException.Companion.ERROR_CODE_DRM_PROVISIONING_FAILED, PlaybackException.Companion.ERROR_CODE_DRM_CONTENT_ERROR, PlaybackException.Companion.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED, PlaybackException.Companion.ERROR_CODE_DRM_DISALLOWED_OPERATION, PlaybackException.Companion.ERROR_CODE_DRM_SYSTEM_ERROR, PlaybackException.Companion.ERROR_CODE_DRM_DEVICE_REVOKED, PlaybackException.Companion.ERROR_CODE_DRM_LICENSE_EXPIRED])
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(
+        open = true,
+        value = [PlaybackException.Companion.ERROR_CODE_UNSPECIFIED, PlaybackException.Companion.ERROR_CODE_REMOTE_ERROR, PlaybackException.Companion.ERROR_CODE_BEHIND_LIVE_WINDOW, PlaybackException.Companion.ERROR_CODE_TIMEOUT, PlaybackException.Companion.ERROR_CODE_FAILED_RUNTIME_CHECK, PlaybackException.Companion.ERROR_CODE_IO_UNSPECIFIED, PlaybackException.Companion.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED, PlaybackException.Companion.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT, PlaybackException.Companion.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE, PlaybackException.Companion.ERROR_CODE_IO_BAD_HTTP_STATUS, PlaybackException.Companion.ERROR_CODE_IO_FILE_NOT_FOUND, PlaybackException.Companion.ERROR_CODE_IO_NO_PERMISSION, PlaybackException.Companion.ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED, PlaybackException.Companion.ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE, PlaybackException.Companion.ERROR_CODE_PARSING_CONTAINER_MALFORMED, PlaybackException.Companion.ERROR_CODE_PARSING_MANIFEST_MALFORMED, PlaybackException.Companion.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED, PlaybackException.Companion.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED, PlaybackException.Companion.ERROR_CODE_DECODER_INIT_FAILED, PlaybackException.Companion.ERROR_CODE_DECODER_QUERY_FAILED, PlaybackException.Companion.ERROR_CODE_DECODING_FAILED, PlaybackException.Companion.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES, PlaybackException.Companion.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED, PlaybackException.Companion.ERROR_CODE_AUDIO_TRACK_INIT_FAILED, PlaybackException.Companion.ERROR_CODE_AUDIO_TRACK_WRITE_FAILED, PlaybackException.Companion.ERROR_CODE_DRM_UNSPECIFIED, PlaybackException.Companion.ERROR_CODE_DRM_SCHEME_UNSUPPORTED, PlaybackException.Companion.ERROR_CODE_DRM_PROVISIONING_FAILED, PlaybackException.Companion.ERROR_CODE_DRM_CONTENT_ERROR, PlaybackException.Companion.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED, PlaybackException.Companion.ERROR_CODE_DRM_DISALLOWED_OPERATION, PlaybackException.Companion.ERROR_CODE_DRM_SYSTEM_ERROR, PlaybackException.Companion.ERROR_CODE_DRM_DEVICE_REVOKED, PlaybackException.Companion.ERROR_CODE_DRM_LICENSE_EXPIRED]
+    )
     annotation class ErrorCode constructor()
 
     /**
@@ -216,13 +77,17 @@ open class PlaybackException
 
     /** Creates a new instance using the fields obtained from the given [Bundle].  */
     protected constructor(bundle: Bundle) : this( /* message= */
-            bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_MESSAGE)),  /* cause= */
-            PlaybackException.Companion.getCauseFromBundle(bundle),  /* errorCode= */
-            bundle.getInt(
-                    PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_INT_ERROR_CODE),  /* defaultValue= */PlaybackException.Companion.ERROR_CODE_UNSPECIFIED),  /* timestampMs= */
-            bundle.getLong(
-                    PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_LONG_TIMESTAMP_MS),  /* defaultValue= */
-                    SystemClock.elapsedRealtime())) {
+        bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_MESSAGE)),  /* cause= */
+        PlaybackException.Companion.getCauseFromBundle(bundle),  /* errorCode= */
+        bundle.getInt(
+            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_INT_ERROR_CODE),  /* defaultValue= */
+            PlaybackException.Companion.ERROR_CODE_UNSPECIFIED
+        ),  /* timestampMs= */
+        bundle.getLong(
+            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_LONG_TIMESTAMP_MS),  /* defaultValue= */
+            SystemClock.elapsedRealtime()
+        )
+    ) {
     }
 
     /**
@@ -252,22 +117,38 @@ open class PlaybackException
         } else if (thisCause != null || thatCause != null) {
             return false
         }
-        return ((errorCode == other.errorCode
-                ) && Util.areEqual(message, other.message)
-                && (timestampMs == other.timestampMs))
+        return ((errorCode == other.errorCode) && Util.areEqual(
+            message,
+            other.message
+        ) && (timestampMs == other.timestampMs))
     }
 
     /** Creates a new instance using the given values.  */
     @CallSuper
     public override fun toBundle(): Bundle {
         val bundle: Bundle = Bundle()
-        bundle.putInt(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_INT_ERROR_CODE), errorCode)
-        bundle.putLong(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_LONG_TIMESTAMP_MS), timestampMs)
-        bundle.putString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_MESSAGE), message)
+        bundle.putInt(
+            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_INT_ERROR_CODE),
+            errorCode
+        )
+        bundle.putLong(
+            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_LONG_TIMESTAMP_MS),
+            timestampMs
+        )
+        bundle.putString(
+            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_MESSAGE),
+            message
+        )
         val cause: Throwable? = cause
         if (cause != null) {
-            bundle.putString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_CLASS_NAME), cause.javaClass.getName())
-            bundle.putString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_MESSAGE), cause.message)
+            bundle.putString(
+                PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_CLASS_NAME),
+                cause.javaClass.getName()
+            )
+            bundle.putString(
+                PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_MESSAGE),
+                cause.message
+            )
         }
         return bundle
     }
@@ -500,7 +381,8 @@ open class PlaybackException
         protected val FIELD_CUSTOM_ID_BASE: Int = 1000
 
         /** Object that can create a [PlaybackException] from a [Bundle].  */
-        val CREATOR: Bundleable.Creator<PlaybackException> = Bundleable.Creator({ bundle: Bundle -> PlaybackException(bundle) })
+        val CREATOR: Bundleable.Creator<PlaybackException> =
+            Bundleable.Creator({ bundle: Bundle -> PlaybackException(bundle) })
 
         /**
          * Converts the given field number to a string which can be used as a field key when implementing
@@ -525,13 +407,17 @@ open class PlaybackException
         }
 
         private fun getCauseFromBundle(bundle: Bundle): Throwable? {
-            val causeClassName: String? = bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_CLASS_NAME))
-            val causeMessage: String? = bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_MESSAGE))
+            val causeClassName: String? =
+                bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_CLASS_NAME))
+            val causeMessage: String? =
+                bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_MESSAGE))
             var cause: Throwable? = null
             if (!TextUtils.isEmpty(causeClassName)) {
                 try {
                     val clazz: Class<*> = Class.forName(
-                            causeClassName,  /* initialize= */true, PlaybackException::class.java.getClassLoader())
+                        causeClassName,  /* initialize= */
+                        true, PlaybackException::class.java.getClassLoader()
+                    )
                     if (Throwable::class.java.isAssignableFrom(clazz)) {
                         cause = PlaybackException.Companion.createThrowable(clazz, causeMessage)
                     }

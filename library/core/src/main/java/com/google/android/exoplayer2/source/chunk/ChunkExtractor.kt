@@ -13,102 +13,96 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source.chunk;
+package com.google.android.exoplayer2.source.chunk
 
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.analytics.PlayerId;
-import com.google.android.exoplayer2.extractor.ChunkIndex;
-import com.google.android.exoplayer2.extractor.ExtractorInput;
-import com.google.android.exoplayer2.extractor.TrackOutput;
-import java.io.IOException;
-import java.util.List;
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.C.TrackType
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.analytics.PlayerId
+import com.google.android.exoplayer2.extractor.ChunkIndex
+import com.google.android.exoplayer2.extractor.ExtractorInput
+import com.google.android.exoplayer2.extractor.TrackOutput
+import com.google.android.exoplayer2.source.chunk.ChunkExtractor.TrackOutputProvider
+import java.io.IOException
 
 /**
- * Extracts samples and track {@link Format Formats} from chunks.
+ * Extracts samples and track [Formats][Format] from chunks.
  *
- * <p>The {@link TrackOutputProvider} passed to {@link #init} provides the {@link TrackOutput
- * TrackOutputs} that receive the extracted data.
+ *
+ * The [TrackOutputProvider] passed to [.init] provides the [ TrackOutputs][TrackOutput] that receive the extracted data.
  */
-public interface ChunkExtractor {
+interface ChunkExtractor {
+    /** Creates [ChunkExtractor] instances.  */
+    interface Factory {
+        /**
+         * Returns a new [ChunkExtractor] instance.
+         *
+         * @param primaryTrackType The [type][C.TrackType] of the primary track.
+         * @param representationFormat The format of the representation to extract from.
+         * @param enableEventMessageTrack Whether to enable the event message track.
+         * @param closedCaptionFormats The [Formats][Format] of the Closed-Caption tracks.
+         * @param playerEmsgTrackOutput The [TrackOutput] for extracted EMSG messages, or null.
+         * @param playerId The [PlayerId] of the player using this chunk extractor.
+         * @return A new [ChunkExtractor] instance, or null if not applicable.
+         */
+        fun createProgressiveMediaExtractor(
+            @TrackType primaryTrackType: Int,
+            representationFormat: Format?,
+            enableEventMessageTrack: Boolean,
+            closedCaptionFormats: List<Format?>?,
+            playerEmsgTrackOutput: TrackOutput?,
+            playerId: PlayerId?
+        ): ChunkExtractor?
+    }
 
-  /** Creates {@link ChunkExtractor} instances. */
-  interface Factory {
+    /** Provides [TrackOutput] instances to be written to during extraction.  */
+    interface TrackOutputProvider {
+        /**
+         * Called to get the [TrackOutput] for a specific track.
+         *
+         *
+         * The same [TrackOutput] is returned if multiple calls are made with the same `id`.
+         *
+         * @param id A track identifier.
+         * @param type The [type][C.TrackType] of the track.
+         * @return The [TrackOutput] for the given track identifier.
+         */
+        fun track(id: Int, @TrackType type: Int): TrackOutput?
+    }
 
     /**
-     * Returns a new {@link ChunkExtractor} instance.
-     *
-     * @param primaryTrackType The {@link C.TrackType type} of the primary track.
-     * @param representationFormat The format of the representation to extract from.
-     * @param enableEventMessageTrack Whether to enable the event message track.
-     * @param closedCaptionFormats The {@link Format Formats} of the Closed-Caption tracks.
-     * @param playerEmsgTrackOutput The {@link TrackOutput} for extracted EMSG messages, or null.
-     * @param playerId The {@link PlayerId} of the player using this chunk extractor.
-     * @return A new {@link ChunkExtractor} instance, or null if not applicable.
+     * Returns the [ChunkIndex] most recently obtained from the chunks, or null if a [ ] has not been obtained.
      */
-    @Nullable
-    ChunkExtractor createProgressiveMediaExtractor(
-        @C.TrackType int primaryTrackType,
-        Format representationFormat,
-        boolean enableEventMessageTrack,
-        List<Format> closedCaptionFormats,
-        @Nullable TrackOutput playerEmsgTrackOutput,
-        PlayerId playerId);
-  }
-
-  /** Provides {@link TrackOutput} instances to be written to during extraction. */
-  interface TrackOutputProvider {
+    fun getChunkIndex(): ChunkIndex?
 
     /**
-     * Called to get the {@link TrackOutput} for a specific track.
-     *
-     * <p>The same {@link TrackOutput} is returned if multiple calls are made with the same {@code
-     * id}.
-     *
-     * @param id A track identifier.
-     * @param type The {@link C.TrackType type} of the track.
-     * @return The {@link TrackOutput} for the given track identifier.
+     * Returns the sample [Format]s for the tracks identified by the extractor, or null if the
+     * extractor has not finished identifying tracks.
      */
-    TrackOutput track(int id, @C.TrackType int type);
-  }
+    fun getSampleFormats(): Array<Format?>?
 
-  /**
-   * Returns the {@link ChunkIndex} most recently obtained from the chunks, or null if a {@link
-   * ChunkIndex} has not been obtained.
-   */
-  @Nullable
-  ChunkIndex getChunkIndex();
+    /**
+     * Initializes the wrapper to output to [TrackOutput]s provided by the specified [ ], and configures the extractor to receive data from a new chunk.
+     *
+     * @param trackOutputProvider The provider of [TrackOutput]s that will receive sample data.
+     * @param startTimeUs The start position in the new chunk, or [C.TIME_UNSET] to output
+     * samples from the start of the chunk.
+     * @param endTimeUs The end position in the new chunk, or [C.TIME_UNSET] to output samples
+     * to the end of the chunk.
+     */
+    fun init(trackOutputProvider: TrackOutputProvider?, startTimeUs: Long, endTimeUs: Long)
 
-  /**
-   * Returns the sample {@link Format}s for the tracks identified by the extractor, or null if the
-   * extractor has not finished identifying tracks.
-   */
-  @Nullable
-  Format[] getSampleFormats();
+    /** Releases any held resources.  */
+    fun release()
 
-  /**
-   * Initializes the wrapper to output to {@link TrackOutput}s provided by the specified {@link
-   * TrackOutputProvider}, and configures the extractor to receive data from a new chunk.
-   *
-   * @param trackOutputProvider The provider of {@link TrackOutput}s that will receive sample data.
-   * @param startTimeUs The start position in the new chunk, or {@link C#TIME_UNSET} to output
-   *     samples from the start of the chunk.
-   * @param endTimeUs The end position in the new chunk, or {@link C#TIME_UNSET} to output samples
-   *     to the end of the chunk.
-   */
-  void init(@Nullable TrackOutputProvider trackOutputProvider, long startTimeUs, long endTimeUs);
-
-  /** Releases any held resources. */
-  void release();
-
-  /**
-   * Reads from the given {@link ExtractorInput}.
-   *
-   * @param input The input to read from.
-   * @return Whether there is any data left to extract. Returns false if the end of input has been
-   *     reached.
-   * @throws IOException If an error occurred reading from or parsing the input.
-   */
-  boolean read(ExtractorInput input) throws IOException;
+    /**
+     * Reads from the given [ExtractorInput].
+     *
+     * @param input The input to read from.
+     * @return Whether there is any data left to extract. Returns false if the end of input has been
+     * reached.
+     * @throws IOException If an error occurred reading from or parsing the input.
+     */
+    @Throws(IOException::class)
+    fun read(input: ExtractorInput?): Boolean
 }

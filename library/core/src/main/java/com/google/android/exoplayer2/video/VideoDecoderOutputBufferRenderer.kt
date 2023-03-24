@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.video;
+package com.google.android.exoplayer2.video
 
-import com.google.android.exoplayer2.decoder.VideoDecoderOutputBuffer;
+import com.google.android.exoplayer2.decoder.VideoDecoderOutputBuffer
 
-/** Renders the {@link VideoDecoderOutputBuffer}. */
-public interface VideoDecoderOutputBufferRenderer {
-
-  /**
-   * Sets the output buffer to be rendered. The renderer is responsible for releasing the buffer.
-   *
-   * @param outputBuffer The output buffer to be rendered.
-   */
-  void setOutputBuffer(VideoDecoderOutputBuffer outputBuffer);
+/** Renders the [VideoDecoderOutputBuffer].  */
+interface VideoDecoderOutputBufferRenderer {
+    /**
+     * Sets the output buffer to be rendered. The renderer is responsible for releasing the buffer.
+     *
+     * @param outputBuffer The output buffer to be rendered.
+     */
+    fun setOutputBuffer(outputBuffer: VideoDecoderOutputBuffer?)
 }

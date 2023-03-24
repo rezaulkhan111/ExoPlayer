@@ -13,24 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.offline;
-
-import java.util.List;
+package com.google.android.exoplayer2.offline
 
 /**
  * A manifest that can generate copies of itself including only the streams specified by the given
  * keys.
  *
  * @param <T> The manifest type.
- */
-public interface FilterableManifest<T> {
-
-  /**
-   * Returns a copy of the manifest including only the streams specified by the given keys. If the
-   * manifest is unchanged then the instance may return itself.
-   *
-   * @param streamKeys A non-empty list of stream keys.
-   * @return The filtered manifest.
-   */
-  T copy(List<StreamKey> streamKeys);
+</T> */
+interface FilterableManifest<T> {
+    /**
+     * Returns a copy of the manifest including only the streams specified by the given keys. If the
+     * manifest is unchanged then the instance may return itself.
+     *
+     * @param streamKeys A non-empty list of stream keys.
+     * @return The filtered manifest.
+     */
+    fun copy(streamKeys: List<StreamKey?>?): T
 }

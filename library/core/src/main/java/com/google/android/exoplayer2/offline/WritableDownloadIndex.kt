@@ -13,75 +13,85 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.offline;
+package com.google.android.exoplayer2.offline
 
-import androidx.annotation.WorkerThread;
-import java.io.IOException;
+import androidx.annotation.WorkerThread
+import java.io.IOException
 
-/** A writable index of {@link Download Downloads}. */
+/** A writable index of [Downloads][Download].  */
 @WorkerThread
-public interface WritableDownloadIndex extends DownloadIndex {
+interface WritableDownloadIndex : DownloadIndex {
+    /**
+     * Adds or replaces a [Download].
+     *
+     *
+     * This method may be slow and shouldn't normally be called on the main thread.
+     *
+     * @param download The [Download] to be added.
+     * @throws IOException If an error occurs setting the state.
+     */
+    @Throws(IOException::class)
+    fun putDownload(download: Download?)
 
-  /**
-   * Adds or replaces a {@link Download}.
-   *
-   * <p>This method may be slow and shouldn't normally be called on the main thread.
-   *
-   * @param download The {@link Download} to be added.
-   * @throws IOException If an error occurs setting the state.
-   */
-  void putDownload(Download download) throws IOException;
+    /**
+     * Removes the download with the given ID. Does nothing if a download with the given ID does not
+     * exist.
+     *
+     *
+     * This method may be slow and shouldn't normally be called on the main thread.
+     *
+     * @param id The ID of the download to remove.
+     * @throws IOException If an error occurs removing the state.
+     */
+    @Throws(IOException::class)
+    fun removeDownload(id: String?)
 
-  /**
-   * Removes the download with the given ID. Does nothing if a download with the given ID does not
-   * exist.
-   *
-   * <p>This method may be slow and shouldn't normally be called on the main thread.
-   *
-   * @param id The ID of the download to remove.
-   * @throws IOException If an error occurs removing the state.
-   */
-  void removeDownload(String id) throws IOException;
+    /**
+     * Sets all [Download.STATE_DOWNLOADING] states to [Download.STATE_QUEUED].
+     *
+     *
+     * This method may be slow and shouldn't normally be called on the main thread.
+     *
+     * @throws IOException If an error occurs updating the state.
+     */
+    @Throws(IOException::class)
+    fun setDownloadingStatesToQueued()
 
-  /**
-   * Sets all {@link Download#STATE_DOWNLOADING} states to {@link Download#STATE_QUEUED}.
-   *
-   * <p>This method may be slow and shouldn't normally be called on the main thread.
-   *
-   * @throws IOException If an error occurs updating the state.
-   */
-  void setDownloadingStatesToQueued() throws IOException;
+    /**
+     * Sets all states to [Download.STATE_REMOVING].
+     *
+     *
+     * This method may be slow and shouldn't normally be called on the main thread.
+     *
+     * @throws IOException If an error occurs updating the state.
+     */
+    @Throws(IOException::class)
+    fun setStatesToRemoving()
 
-  /**
-   * Sets all states to {@link Download#STATE_REMOVING}.
-   *
-   * <p>This method may be slow and shouldn't normally be called on the main thread.
-   *
-   * @throws IOException If an error occurs updating the state.
-   */
-  void setStatesToRemoving() throws IOException;
+    /**
+     * Sets the stop reason of the downloads in a terminal state ([Download.STATE_COMPLETED],
+     * [Download.STATE_FAILED]).
+     *
+     *
+     * This method may be slow and shouldn't normally be called on the main thread.
+     *
+     * @param stopReason The stop reason.
+     * @throws IOException If an error occurs updating the state.
+     */
+    @Throws(IOException::class)
+    fun setStopReason(stopReason: Int)
 
-  /**
-   * Sets the stop reason of the downloads in a terminal state ({@link Download#STATE_COMPLETED},
-   * {@link Download#STATE_FAILED}).
-   *
-   * <p>This method may be slow and shouldn't normally be called on the main thread.
-   *
-   * @param stopReason The stop reason.
-   * @throws IOException If an error occurs updating the state.
-   */
-  void setStopReason(int stopReason) throws IOException;
-
-  /**
-   * Sets the stop reason of the download with the given ID in a terminal state ({@link
-   * Download#STATE_COMPLETED}, {@link Download#STATE_FAILED}). Does nothing if a download with the
-   * given ID does not exist, or if it's not in a terminal state.
-   *
-   * <p>This method may be slow and shouldn't normally be called on the main thread.
-   *
-   * @param id The ID of the download to update.
-   * @param stopReason The stop reason.
-   * @throws IOException If an error occurs updating the state.
-   */
-  void setStopReason(String id, int stopReason) throws IOException;
+    /**
+     * Sets the stop reason of the download with the given ID in a terminal state ([ ][Download.STATE_COMPLETED], [Download.STATE_FAILED]). Does nothing if a download with the
+     * given ID does not exist, or if it's not in a terminal state.
+     *
+     *
+     * This method may be slow and shouldn't normally be called on the main thread.
+     *
+     * @param id The ID of the download to update.
+     * @param stopReason The stop reason.
+     * @throws IOException If an error occurs updating the state.
+     */
+    @Throws(IOException::class)
+    fun setStopReason(id: String?, stopReason: Int)
 }

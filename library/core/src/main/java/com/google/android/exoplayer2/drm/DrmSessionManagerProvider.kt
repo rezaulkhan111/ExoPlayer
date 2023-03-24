@@ -13,22 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.drm;
+package com.google.android.exoplayer2.drm
 
-import com.google.android.exoplayer2.MediaItem;
+import com.google.android.exoplayer2.MediaItem
 
 /**
- * A provider to obtain a {@link DrmSessionManager} suitable for playing the content described by a
- * {@link MediaItem}.
+ * A provider to obtain a [DrmSessionManager] suitable for playing the content described by a
+ * [MediaItem].
  */
-public interface DrmSessionManagerProvider {
-
-  /**
-   * Returns a {@link DrmSessionManager} for the given media item.
-   *
-   * <p>The caller is responsible for {@link DrmSessionManager#prepare() preparing} the {@link
-   * DrmSessionManager} before use, and subsequently {@link DrmSessionManager#release() releasing}
-   * it.
-   */
-  DrmSessionManager get(MediaItem mediaItem);
+interface DrmSessionManagerProvider {
+    /**
+     * Returns a [DrmSessionManager] for the given media item.
+     *
+     *
+     * The caller is responsible for [preparing][DrmSessionManager.prepare] the [ ] before use, and subsequently [releasing][DrmSessionManager.release]
+     * it.
+     */
+    operator fun get(mediaItem: MediaItem?): DrmSessionManager?
 }

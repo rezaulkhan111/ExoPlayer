@@ -15,9 +15,13 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.os.Looperimport
+import android.os.Looper
+import android.text.TextUtils
+import com.google.android.exoplayer2import.ExoPlayerLibraryInfo
+import org.checkerframework.checker.nullness.qual.EnsuresNonNull
+import org.checkerframework.dataflow.qual.Pure
 
-android.text.TextUtilsimport com.google.android.exoplayer2.ExoPlayerLibraryInfoimport org.checkerframework.checker.nullness.qual.EnsuresNonNullimport org.checkerframework.dataflow.qual.Pure
+
 /** Provides methods for asserting the truth of expressions and properties.  */
 object Assertions {
     /**

@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source;
+package com.google.android.exoplayer2.source
 
-/** A factory to create composite {@link SequenceableLoader}s. */
-public interface CompositeSequenceableLoaderFactory {
-
-  /**
-   * Creates a composite {@link SequenceableLoader}.
-   *
-   * @param loaders The sub-loaders that make up the {@link SequenceableLoader} to be built.
-   * @return A composite {@link SequenceableLoader} that comprises the given loaders.
-   */
-  SequenceableLoader createCompositeSequenceableLoader(SequenceableLoader... loaders);
+/** A factory to create composite [SequenceableLoader]s.  */
+interface CompositeSequenceableLoaderFactory {
+    /**
+     * Creates a composite [SequenceableLoader].
+     *
+     * @param loaders The sub-loaders that make up the [SequenceableLoader] to be built.
+     * @return A composite [SequenceableLoader] that comprises the given loaders.
+     */
+    fun createCompositeSequenceableLoader(vararg loaders: SequenceableLoader?): SequenceableLoader?
 }

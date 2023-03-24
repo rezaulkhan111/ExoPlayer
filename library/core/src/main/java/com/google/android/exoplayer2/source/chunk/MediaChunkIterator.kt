@@ -13,92 +13,88 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source.chunk;
+package com.google.android.exoplayer2.source.chunk
 
-import com.google.android.exoplayer2.upstream.DataSpec;
-import java.util.NoSuchElementException;
+import com.google.android.exoplayer2.upstream.DataSpec
+import java.util.NoSuchElementException
 
 /**
  * Iterator for media chunk sequences.
  *
- * <p>The iterator initially points in front of the first available element. The first call to
- * {@link #next()} moves the iterator to the first element. Check the return value of {@link
- * #next()} or {@link #isEnded()} to determine whether the iterator reached the end of the available
+ *
+ * The iterator initially points in front of the first available element. The first call to
+ * [.next] moves the iterator to the first element. Check the return value of [ ][.next] or [.isEnded] to determine whether the iterator reached the end of the available
  * data.
  */
-public interface MediaChunkIterator {
+interface MediaChunkIterator {
+    companion object {
+        /** An empty media chunk iterator without available data.  */
+        @JvmField
+        val EMPTY: MediaChunkIterator = object : MediaChunkIterator {
+            override fun isEnded(): Boolean {
+                return true
+            }
 
-  /** An empty media chunk iterator without available data. */
-  MediaChunkIterator EMPTY =
-      new MediaChunkIterator() {
-        @Override
-        public boolean isEnded() {
-          return true;
+            override fun next(): Boolean {
+                return false
+            }
+
+            override fun getDataSpec(): DataSpec? {
+                throw NoSuchElementException()
+            }
+
+            override fun getChunkStartTimeUs(): Long {
+                throw NoSuchElementException()
+            }
+
+            override fun getChunkEndTimeUs(): Long {
+                throw NoSuchElementException()
+            }
+
+            override fun reset() {
+                // Do nothing.
+            }
         }
+    }
 
-        @Override
-        public boolean next() {
-          return false;
-        }
+    /** Returns whether the iteration has reached the end of the available data.  */
+    fun isEnded(): Boolean
 
-        @Override
-        public DataSpec getDataSpec() {
-          throw new NoSuchElementException();
-        }
+    /**
+     * Moves the iterator to the next media chunk.
+     *
+     *
+     * Check the return value or [.isEnded] to determine whether the iterator reached the
+     * end of the available data.
+     *
+     * @return Whether the iterator points to a media chunk with available data.
+     */
+    operator fun next(): Boolean
 
-        @Override
-        public long getChunkStartTimeUs() {
-          throw new NoSuchElementException();
-        }
+    /**
+     * Returns the [DataSpec] used to load the media chunk.
+     *
+     * @throws java.util.NoSuchElementException If the method is called before the first call to
+     * [.next] or when [.isEnded] is true.
+     */
+    fun getDataSpec(): DataSpec?
 
-        @Override
-        public long getChunkEndTimeUs() {
-          throw new NoSuchElementException();
-        }
+    /**
+     * Returns the media start time of the chunk, in microseconds.
+     *
+     * @throws java.util.NoSuchElementException If the method is called before the first call to
+     * [.next] or when [.isEnded] is true.
+     */
+    fun getChunkStartTimeUs(): Long
 
-        @Override
-        public void reset() {
-          // Do nothing.
-        }
-      };
+    /**
+     * Returns the media end time of the chunk, in microseconds.
+     *
+     * @throws java.util.NoSuchElementException If the method is called before the first call to
+     * [.next] or when [.isEnded] is true.
+     */
+    fun getChunkEndTimeUs(): Long
 
-  /** Returns whether the iteration has reached the end of the available data. */
-  boolean isEnded();
-
-  /**
-   * Moves the iterator to the next media chunk.
-   *
-   * <p>Check the return value or {@link #isEnded()} to determine whether the iterator reached the
-   * end of the available data.
-   *
-   * @return Whether the iterator points to a media chunk with available data.
-   */
-  boolean next();
-
-  /**
-   * Returns the {@link DataSpec} used to load the media chunk.
-   *
-   * @throws java.util.NoSuchElementException If the method is called before the first call to
-   *     {@link #next()} or when {@link #isEnded()} is true.
-   */
-  DataSpec getDataSpec();
-
-  /**
-   * Returns the media start time of the chunk, in microseconds.
-   *
-   * @throws java.util.NoSuchElementException If the method is called before the first call to
-   *     {@link #next()} or when {@link #isEnded()} is true.
-   */
-  long getChunkStartTimeUs();
-
-  /**
-   * Returns the media end time of the chunk, in microseconds.
-   *
-   * @throws java.util.NoSuchElementException If the method is called before the first call to
-   *     {@link #next()} or when {@link #isEnded()} is true.
-   */
-  long getChunkEndTimeUs();
-
-  /** Resets the iterator to the initial position. */
-  void reset();
+    /** Resets the iterator to the initial position.  */
+    fun reset()
 }

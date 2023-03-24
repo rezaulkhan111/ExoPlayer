@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.metadata;
+package com.google.android.exoplayer2.metadata
 
-
-/** Receives metadata output. */
-public interface MetadataOutput {
-
-  /**
-   * Called when there is metadata associated with current playback time.
-   *
-   * @param metadata The metadata.
-   */
-  void onMetadata(Metadata metadata);
+/** Receives metadata output.  */
+interface MetadataOutput {
+    /**
+     * Called when there is metadata associated with current playback time.
+     *
+     * @param metadata The metadata.
+     */
+    fun onMetadata(metadata: Metadata?)
 }

@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.offline;
+package com.google.android.exoplayer2.offline
 
-/** Creates {@link Downloader Downloaders} for given {@link DownloadRequest DownloadRequests}. */
-public interface DownloaderFactory {
-
-  /**
-   * Creates a {@link Downloader} to perform the given {@link DownloadRequest}.
-   *
-   * @param request The download request.
-   * @return The downloader.
-   */
-  Downloader createDownloader(DownloadRequest request);
+/** Creates [Downloaders][Downloader] for given [DownloadRequests][DownloadRequest].  */
+interface DownloaderFactory {
+    /**
+     * Creates a [Downloader] to perform the given [DownloadRequest].
+     *
+     * @param request The download request.
+     * @return The downloader.
+     */
+    fun createDownloader(request: DownloadRequest?): Downloader?
 }

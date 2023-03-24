@@ -13,46 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source;
+package com.google.android.exoplayer2.source
 
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.drm.DrmSessionManagerProvider;
-import com.google.android.exoplayer2.upstream.LoadErrorHandlingPolicy;
+import com.google.android.exoplayer2.C.ContentType
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.drm.DrmSessionManagerProvider
+import com.google.android.exoplayer2.upstream.LoadErrorHandlingPolicy
 
-/**
- * @deprecated Use {@link MediaSource.Factory}.
- */
-@Deprecated
-public interface MediaSourceFactory extends MediaSource.Factory {
+@Deprecated("Use {@link MediaSource.Factory}.")
+interface MediaSourceFactory : MediaSource.Factory {
+    companion object {
+        /**
+         * An instance that throws [UnsupportedOperationException] from [.createMediaSource]
+         * and [.getSupportedTypes].
+         */
+        @JvmField
+        val UNSUPPORTED: MediaSourceFactory = object : MediaSourceFactory {
+            override fun setDrmSessionManagerProvider(
+                drmSessionManagerProvider: DrmSessionManagerProvider?
+            ): MediaSourceFactory {
+                return this
+            }
 
-  /**
-   * An instance that throws {@link UnsupportedOperationException} from {@link #createMediaSource}
-   * and {@link #getSupportedTypes()}.
-   */
-  MediaSourceFactory UNSUPPORTED =
-      new MediaSourceFactory() {
-        @Override
-        public MediaSourceFactory setDrmSessionManagerProvider(
-            @Nullable DrmSessionManagerProvider drmSessionManagerProvider) {
-          return this;
+            override fun setLoadErrorHandlingPolicy(
+                loadErrorHandlingPolicy: LoadErrorHandlingPolicy?
+            ): MediaSourceFactory {
+                return this
+            }
+
+            @ContentType
+            override fun getSupportedTypes(): IntArray {
+                throw UnsupportedOperationException()
+            }
+
+            override fun createMediaSource(mediaItem: MediaItem): MediaSource {
+                throw UnsupportedOperationException()
+            }
         }
-
-        @Override
-        public MediaSourceFactory setLoadErrorHandlingPolicy(
-            @Nullable LoadErrorHandlingPolicy loadErrorHandlingPolicy) {
-          return this;
-        }
-
-        @Override
-        public @C.ContentType int[] getSupportedTypes() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public MediaSource createMediaSource(MediaItem mediaItem) {
-          throw new UnsupportedOperationException();
-        }
-      };
+    }
 }

@@ -13,32 +13,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.mediacodec;
+package com.google.android.exoplayer2.mediacodec
 
-import android.media.MediaCodec;
-import com.google.android.exoplayer2.mediacodec.MediaCodecUtil.DecoderQueryException;
-import java.util.List;
+import com.google.android.exoplayer2.mediacodec.MediaCodecUtil.DecoderQueryException
 
-/** Selector of {@link MediaCodec} instances. */
-public interface MediaCodecSelector {
+/** Selector of [MediaCodec] instances.  */
+interface MediaCodecSelector {
+    companion object {
+        /**
+         * Default implementation of [MediaCodecSelector], which returns the preferred decoder for
+         * the given format.
+         */
+        @JvmField
+        val DEFAULT: MediaCodecSelector =
+            MediaCodecSelector { mimeType: String?, secure: Boolean, tunneling: Boolean ->
+                MediaCodecUtil.getDecoderInfos(
+                    mimeType!!, secure, tunneling
+                )
+            }
+    }
 
-  /**
-   * Default implementation of {@link MediaCodecSelector}, which returns the preferred decoder for
-   * the given format.
-   */
-  MediaCodecSelector DEFAULT = MediaCodecUtil::getDecoderInfos;
-
-  /**
-   * Returns a list of decoders that can decode media in the specified MIME type, in priority order.
-   *
-   * @param mimeType The MIME type for which a decoder is required.
-   * @param requiresSecureDecoder Whether a secure decoder is required.
-   * @param requiresTunnelingDecoder Whether a tunneling decoder is required.
-   * @return An unmodifiable list of {@link MediaCodecInfo}s corresponding to decoders. May be
-   *     empty.
-   * @throws DecoderQueryException Thrown if there was an error querying decoders.
-   */
-  List<MediaCodecInfo> getDecoderInfos(
-      String mimeType, boolean requiresSecureDecoder, boolean requiresTunnelingDecoder)
-      throws DecoderQueryException;
+    /**
+     * Returns a list of decoders that can decode media in the specified MIME type, in priority order.
+     *
+     * @param mimeType The MIME type for which a decoder is required.
+     * @param requiresSecureDecoder Whether a secure decoder is required.
+     * @param requiresTunnelingDecoder Whether a tunneling decoder is required.
+     * @return An unmodifiable list of [MediaCodecInfo]s corresponding to decoders. May be
+     * empty.
+     * @throws DecoderQueryException Thrown if there was an error querying decoders.
+     */
+    @Throws(DecoderQueryException::class)
+    fun getDecoderInfos(
+        mimeType: String?, requiresSecureDecoder: Boolean, requiresTunnelingDecoder: Boolean
+    ): List<MediaCodecInfo?>?
 }

@@ -13,123 +13,117 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.upstream;
+package com.google.android.exoplayer2.upstream
 
-import android.os.Handler;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.util.Assertions;
-import java.util.concurrent.CopyOnWriteArrayList;
+import android.os.Handler
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.util.Assertions.checkNotNull
+import java.util.concurrent.CopyOnWriteArrayList
 
-/** Provides estimates of the currently available bandwidth. */
-public interface BandwidthMeter {
+/** Provides estimates of the currently available bandwidth.  */
+interface BandwidthMeter {
+    /** A listener of [BandwidthMeter] events.  */
+    interface EventListener {
+        /**
+         * Called periodically to indicate that bytes have been transferred or the estimated bitrate has
+         * changed.
+         *
+         *
+         * Note: The estimated bitrate is typically derived from more information than just `bytesTransferred` and `elapsedMs`.
+         *
+         * @param elapsedMs The time taken to transfer `bytesTransferred`, in milliseconds. This
+         * is at most the elapsed time since the last callback, but may be less if there were
+         * periods during which data was not being transferred.
+         * @param bytesTransferred The number of bytes transferred since the last callback.
+         * @param bitrateEstimate The estimated bitrate in bits/sec.
+         */
+        fun onBandwidthSample(elapsedMs: Int, bytesTransferred: Long, bitrateEstimate: Long)
 
-  /** A listener of {@link BandwidthMeter} events. */
-  interface EventListener {
+        /** Event dispatcher which allows listener registration.  */
+        class EventDispatcher {
+            private val listeners: CopyOnWriteArrayList<HandlerAndListener>
+
+            /** Creates an event dispatcher.  */
+            constructor() {
+                listeners = CopyOnWriteArrayList()
+            }
+
+            /** Adds a listener to the event dispatcher.  */
+            fun addListener(eventHandler: Handler, eventListener: EventListener) {
+                checkNotNull(eventHandler)
+                checkNotNull(eventListener)
+                removeListener(eventListener)
+                listeners.add(HandlerAndListener(eventHandler, eventListener))
+            }
+
+            /** Removes a listener from the event dispatcher.  */
+            fun removeListener(eventListener: EventListener) {
+                for (handlerAndListener in listeners) {
+                    if (handlerAndListener.listener === eventListener) {
+                        handlerAndListener.release()
+                        listeners.remove(handlerAndListener)
+                    }
+                }
+            }
+
+            fun bandwidthSample(elapsedMs: Int, bytesTransferred: Long, bitrateEstimate: Long) {
+                for (handlerAndListener in listeners) {
+                    if (!handlerAndListener.released) {
+                        handlerAndListener.handler?.post {
+                            handlerAndListener.listener?.onBandwidthSample(
+                                elapsedMs, bytesTransferred, bitrateEstimate
+                            )
+                        }
+                    }
+                }
+            }
+
+            internal class HandlerAndListener {
+                internal var handler: Handler? = null
+                internal var listener: EventListener? = null
+                internal var released = false
+
+                constructor(handler: Handler?, eventListener: EventListener?) {
+                    this.handler = handler
+                    this.listener = eventListener
+                }
+
+                fun release() {
+                    released = true
+                }
+            }
+        }
+    }
+
+    /** Returns the estimated bitrate.  */
+    fun getBitrateEstimate(): Long
 
     /**
-     * Called periodically to indicate that bytes have been transferred or the estimated bitrate has
-     * changed.
-     *
-     * <p>Note: The estimated bitrate is typically derived from more information than just {@code
-     * bytesTransferred} and {@code elapsedMs}.
-     *
-     * @param elapsedMs The time taken to transfer {@code bytesTransferred}, in milliseconds. This
-     *     is at most the elapsed time since the last callback, but may be less if there were
-     *     periods during which data was not being transferred.
-     * @param bytesTransferred The number of bytes transferred since the last callback.
-     * @param bitrateEstimate The estimated bitrate in bits/sec.
+     * Returns the estimated time to first byte, in microseconds, or [C.TIME_UNSET] if no
+     * estimate is available.
      */
-    void onBandwidthSample(int elapsedMs, long bytesTransferred, long bitrateEstimate);
-
-    /** Event dispatcher which allows listener registration. */
-    final class EventDispatcher {
-
-      private final CopyOnWriteArrayList<HandlerAndListener> listeners;
-
-      /** Creates an event dispatcher. */
-      public EventDispatcher() {
-        listeners = new CopyOnWriteArrayList<>();
-      }
-
-      /** Adds a listener to the event dispatcher. */
-      public void addListener(Handler eventHandler, BandwidthMeter.EventListener eventListener) {
-        Assertions.checkNotNull(eventHandler);
-        Assertions.checkNotNull(eventListener);
-        removeListener(eventListener);
-        listeners.add(new HandlerAndListener(eventHandler, eventListener));
-      }
-
-      /** Removes a listener from the event dispatcher. */
-      public void removeListener(BandwidthMeter.EventListener eventListener) {
-        for (HandlerAndListener handlerAndListener : listeners) {
-          if (handlerAndListener.listener == eventListener) {
-            handlerAndListener.release();
-            listeners.remove(handlerAndListener);
-          }
-        }
-      }
-
-      public void bandwidthSample(int elapsedMs, long bytesTransferred, long bitrateEstimate) {
-        for (HandlerAndListener handlerAndListener : listeners) {
-          if (!handlerAndListener.released) {
-            handlerAndListener.handler.post(
-                () ->
-                    handlerAndListener.listener.onBandwidthSample(
-                        elapsedMs, bytesTransferred, bitrateEstimate));
-          }
-        }
-      }
-
-      private static final class HandlerAndListener {
-
-        private final Handler handler;
-        private final BandwidthMeter.EventListener listener;
-
-        private boolean released;
-
-        public HandlerAndListener(Handler handler, BandwidthMeter.EventListener eventListener) {
-          this.handler = handler;
-          this.listener = eventListener;
-        }
-
-        public void release() {
-          released = true;
-        }
-      }
+    fun getTimeToFirstByteEstimateUs(): Long {
+        return C.TIME_UNSET
     }
-  }
 
-  /** Returns the estimated bitrate. */
-  long getBitrateEstimate();
+    /**
+     * Returns the [TransferListener] that this instance uses to gather bandwidth information
+     * from data transfers. May be null if the implementation does not listen to data transfers.
+     */
+    fun getTransferListener(): TransferListener?
 
-  /**
-   * Returns the estimated time to first byte, in microseconds, or {@link C#TIME_UNSET} if no
-   * estimate is available.
-   */
-  default long getTimeToFirstByteEstimateUs() {
-    return C.TIME_UNSET;
-  }
+    /**
+     * Adds an [EventListener].
+     *
+     * @param eventHandler A handler for events.
+     * @param eventListener A listener of events.
+     */
+    fun addEventListener(eventHandler: Handler?, eventListener: EventListener?)
 
-  /**
-   * Returns the {@link TransferListener} that this instance uses to gather bandwidth information
-   * from data transfers. May be null if the implementation does not listen to data transfers.
-   */
-  @Nullable
-  TransferListener getTransferListener();
-
-  /**
-   * Adds an {@link EventListener}.
-   *
-   * @param eventHandler A handler for events.
-   * @param eventListener A listener of events.
-   */
-  void addEventListener(Handler eventHandler, EventListener eventListener);
-
-  /**
-   * Removes an {@link EventListener}.
-   *
-   * @param eventListener The listener to be removed.
-   */
-  void removeEventListener(EventListener eventListener);
+    /**
+     * Removes an [EventListener].
+     *
+     * @param eventListener The listener to be removed.
+     */
+    fun removeEventListener(eventListener: EventListener?)
 }

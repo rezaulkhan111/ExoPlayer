@@ -13,134 +13,138 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.analytics;
+package com.google.android.exoplayer2.analytics
 
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.Player.DiscontinuityReason;
-import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.analytics.AnalyticsListener.EventTime;
-import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId;
+import com.google.android.exoplayer2.Player.DiscontinuityReason
+import com.google.android.exoplayer2.Timeline
+import com.google.android.exoplayer2.analytics.AnalyticsListener.EventTime
+import com.google.android.exoplayer2.source.MediaSource
+import com.google.android.exoplayer2.source.MediaSource.MediaPeriodId
 
 /**
  * Manager for active playback sessions.
  *
- * <p>The manager keeps track of the association between window index and/or media period id to
+ *
+ * The manager keeps track of the association between window index and/or media period id to
  * session identifier.
  */
-public interface PlaybackSessionManager {
+interface PlaybackSessionManager {
+    /** A listener for session updates.  */
+    interface Listener {
+        /**
+         * Called when a new session is created as a result of [.updateSessions].
+         *
+         * @param eventTime The [EventTime] at which the session is created.
+         * @param sessionId The identifier of the new session.
+         */
+        fun onSessionCreated(eventTime: EventTime?, sessionId: String?)
 
-  /** A listener for session updates. */
-  interface Listener {
+        /**
+         * Called when a session becomes active, i.e. playing in the foreground.
+         *
+         * @param eventTime The [EventTime] at which the session becomes active.
+         * @param sessionId The identifier of the session.
+         */
+        fun onSessionActive(eventTime: EventTime?, sessionId: String?)
+
+        /**
+         * Called when a session is interrupted by ad playback.
+         *
+         * @param eventTime The [EventTime] at which the ad playback starts.
+         * @param contentSessionId The session identifier of the content session.
+         * @param adSessionId The identifier of the ad session.
+         */
+        fun onAdPlaybackStarted(
+            eventTime: EventTime?, contentSessionId: String?, adSessionId: String?
+        )
+
+        /**
+         * Called when a session is permanently finished.
+         *
+         * @param eventTime The [EventTime] at which the session finished.
+         * @param sessionId The identifier of the finished session.
+         * @param automaticTransitionToNextPlayback Whether the session finished because of an automatic
+         * transition to the next playback item.
+         */
+        fun onSessionFinished(
+            eventTime: EventTime?, sessionId: String?, automaticTransitionToNextPlayback: Boolean
+        )
+    }
 
     /**
-     * Called when a new session is created as a result of {@link #updateSessions(EventTime)}.
+     * Sets the listener to be notified of session updates. Must be called before the session manager
+     * is used.
      *
-     * @param eventTime The {@link EventTime} at which the session is created.
-     * @param sessionId The identifier of the new session.
+     * @param listener The [Listener] to be notified of session updates.
      */
-    void onSessionCreated(EventTime eventTime, String sessionId);
+    fun setListener(listener: Listener?)
 
     /**
-     * Called when a session becomes active, i.e. playing in the foreground.
+     * Returns the session identifier for the given media period id.
      *
-     * @param eventTime The {@link EventTime} at which the session becomes active.
-     * @param sessionId The identifier of the session.
+     *
+     * Note that this will reserve a new session identifier if it doesn't exist yet, but will not
+     * call any [Listener] callbacks.
+     *
+     * @param timeline The timeline, `mediaPeriodId` is part of.
+     * @param mediaPeriodId A [MediaPeriodId].
      */
-    void onSessionActive(EventTime eventTime, String sessionId);
+    fun getSessionForMediaPeriodId(
+        timeline: Timeline?, mediaPeriodId: MediaSource.MediaPeriodId?
+    ): String?
 
     /**
-     * Called when a session is interrupted by ad playback.
+     * Returns whether an event time belong to a session.
      *
-     * @param eventTime The {@link EventTime} at which the ad playback starts.
-     * @param contentSessionId The session identifier of the content session.
-     * @param adSessionId The identifier of the ad session.
+     * @param eventTime The [EventTime].
+     * @param sessionId A session identifier.
+     * @return Whether the event belongs to the specified session.
      */
-    void onAdPlaybackStarted(EventTime eventTime, String contentSessionId, String adSessionId);
+    fun belongsToSession(eventTime: EventTime?, sessionId: String?): Boolean
 
     /**
-     * Called when a session is permanently finished.
+     * Updates or creates sessions based on a player [EventTime].
      *
-     * @param eventTime The {@link EventTime} at which the session finished.
-     * @param sessionId The identifier of the finished session.
-     * @param automaticTransitionToNextPlayback Whether the session finished because of an automatic
-     *     transition to the next playback item.
+     *
+     * Call [.updateSessionsWithTimelineChange] or [ ][.updateSessionsWithDiscontinuity] if the event is a [Timeline] change or
+     * a position discontinuity respectively.
+     *
+     * @param eventTime The [EventTime].
      */
-    void onSessionFinished(
-        EventTime eventTime, String sessionId, boolean automaticTransitionToNextPlayback);
-  }
+    fun updateSessions(eventTime: EventTime?)
 
-  /**
-   * Sets the listener to be notified of session updates. Must be called before the session manager
-   * is used.
-   *
-   * @param listener The {@link Listener} to be notified of session updates.
-   */
-  void setListener(Listener listener);
+    /**
+     * Updates or creates sessions based on a [Timeline] change at [EventTime].
+     *
+     *
+     * Should be called instead of [.updateSessions] if a [Timeline] change
+     * occurred.
+     *
+     * @param eventTime The [EventTime] with the timeline change.
+     */
+    fun updateSessionsWithTimelineChange(eventTime: EventTime?)
 
-  /**
-   * Returns the session identifier for the given media period id.
-   *
-   * <p>Note that this will reserve a new session identifier if it doesn't exist yet, but will not
-   * call any {@link Listener} callbacks.
-   *
-   * @param timeline The timeline, {@code mediaPeriodId} is part of.
-   * @param mediaPeriodId A {@link MediaPeriodId}.
-   */
-  String getSessionForMediaPeriodId(Timeline timeline, MediaPeriodId mediaPeriodId);
+    /**
+     * Updates or creates sessions based on a position discontinuity at [EventTime].
+     *
+     *
+     * Should be called instead of [.updateSessions] if a position discontinuity
+     * occurred.
+     *
+     * @param eventTime The [EventTime] of the position discontinuity.
+     * @param reason The [DiscontinuityReason].
+     */
+    fun updateSessionsWithDiscontinuity(eventTime: EventTime?, @DiscontinuityReason reason: Int)
 
-  /**
-   * Returns whether an event time belong to a session.
-   *
-   * @param eventTime The {@link EventTime}.
-   * @param sessionId A session identifier.
-   * @return Whether the event belongs to the specified session.
-   */
-  boolean belongsToSession(EventTime eventTime, String sessionId);
+    /**
+     * Returns the session identifier of the session that is currently actively playing, or `null` if there no such session.
+     */
+    fun getActiveSessionId(): String?
 
-  /**
-   * Updates or creates sessions based on a player {@link EventTime}.
-   *
-   * <p>Call {@link #updateSessionsWithTimelineChange(EventTime)} or {@link
-   * #updateSessionsWithDiscontinuity(EventTime, int)} if the event is a {@link Timeline} change or
-   * a position discontinuity respectively.
-   *
-   * @param eventTime The {@link EventTime}.
-   */
-  void updateSessions(EventTime eventTime);
-
-  /**
-   * Updates or creates sessions based on a {@link Timeline} change at {@link EventTime}.
-   *
-   * <p>Should be called instead of {@link #updateSessions(EventTime)} if a {@link Timeline} change
-   * occurred.
-   *
-   * @param eventTime The {@link EventTime} with the timeline change.
-   */
-  void updateSessionsWithTimelineChange(EventTime eventTime);
-
-  /**
-   * Updates or creates sessions based on a position discontinuity at {@link EventTime}.
-   *
-   * <p>Should be called instead of {@link #updateSessions(EventTime)} if a position discontinuity
-   * occurred.
-   *
-   * @param eventTime The {@link EventTime} of the position discontinuity.
-   * @param reason The {@link DiscontinuityReason}.
-   */
-  void updateSessionsWithDiscontinuity(EventTime eventTime, @DiscontinuityReason int reason);
-
-  /**
-   * Returns the session identifier of the session that is currently actively playing, or {@code
-   * null} if there no such session.
-   */
-  @Nullable
-  String getActiveSessionId();
-
-  /**
-   * Finishes all existing sessions and calls their respective {@link
-   * Listener#onSessionFinished(EventTime, String, boolean)} callback.
-   *
-   * @param eventTime The event time at which sessions are finished.
-   */
-  void finishAllSessions(EventTime eventTime);
+    /**
+     * Finishes all existing sessions and calls their respective [ ][Listener.onSessionFinished] callback.
+     *
+     * @param eventTime The event time at which sessions are finished.
+     */
+    fun finishAllSessions(eventTime: EventTime?)
 }

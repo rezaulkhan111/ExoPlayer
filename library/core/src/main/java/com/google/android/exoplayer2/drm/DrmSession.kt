@@ -13,167 +13,162 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.drm;
+package com.google.android.exoplayer2.drm
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.LOCAL_VARIABLE;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE_USE;
+import androidx.annotation.IntDef
+import com.google.android.exoplayer2.decoder.CryptoConfig
+import com.google.android.exoplayer2import.PlaybackException
+import java.io.IOException
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.util.*
 
-import android.media.MediaDrm;
-import androidx.annotation.IntDef;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.decoder.CryptoConfig;
-import java.io.IOException;
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.util.Map;
-import java.util.UUID;
+/** A DRM session.  */
+interface DrmSession {
+    /** Wraps the throwable which is the cause of the error state.  */
+    class DrmSessionException : IOException {
+        /** The [PlaybackException.ErrorCode] that corresponds to the failure.  */
+        @PlaybackException.ErrorCode
+        var errorCode = 0
 
-/** A DRM session. */
-public interface DrmSession {
-
-  /**
-   * Acquires {@code newSession} then releases {@code previousSession}.
-   *
-   * <p>Invokes {@code newSession's} {@link #acquire(DrmSessionEventListener.EventDispatcher)} and
-   * {@code previousSession's} {@link #release(DrmSessionEventListener.EventDispatcher)} in that
-   * order (passing {@code eventDispatcher = null}). Null arguments are ignored. Does nothing if
-   * {@code previousSession} and {@code newSession} are the same session.
-   */
-  static void replaceSession(
-      @Nullable DrmSession previousSession, @Nullable DrmSession newSession) {
-    if (previousSession == newSession) {
-      // Do nothing.
-      return;
+        constructor(cause: Throwable?, @PlaybackException.ErrorCode errorCode: Int) : super(cause) {
+            this.errorCode = errorCode
+        }
     }
-    if (newSession != null) {
-      newSession.acquire(/* eventDispatcher= */ null);
+
+    /**
+     * The state of the DRM session. One of [.STATE_RELEASED], [.STATE_ERROR], [ ][.STATE_OPENING], [.STATE_OPENED] or [.STATE_OPENED_WITH_KEYS].
+     */
+    // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
+    // with Kotlin usages from before TYPE_USE was added.
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [STATE_RELEASED, STATE_ERROR, STATE_OPENING, STATE_OPENED, STATE_OPENED_WITH_KEYS])
+    annotation class State
+
+    companion object {
+        /**
+         * Acquires `newSession` then releases `previousSession`.
+         *
+         *
+         * Invokes `newSession's` [.acquire] and
+         * `previousSession's` [.release] in that
+         * order (passing `eventDispatcher = null`). Null arguments are ignored. Does nothing if
+         * `previousSession` and `newSession` are the same session.
+         */
+        @JvmStatic
+        fun replaceSession(
+            previousSession: DrmSession?, newSession: DrmSession?
+        ) {
+            if (previousSession === newSession) {
+                // Do nothing.
+                return
+            }
+            newSession?.acquire( /* eventDispatcher= */null)
+            previousSession?.release( /* eventDispatcher= */null)
+        }
+
+        /** The session has been released. This is a terminal state.  */
+        const val STATE_RELEASED = 0
+
+        /**
+         * The session has encountered an error. [.getError] can be used to retrieve the cause.
+         * This is a terminal state.
+         */
+        const val STATE_ERROR = 1
+
+        /** The session is being opened.  */
+        const val STATE_OPENING = 2
+
+        /** The session is open, but does not have keys required for decryption.  */
+        const val STATE_OPENED = 3
+
+        /** The session is open and has keys required for decryption.  */
+        const val STATE_OPENED_WITH_KEYS = 4
     }
-    if (previousSession != null) {
-      previousSession.release(/* eventDispatcher= */ null);
+
+    /**
+     * Returns the current state of the session, which is one of [.STATE_ERROR], [ ][.STATE_RELEASED], [.STATE_OPENING], [.STATE_OPENED] and [ ][.STATE_OPENED_WITH_KEYS].
+     */
+    @State
+    fun getState(): Int
+
+    /** Returns whether this session allows playback of clear samples prior to keys being loaded.  */
+    fun playClearSamplesWithoutKeys(): Boolean {
+        return false
     }
-  }
 
-  /** Wraps the throwable which is the cause of the error state. */
-  class DrmSessionException extends IOException {
+    /**
+     * Returns the cause of the error state, or null if [.getState] is not [ ][.STATE_ERROR].
+     */
+    fun getError(): DrmSessionException?
 
-    /** The {@link PlaybackException.ErrorCode} that corresponds to the failure. */
-    public final @PlaybackException.ErrorCode int errorCode;
+    /** Returns the DRM scheme UUID for this session.  */
+    fun getSchemeUuid(): UUID?
 
-    public DrmSessionException(Throwable cause, @PlaybackException.ErrorCode int errorCode) {
-      super(cause);
-      this.errorCode = errorCode;
-    }
-  }
+    /**
+     * Returns a [CryptoConfig] for the open session, or null if called before the session has
+     * been opened or after it's been released.
+     */
+    fun getCryptoConfig(): CryptoConfig?
 
-  /**
-   * The state of the DRM session. One of {@link #STATE_RELEASED}, {@link #STATE_ERROR}, {@link
-   * #STATE_OPENING}, {@link #STATE_OPENED} or {@link #STATE_OPENED_WITH_KEYS}.
-   */
-  // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
-  // with Kotlin usages from before TYPE_USE was added.
-  @Documented
-  @Retention(RetentionPolicy.SOURCE)
-  @Target({FIELD, METHOD, PARAMETER, LOCAL_VARIABLE, TYPE_USE})
-  @IntDef({STATE_RELEASED, STATE_ERROR, STATE_OPENING, STATE_OPENED, STATE_OPENED_WITH_KEYS})
-  @interface State {}
-  /** The session has been released. This is a terminal state. */
-  int STATE_RELEASED = 0;
-  /**
-   * The session has encountered an error. {@link #getError()} can be used to retrieve the cause.
-   * This is a terminal state.
-   */
-  int STATE_ERROR = 1;
-  /** The session is being opened. */
-  int STATE_OPENING = 2;
-  /** The session is open, but does not have keys required for decryption. */
-  int STATE_OPENED = 3;
-  /** The session is open and has keys required for decryption. */
-  int STATE_OPENED_WITH_KEYS = 4;
+    /**
+     * Returns a map describing the key status for the session, or null if called before the session
+     * has been opened or after it's been released.
+     *
+     *
+     * Since DRM license policies vary by vendor, the specific status field names are determined by
+     * each DRM vendor. Refer to your DRM provider documentation for definitions of the field names
+     * for a particular DRM engine plugin.
+     *
+     * @return A map describing the key status for the session, or null if called before the session
+     * has been opened or after it's been released.
+     * @see MediaDrm.queryKeyStatus
+     */
+    fun queryKeyStatus(): Map<String?, String?>?
 
-  /**
-   * Returns the current state of the session, which is one of {@link #STATE_ERROR}, {@link
-   * #STATE_RELEASED}, {@link #STATE_OPENING}, {@link #STATE_OPENED} and {@link
-   * #STATE_OPENED_WITH_KEYS}.
-   */
-  @State
-  int getState();
+    /**
+     * Returns the key set id of the offline license loaded into this session, or null if there isn't
+     * one.
+     */
+    fun getOfflineLicenseKeySetId(): ByteArray?
 
-  /** Returns whether this session allows playback of clear samples prior to keys being loaded. */
-  default boolean playClearSamplesWithoutKeys() {
-    return false;
-  }
+    /**
+     * Returns whether this session requires use of a secure decoder for the given MIME type. Assumes
+     * a license policy that requires the highest level of security supported by the session.
+     *
+     *
+     * The session must be in [state][.getState] [.STATE_OPENED] or [ ][.STATE_OPENED_WITH_KEYS].
+     */
+    fun requiresSecureDecoder(mimeType: String?): Boolean
 
-  /**
-   * Returns the cause of the error state, or null if {@link #getState()} is not {@link
-   * #STATE_ERROR}.
-   */
-  @Nullable
-  DrmSessionException getError();
+    /**
+     * Increments the reference count. When the caller no longer needs to use the instance, it must
+     * call [.release] to decrement the reference
+     * count.
+     *
+     * @param eventDispatcher The [DrmSessionEventListener.EventDispatcher] used to route
+     * DRM-related events dispatched from this session, or null if no event handling is needed.
+     */
+    fun acquire(eventDispatcher: DrmSessionEventListener.EventDispatcher?)
 
-  /** Returns the DRM scheme UUID for this session. */
-  UUID getSchemeUuid();
-
-  /**
-   * Returns a {@link CryptoConfig} for the open session, or null if called before the session has
-   * been opened or after it's been released.
-   */
-  @Nullable
-  CryptoConfig getCryptoConfig();
-
-  /**
-   * Returns a map describing the key status for the session, or null if called before the session
-   * has been opened or after it's been released.
-   *
-   * <p>Since DRM license policies vary by vendor, the specific status field names are determined by
-   * each DRM vendor. Refer to your DRM provider documentation for definitions of the field names
-   * for a particular DRM engine plugin.
-   *
-   * @return A map describing the key status for the session, or null if called before the session
-   *     has been opened or after it's been released.
-   * @see MediaDrm#queryKeyStatus(byte[])
-   */
-  @Nullable
-  Map<String, String> queryKeyStatus();
-
-  /**
-   * Returns the key set id of the offline license loaded into this session, or null if there isn't
-   * one.
-   */
-  @Nullable
-  byte[] getOfflineLicenseKeySetId();
-
-  /**
-   * Returns whether this session requires use of a secure decoder for the given MIME type. Assumes
-   * a license policy that requires the highest level of security supported by the session.
-   *
-   * <p>The session must be in {@link #getState() state} {@link #STATE_OPENED} or {@link
-   * #STATE_OPENED_WITH_KEYS}.
-   */
-  boolean requiresSecureDecoder(String mimeType);
-
-  /**
-   * Increments the reference count. When the caller no longer needs to use the instance, it must
-   * call {@link #release(DrmSessionEventListener.EventDispatcher)} to decrement the reference
-   * count.
-   *
-   * @param eventDispatcher The {@link DrmSessionEventListener.EventDispatcher} used to route
-   *     DRM-related events dispatched from this session, or null if no event handling is needed.
-   */
-  void acquire(@Nullable DrmSessionEventListener.EventDispatcher eventDispatcher);
-
-  /**
-   * Decrements the reference count. If the reference count drops to 0 underlying resources are
-   * released, and the instance cannot be re-used.
-   *
-   * @param eventDispatcher The {@link DrmSessionEventListener.EventDispatcher} to disconnect when
-   *     the session is released (the same instance (possibly null) that was passed by the caller to
-   *     {@link #acquire(DrmSessionEventListener.EventDispatcher)}).
-   */
-  void release(@Nullable DrmSessionEventListener.EventDispatcher eventDispatcher);
+    /**
+     * Decrements the reference count. If the reference count drops to 0 underlying resources are
+     * released, and the instance cannot be re-used.
+     *
+     * @param eventDispatcher The [DrmSessionEventListener.EventDispatcher] to disconnect when
+     * the session is released (the same instance (possibly null) that was passed by the caller to
+     * [.acquire]).
+     */
+    fun release(eventDispatcher: DrmSessionEventListener.EventDispatcher?)
 }

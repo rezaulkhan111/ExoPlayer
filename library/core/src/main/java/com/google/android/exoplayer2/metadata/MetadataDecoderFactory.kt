@@ -13,84 +13,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.metadata;
+package com.google.android.exoplayer2.metadata
 
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.metadata.dvbsi.AppInfoTableDecoder;
-import com.google.android.exoplayer2.metadata.emsg.EventMessageDecoder;
-import com.google.android.exoplayer2.metadata.icy.IcyDecoder;
-import com.google.android.exoplayer2.metadata.id3.Id3Decoder;
-import com.google.android.exoplayer2.metadata.scte35.SpliceInfoDecoder;
-import com.google.android.exoplayer2.util.MimeTypes;
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.metadata.dvbsi.AppInfoTableDecoder
+import com.google.android.exoplayer2.metadata.emsg.EventMessageDecoder
+import com.google.android.exoplayer2.metadata.icy.IcyDecoder
+import com.google.android.exoplayer2.metadata.id3.Id3Decoder
+import com.google.android.exoplayer2.metadata.scte35.SpliceInfoDecoder
+import com.google.android.exoplayer2.util.MimeTypes
 
-/** A factory for {@link MetadataDecoder} instances. */
-public interface MetadataDecoderFactory {
+/** A factory for [MetadataDecoder] instances.  */
+interface MetadataDecoderFactory {
+    /**
+     * Returns whether the factory is able to instantiate a [MetadataDecoder] for the given
+     * [Format].
+     *
+     * @param format The [Format].
+     * @return Whether the factory can instantiate a suitable [MetadataDecoder].
+     */
+    fun supportsFormat(format: Format): Boolean
 
-  /**
-   * Returns whether the factory is able to instantiate a {@link MetadataDecoder} for the given
-   * {@link Format}.
-   *
-   * @param format The {@link Format}.
-   * @return Whether the factory can instantiate a suitable {@link MetadataDecoder}.
-   */
-  boolean supportsFormat(Format format);
+    /**
+     * Creates a [MetadataDecoder] for the given [Format].
+     *
+     * @param format The [Format].
+     * @return A new [MetadataDecoder].
+     * @throws IllegalArgumentException If the [Format] is not supported.
+     */
+    fun createDecoder(format: Format): MetadataDecoder
 
-  /**
-   * Creates a {@link MetadataDecoder} for the given {@link Format}.
-   *
-   * @param format The {@link Format}.
-   * @return A new {@link MetadataDecoder}.
-   * @throws IllegalArgumentException If the {@link Format} is not supported.
-   */
-  MetadataDecoder createDecoder(Format format);
-
-  /**
-   * Default {@link MetadataDecoder} implementation.
-   *
-   * <p>The formats supported by this factory are:
-   *
-   * <ul>
-   *   <li>ID3 ({@link Id3Decoder})
-   *   <li>EMSG ({@link EventMessageDecoder})
-   *   <li>SCTE-35 ({@link SpliceInfoDecoder})
-   *   <li>ICY ({@link IcyDecoder})
-   * </ul>
-   */
-  MetadataDecoderFactory DEFAULT =
-      new MetadataDecoderFactory() {
-
-        @Override
-        public boolean supportsFormat(Format format) {
-          @Nullable String mimeType = format.sampleMimeType;
-          return MimeTypes.APPLICATION_ID3.equals(mimeType)
-              || MimeTypes.APPLICATION_EMSG.equals(mimeType)
-              || MimeTypes.APPLICATION_SCTE35.equals(mimeType)
-              || MimeTypes.APPLICATION_ICY.equals(mimeType)
-              || MimeTypes.APPLICATION_AIT.equals(mimeType);
-        }
-
-        @Override
-        public MetadataDecoder createDecoder(Format format) {
-          @Nullable String mimeType = format.sampleMimeType;
-          if (mimeType != null) {
-            switch (mimeType) {
-              case MimeTypes.APPLICATION_ID3:
-                return new Id3Decoder();
-              case MimeTypes.APPLICATION_EMSG:
-                return new EventMessageDecoder();
-              case MimeTypes.APPLICATION_SCTE35:
-                return new SpliceInfoDecoder();
-              case MimeTypes.APPLICATION_ICY:
-                return new IcyDecoder();
-              case MimeTypes.APPLICATION_AIT:
-                return new AppInfoTableDecoder();
-              default:
-                break;
+    companion object {
+        /**
+         * Default [MetadataDecoder] implementation.
+         *
+         *
+         * The formats supported by this factory are:
+         *
+         *
+         *  * ID3 ([Id3Decoder])
+         *  * EMSG ([EventMessageDecoder])
+         *  * SCTE-35 ([SpliceInfoDecoder])
+         *  * ICY ([IcyDecoder])
+         *
+         */
+        @JvmField
+        val DEFAULT: MetadataDecoderFactory = object : MetadataDecoderFactory {
+            override fun supportsFormat(format: Format): Boolean {
+                val mimeType = format.sampleMimeType
+                return MimeTypes.APPLICATION_ID3 == mimeType || MimeTypes.APPLICATION_EMSG == mimeType || MimeTypes.APPLICATION_SCTE35 == mimeType || MimeTypes.APPLICATION_ICY == mimeType || MimeTypes.APPLICATION_AIT == mimeType
             }
-          }
-          throw new IllegalArgumentException(
-              "Attempted to create decoder for unsupported MIME type: " + mimeType);
+
+            override fun createDecoder(format: Format): MetadataDecoder {
+                val mimeType = format.sampleMimeType
+                if (mimeType != null) {
+                    when (mimeType) {
+                        MimeTypes.APPLICATION_ID3 -> return Id3Decoder()
+                        MimeTypes.APPLICATION_EMSG -> return EventMessageDecoder()
+                        MimeTypes.APPLICATION_SCTE35 -> return SpliceInfoDecoder()
+                        MimeTypes.APPLICATION_ICY -> return IcyDecoder()
+                        MimeTypes.APPLICATION_AIT -> return AppInfoTableDecoder()
+                        else -> {}
+                    }
+                }
+                throw IllegalArgumentException(
+                    "Attempted to create decoder for unsupported MIME type: $mimeType"
+                )
+            }
         }
-      };
+    }
 }

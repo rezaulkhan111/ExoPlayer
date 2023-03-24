@@ -13,95 +13,91 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.trackselection;
+package com.google.android.exoplayer2.trackselection
 
-import static java.lang.annotation.ElementType.TYPE_USE;
-
-import androidx.annotation.IntDef;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.source.TrackGroup;
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import androidx.annotation.IntDef
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.source.TrackGroup
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 
 /**
- * A track selection consisting of a static subset of selected tracks belonging to a {@link
- * TrackGroup}.
+ * A track selection consisting of a static subset of selected tracks belonging to a [ ].
  *
- * <p>Tracks belonging to the subset are exposed in decreasing bandwidth order.
+ *
+ * Tracks belonging to the subset are exposed in decreasing bandwidth order.
  */
-public interface TrackSelection {
+interface TrackSelection {
+    /**
+     * Represents a type track selection. Either [.TYPE_UNSET] or an app-defined value (see
+     * [.TYPE_CUSTOM_BASE]).
+     */
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(TYPE_USE)
+    @IntDef(open = true, value = [TYPE_UNSET])
+    annotation class Type
 
-  /**
-   * Represents a type track selection. Either {@link #TYPE_UNSET} or an app-defined value (see
-   * {@link #TYPE_CUSTOM_BASE}).
-   */
-  @Documented
-  @Retention(RetentionPolicy.SOURCE)
-  @Target(TYPE_USE)
-  @IntDef(
-      open = true,
-      value = {TYPE_UNSET})
-  @interface Type {}
-  /** An unspecified track selection type. */
-  int TYPE_UNSET = 0;
-  /** The first value that can be used for application specific track selection types. */
-  int TYPE_CUSTOM_BASE = 10000;
+    companion object {
+        /** An unspecified track selection type.  */
+        const val TYPE_UNSET = 0
 
-  /**
-   * Returns an integer specifying the type of the selection, or {@link #TYPE_UNSET} if not
-   * specified.
-   *
-   * <p>Track selection types are specific to individual applications, but should be defined
-   * starting from {@link #TYPE_CUSTOM_BASE} to ensure they don't conflict with any types that may
-   * be added to the library in the future.
-   */
-  @Type
-  int getType();
+        /** The first value that can be used for application specific track selection types.  */
+        const val TYPE_CUSTOM_BASE = 10000
+    }
 
-  /** Returns the {@link TrackGroup} to which the selected tracks belong. */
-  TrackGroup getTrackGroup();
+    /**
+     * Returns an integer specifying the type of the selection, or [.TYPE_UNSET] if not
+     * specified.
+     *
+     *
+     * Track selection types are specific to individual applications, but should be defined
+     * starting from [.TYPE_CUSTOM_BASE] to ensure they don't conflict with any types that may
+     * be added to the library in the future.
+     */
+    @Type
+    fun getType(): Int
 
-  // Static subset of selected tracks.
+    /** Returns the [TrackGroup] to which the selected tracks belong.  */
+    fun getTrackGroup(): TrackGroup?
+    // Static subset of selected tracks.
+    /** Returns the number of tracks in the selection.  */
+    fun length(): Int
 
-  /** Returns the number of tracks in the selection. */
-  int length();
+    /**
+     * Returns the format of the track at a given index in the selection.
+     *
+     * @param index The index in the selection.
+     * @return The format of the selected track.
+     */
+    fun getFormat(index: Int): Format?
 
-  /**
-   * Returns the format of the track at a given index in the selection.
-   *
-   * @param index The index in the selection.
-   * @return The format of the selected track.
-   */
-  Format getFormat(int index);
+    /**
+     * Returns the index in the track group of the track at a given index in the selection.
+     *
+     * @param index The index in the selection.
+     * @return The index of the selected track.
+     */
+    fun getIndexInTrackGroup(index: Int): Int
 
-  /**
-   * Returns the index in the track group of the track at a given index in the selection.
-   *
-   * @param index The index in the selection.
-   * @return The index of the selected track.
-   */
-  int getIndexInTrackGroup(int index);
+    /**
+     * Returns the index in the selection of the track with the specified format. The format is
+     * located by identity so, for example, `selection.indexOf(selection.getFormat(index)) ==
+     * index` even if multiple selected tracks have formats that contain the same values.
+     *
+     * @param format The format.
+     * @return The index in the selection, or [C.INDEX_UNSET] if the track with the specified
+     * format is not part of the selection.
+     */
+    fun indexOf(format: Format?): Int
 
-  /**
-   * Returns the index in the selection of the track with the specified format. The format is
-   * located by identity so, for example, {@code selection.indexOf(selection.getFormat(index)) ==
-   * index} even if multiple selected tracks have formats that contain the same values.
-   *
-   * @param format The format.
-   * @return The index in the selection, or {@link C#INDEX_UNSET} if the track with the specified
-   *     format is not part of the selection.
-   */
-  int indexOf(Format format);
-
-  /**
-   * Returns the index in the selection of the track with the specified index in the track group.
-   *
-   * @param indexInTrackGroup The index in the track group.
-   * @return The index in the selection, or {@link C#INDEX_UNSET} if the track with the specified
-   *     index is not part of the selection.
-   */
-  int indexOf(int indexInTrackGroup);
+    /**
+     * Returns the index in the selection of the track with the specified index in the track group.
+     *
+     * @param indexInTrackGroup The index in the track group.
+     * @return The index in the selection, or [C.INDEX_UNSET] if the track with the specified
+     * index is not part of the selection.
+     */
+    fun indexOf(indexInTrackGroup: Int): Int
 }

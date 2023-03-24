@@ -13,254 +13,269 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.mediacodec;
+package com.google.android.exoplayer2.mediacodec
 
-import android.media.MediaCodec;
-import android.media.MediaCrypto;
-import android.media.MediaFormat;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.PersistableBundle;
-import android.view.Surface;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.decoder.CryptoInfo;
-import java.io.IOException;
-import java.nio.ByteBuffer;
+import android.media.MediaCodec
+import android.media.MediaCodec.BufferInfo
+import android.media.MediaCrypto
+import android.media.MediaFormat
+import android.os.Bundle
+import android.os.Handler
+import android.os.PersistableBundle
+import android.view.Surface
+import androidx.annotation.RequiresApi
+import com.google.android.exoplayer2.C.VideoScalingMode
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.decoder.CryptoInfo
+import java.io.IOException
+import java.nio.ByteBuffer
 
 /**
- * Abstracts {@link MediaCodec} operations.
+ * Abstracts [MediaCodec] operations.
  *
- * <p>{@code MediaCodecAdapter} offers a common interface to interact with a {@link MediaCodec}
- * regardless of the mode the {@link MediaCodec} is operating in.
+ *
+ * `MediaCodecAdapter` offers a common interface to interact with a [MediaCodec]
+ * regardless of the mode the [MediaCodec] is operating in.
  */
-public interface MediaCodecAdapter {
-  /** Configuration parameters for a {@link MediaCodecAdapter}. */
-  final class Configuration {
+interface MediaCodecAdapter {
+    /** Configuration parameters for a [MediaCodecAdapter].  */
+    class Configuration {
+
+        /**
+         * Creates a configuration for audio decoding.
+         *
+         * @param codecInfo See [.codecInfo].
+         * @param mediaFormat See [.mediaFormat].
+         * @param format See [.format].
+         * @param crypto See [.crypto].
+         * @return The created instance.
+         */
+        fun createForAudioDecoding(
+            codecInfo: MediaCodecInfo?,
+            mediaFormat: MediaFormat?,
+            format: Format?,
+            crypto: MediaCrypto?
+        ): Configuration? {
+            return Configuration(
+                codecInfo!!, mediaFormat!!, format!!,  /* surface= */null, crypto,  /* flags= */0
+            )
+        }
+
+        /**
+         * Creates a configuration for video decoding.
+         *
+         * @param codecInfo See [.codecInfo].
+         * @param mediaFormat See [.mediaFormat].
+         * @param format See [.format].
+         * @param surface See [.surface].
+         * @param crypto See [.crypto].
+         * @return The created instance.
+         */
+        fun createForVideoDecoding(
+            codecInfo: MediaCodecInfo?,
+            mediaFormat: MediaFormat?,
+            format: Format?,
+            surface: Surface?,
+            crypto: MediaCrypto?
+        ): Configuration {
+            return Configuration(
+                codecInfo!!,
+                mediaFormat!!, format!!, surface, crypto,  /* flags= */0
+            )
+        }
+
+        /** Information about the [MediaCodec] being configured.  */
+        var codecInfo: MediaCodecInfo? = null
+
+        /** The [MediaFormat] for which the codec is being configured.  */
+        var mediaFormat: MediaFormat? = null
+
+        /** The [Format] for which the codec is being configured.  */
+        var format: Format? = null
+
+        /**
+         * For video decoding, the output where the object will render the decoded frames. This must be
+         * null if the codec is not a video decoder, or if it is configured for [ByteBuffer]
+         * output.
+         */
+        var surface: Surface? = null
+
+        /** For DRM protected playbacks, a [MediaCrypto] to use for decryption.  */
+        var crypto: MediaCrypto? = null
+
+        /** See [MediaCodec.configure].  */
+        var flags = 0
+
+        private constructor(
+            codecInfo: MediaCodecInfo,
+            mediaFormat: MediaFormat,
+            format: Format,
+            surface: Surface?,
+            crypto: MediaCrypto?,
+            flags: Int
+        ) {
+            this.codecInfo = codecInfo
+            this.mediaFormat = mediaFormat
+            this.format = format
+            this.surface = surface
+            this.crypto = crypto
+            this.flags = flags
+        }
+    }
+
+    /** A factory for [MediaCodecAdapter] instances.  */
+    interface Factory {
+        companion object {
+            /** Default factory used in most cases.  */
+            @JvmField
+            val DEFAULT: Factory = DefaultMediaCodecAdapterFactory()
+        }
+
+        /** Creates a [MediaCodecAdapter] instance.  */
+        @Throws(IOException::class)
+        fun createAdapter(configuration: Configuration?): MediaCodecAdapter?
+    }
 
     /**
-     * Creates a configuration for audio decoding.
+     * Listener to be called when an output frame has rendered on the output surface.
      *
-     * @param codecInfo See {@link #codecInfo}.
-     * @param mediaFormat See {@link #mediaFormat}.
-     * @param format See {@link #format}.
-     * @param crypto See {@link #crypto}.
-     * @return The created instance.
+     * @see MediaCodec.OnFrameRenderedListener
      */
-    public static Configuration createForAudioDecoding(
-        MediaCodecInfo codecInfo,
-        MediaFormat mediaFormat,
-        Format format,
-        @Nullable MediaCrypto crypto) {
-      return new Configuration(
-          codecInfo, mediaFormat, format, /* surface= */ null, crypto, /* flags= */ 0);
+    interface OnFrameRenderedListener {
+        fun onFrameRendered(codec: MediaCodecAdapter?, presentationTimeUs: Long, nanoTime: Long)
     }
 
     /**
-     * Creates a configuration for video decoding.
+     * Returns the next available input buffer index from the underlying [MediaCodec] or [ ][MediaCodec.INFO_TRY_AGAIN_LATER] if no such buffer exists.
      *
-     * @param codecInfo See {@link #codecInfo}.
-     * @param mediaFormat See {@link #mediaFormat}.
-     * @param format See {@link #format}.
-     * @param surface See {@link #surface}.
-     * @param crypto See {@link #crypto}.
-     * @return The created instance.
+     * @throws IllegalStateException If the underlying [MediaCodec] raised an error.
      */
-    public static Configuration createForVideoDecoding(
-        MediaCodecInfo codecInfo,
-        MediaFormat mediaFormat,
-        Format format,
-        @Nullable Surface surface,
-        @Nullable MediaCrypto crypto) {
-      return new Configuration(codecInfo, mediaFormat, format, surface, crypto, /* flags= */ 0);
-    }
+    fun dequeueInputBufferIndex(): Int
 
-    /** Information about the {@link MediaCodec} being configured. */
-    public final MediaCodecInfo codecInfo;
-    /** The {@link MediaFormat} for which the codec is being configured. */
-    public final MediaFormat mediaFormat;
-    /** The {@link Format} for which the codec is being configured. */
-    public final Format format;
     /**
-     * For video decoding, the output where the object will render the decoded frames. This must be
-     * null if the codec is not a video decoder, or if it is configured for {@link ByteBuffer}
-     * output.
+     * Returns the next available output buffer index from the underlying [MediaCodec]. If the
+     * next available output is a MediaFormat change, it will return [ ][MediaCodec.INFO_OUTPUT_FORMAT_CHANGED] and you should call [.getOutputFormat] to get
+     * the format. If there is no available output, this method will return [ ][MediaCodec.INFO_TRY_AGAIN_LATER].
+     *
+     * @throws IllegalStateException If the underlying [MediaCodec] raised an error.
      */
-    @Nullable public final Surface surface;
-    /** For DRM protected playbacks, a {@link MediaCrypto} to use for decryption. */
-    @Nullable public final MediaCrypto crypto;
-    /** See {@link MediaCodec#configure}. */
-    public final int flags;
+    fun dequeueOutputBufferIndex(bufferInfo: BufferInfo?): Int
 
-    private Configuration(
-        MediaCodecInfo codecInfo,
-        MediaFormat mediaFormat,
-        Format format,
-        @Nullable Surface surface,
-        @Nullable MediaCrypto crypto,
-        int flags) {
-      this.codecInfo = codecInfo;
-      this.mediaFormat = mediaFormat;
-      this.format = format;
-      this.surface = surface;
-      this.crypto = crypto;
-      this.flags = flags;
-    }
-  }
+    /**
+     * Gets the [MediaFormat] that was output from the [MediaCodec].
+     *
+     *
+     * Call this method if a previous call to [.dequeueOutputBufferIndex] returned [ ][MediaCodec.INFO_OUTPUT_FORMAT_CHANGED].
+     */
+    fun getOutputFormat(): MediaFormat?
 
-  /** A factory for {@link MediaCodecAdapter} instances. */
-  interface Factory {
+    /**
+     * Returns a writable ByteBuffer object for a dequeued input buffer index.
+     *
+     * @see MediaCodec.getInputBuffer
+     */
+    fun getInputBuffer(index: Int): ByteBuffer?
 
-    /** Default factory used in most cases. */
-    Factory DEFAULT = new DefaultMediaCodecAdapterFactory();
+    /**
+     * Returns a read-only ByteBuffer for a dequeued output buffer index.
+     *
+     * @see MediaCodec.getOutputBuffer
+     */
+    fun getOutputBuffer(index: Int): ByteBuffer?
 
-    /** Creates a {@link MediaCodecAdapter} instance. */
-    MediaCodecAdapter createAdapter(Configuration configuration) throws IOException;
-  }
+    /**
+     * Submit an input buffer for decoding.
+     *
+     *
+     * The `index` must be an input buffer index that has been obtained from a previous call
+     * to [.dequeueInputBufferIndex].
+     *
+     * @see MediaCodec.queueInputBuffer
+     */
+    fun queueInputBuffer(index: Int, offset: Int, size: Int, presentationTimeUs: Long, flags: Int)
 
-  /**
-   * Listener to be called when an output frame has rendered on the output surface.
-   *
-   * @see MediaCodec.OnFrameRenderedListener
-   */
-  interface OnFrameRenderedListener {
-    void onFrameRendered(MediaCodecAdapter codec, long presentationTimeUs, long nanoTime);
-  }
+    /**
+     * Submit an input buffer that is potentially encrypted for decoding.
+     *
+     *
+     * The `index` must be an input buffer index that has been obtained from a previous call
+     * to [.dequeueInputBufferIndex].
+     *
+     *
+     * This method behaves like [MediaCodec.queueSecureInputBuffer], with the difference that
+     * `info` is of type [CryptoInfo] and not [android.media.MediaCodec.CryptoInfo].
+     *
+     * @see MediaCodec.queueSecureInputBuffer
+     */
+    fun queueSecureInputBuffer(
+        index: Int, offset: Int, info: CryptoInfo?, presentationTimeUs: Long, flags: Int
+    )
 
-  /**
-   * Returns the next available input buffer index from the underlying {@link MediaCodec} or {@link
-   * MediaCodec#INFO_TRY_AGAIN_LATER} if no such buffer exists.
-   *
-   * @throws IllegalStateException If the underlying {@link MediaCodec} raised an error.
-   */
-  int dequeueInputBufferIndex();
+    /**
+     * Returns the buffer to the [MediaCodec]. If the [MediaCodec] was configured with an
+     * output surface, setting `render` to `true` will first send the buffer to the output
+     * surface. The surface will release the buffer back to the codec once it is no longer
+     * used/displayed.
+     *
+     * @see MediaCodec.releaseOutputBuffer
+     */
+    fun releaseOutputBuffer(index: Int, render: Boolean)
 
-  /**
-   * Returns the next available output buffer index from the underlying {@link MediaCodec}. If the
-   * next available output is a MediaFormat change, it will return {@link
-   * MediaCodec#INFO_OUTPUT_FORMAT_CHANGED} and you should call {@link #getOutputFormat()} to get
-   * the format. If there is no available output, this method will return {@link
-   * MediaCodec#INFO_TRY_AGAIN_LATER}.
-   *
-   * @throws IllegalStateException If the underlying {@link MediaCodec} raised an error.
-   */
-  int dequeueOutputBufferIndex(MediaCodec.BufferInfo bufferInfo);
+    /**
+     * Updates the output buffer's surface timestamp and sends it to the [MediaCodec] to render
+     * it on the output surface. If the [MediaCodec] is not configured with an output surface,
+     * this call will simply return the buffer to the [MediaCodec].
+     *
+     * @see MediaCodec.releaseOutputBuffer
+     */
+    @RequiresApi(21)
+    fun releaseOutputBuffer(index: Int, renderTimeStampNs: Long)
 
-  /**
-   * Gets the {@link MediaFormat} that was output from the {@link MediaCodec}.
-   *
-   * <p>Call this method if a previous call to {@link #dequeueOutputBufferIndex} returned {@link
-   * MediaCodec#INFO_OUTPUT_FORMAT_CHANGED}.
-   */
-  MediaFormat getOutputFormat();
+    /** Flushes the adapter and the underlying [MediaCodec].  */
+    fun flush()
 
-  /**
-   * Returns a writable ByteBuffer object for a dequeued input buffer index.
-   *
-   * @see MediaCodec#getInputBuffer(int)
-   */
-  @Nullable
-  ByteBuffer getInputBuffer(int index);
+    /** Releases the adapter and the underlying [MediaCodec].  */
+    fun release()
 
-  /**
-   * Returns a read-only ByteBuffer for a dequeued output buffer index.
-   *
-   * @see MediaCodec#getOutputBuffer(int)
-   */
-  @Nullable
-  ByteBuffer getOutputBuffer(int index);
+    /**
+     * Registers a callback to be invoked when an output frame is rendered on the output surface.
+     *
+     * @see MediaCodec.setOnFrameRenderedListener
+     */
+    @RequiresApi(23)
+    fun setOnFrameRenderedListener(listener: OnFrameRenderedListener?, handler: Handler?)
 
-  /**
-   * Submit an input buffer for decoding.
-   *
-   * <p>The {@code index} must be an input buffer index that has been obtained from a previous call
-   * to {@link #dequeueInputBufferIndex()}.
-   *
-   * @see MediaCodec#queueInputBuffer
-   */
-  void queueInputBuffer(int index, int offset, int size, long presentationTimeUs, int flags);
+    /**
+     * Dynamically sets the output surface of a [MediaCodec].
+     *
+     * @see MediaCodec.setOutputSurface
+     */
+    @RequiresApi(23)
+    fun setOutputSurface(surface: Surface?)
 
-  /**
-   * Submit an input buffer that is potentially encrypted for decoding.
-   *
-   * <p>The {@code index} must be an input buffer index that has been obtained from a previous call
-   * to {@link #dequeueInputBufferIndex()}.
-   *
-   * <p>This method behaves like {@link MediaCodec#queueSecureInputBuffer}, with the difference that
-   * {@code info} is of type {@link CryptoInfo} and not {@link android.media.MediaCodec.CryptoInfo}.
-   *
-   * @see MediaCodec#queueSecureInputBuffer
-   */
-  void queueSecureInputBuffer(
-      int index, int offset, CryptoInfo info, long presentationTimeUs, int flags);
+    /**
+     * Communicate additional parameter changes to the [MediaCodec] instance.
+     *
+     * @see MediaCodec.setParameters
+     */
+    @RequiresApi(19)
+    fun setParameters(params: Bundle?)
 
-  /**
-   * Returns the buffer to the {@link MediaCodec}. If the {@link MediaCodec} was configured with an
-   * output surface, setting {@code render} to {@code true} will first send the buffer to the output
-   * surface. The surface will release the buffer back to the codec once it is no longer
-   * used/displayed.
-   *
-   * @see MediaCodec#releaseOutputBuffer(int, boolean)
-   */
-  void releaseOutputBuffer(int index, boolean render);
+    /**
+     * Specifies the scaling mode to use, if a surface was specified when the codec was created.
+     *
+     * @see MediaCodec.setVideoScalingMode
+     */
+    fun setVideoScalingMode(@VideoScalingMode scalingMode: Int)
 
-  /**
-   * Updates the output buffer's surface timestamp and sends it to the {@link MediaCodec} to render
-   * it on the output surface. If the {@link MediaCodec} is not configured with an output surface,
-   * this call will simply return the buffer to the {@link MediaCodec}.
-   *
-   * @see MediaCodec#releaseOutputBuffer(int, long)
-   */
-  @RequiresApi(21)
-  void releaseOutputBuffer(int index, long renderTimeStampNs);
+    /** Whether the adapter needs to be reconfigured before it is used.  */
+    fun needsReconfiguration(): Boolean
 
-  /** Flushes the adapter and the underlying {@link MediaCodec}. */
-  void flush();
-
-  /** Releases the adapter and the underlying {@link MediaCodec}. */
-  void release();
-
-  /**
-   * Registers a callback to be invoked when an output frame is rendered on the output surface.
-   *
-   * @see MediaCodec#setOnFrameRenderedListener
-   */
-  @RequiresApi(23)
-  void setOnFrameRenderedListener(OnFrameRenderedListener listener, Handler handler);
-
-  /**
-   * Dynamically sets the output surface of a {@link MediaCodec}.
-   *
-   * @see MediaCodec#setOutputSurface(Surface)
-   */
-  @RequiresApi(23)
-  void setOutputSurface(Surface surface);
-
-  /**
-   * Communicate additional parameter changes to the {@link MediaCodec} instance.
-   *
-   * @see MediaCodec#setParameters(Bundle)
-   */
-  @RequiresApi(19)
-  void setParameters(Bundle params);
-
-  /**
-   * Specifies the scaling mode to use, if a surface was specified when the codec was created.
-   *
-   * @see MediaCodec#setVideoScalingMode(int)
-   */
-  void setVideoScalingMode(@C.VideoScalingMode int scalingMode);
-
-  /** Whether the adapter needs to be reconfigured before it is used. */
-  boolean needsReconfiguration();
-
-  /**
-   * Returns metrics data about the current codec instance.
-   *
-   * @see MediaCodec#getMetrics()
-   */
-  @RequiresApi(26)
-  PersistableBundle getMetrics();
+    /**
+     * Returns metrics data about the current codec instance.
+     *
+     * @see MediaCodec.getMetrics
+     */
+    @RequiresApi(26)
+    fun getMetrics(): PersistableBundle?
 }

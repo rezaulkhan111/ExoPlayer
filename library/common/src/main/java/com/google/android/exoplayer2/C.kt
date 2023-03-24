@@ -28,83 +28,6 @@ import java.lang.annotation.Documented
 import java.lang.annotation.RetentionPolicy
 import java.util.*
 
-android.content.Context
-import com.google.android.exoplayer2.util.EGLSurfaceTexture.TextureImageListener
-import android.graphics.SurfaceTextureimport
-
-android.media.*
-import com.google.android.exoplayer2.util.EGLSurfaceTexture.SecureMode
-import org.xmlpull.v1.XmlPullParserException
-import org.xmlpull.v1.XmlPullParser
-import android.net.ConnectivityManager
-import com.google.android.exoplayer2.util.NetworkTypeObserver.Api31.DisplayInfoCallback
-import android.telephony.TelephonyCallback
-import android.telephony.TelephonyCallback.DisplayInfoListener
-import android.telephony.TelephonyDisplayInfo
-import android.net.NetworkInfoimport
-
-android.view.*
-import com.google.android.exoplayer2.util.PriorityTaskManager.PriorityTooLowException
-import com.google.android.exoplayer2.util.SystemHandlerWrapper.SystemMessage
-import com.google.android.exoplayer2.audio.AuxEffectInfo
-import com.google.android.exoplayer2.audio.AudioProcessor.UnhandledAudioFormatException
-import com.google.android.exoplayer2.C.AudioFlags
-import com.google.android.exoplayer2.C.AudioAllowedCapturePolicy
-import com.google.android.exoplayer2.C.SpatializationBehavior
-import com.google.android.exoplayer2.audio.AudioAttributes.Api32
-import com.google.android.exoplayer2.audio.AudioAttributes.AudioAttributesV21
-import com.google.android.exoplayer2.audio.AudioProcessor
-import com.google.android.exoplayer2.PlaybackParameters
-import com.google.android.exoplayer2.C.ColorRange
-import com.google.android.exoplayer2.C.ColorTransfer
-import androidx.annotation.FloatRange
-import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdGroup
-import com.google.android.exoplayer2.source.ads.AdPlaybackState
-import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdState
-import com.google.android.exoplayer2.source.TrackGroup
-import com.google.android.exoplayer2.C.RoleFlags
-import com.google.android.exoplayer2.offline.StreamKey
-import com.google.android.exoplayer2.C.SelectionFlags
-import com.google.android.exoplayer2.C.StereoMode
-import com.google.android.exoplayer2.C.CryptoType
-import com.google.android.exoplayer2.Player.PositionInfo
-import com.google.android.exoplayer2.Timeline
-import com.google.android.exoplayer2.Player.TimelineChangeReason
-import com.google.android.exoplayer2.Player.MediaItemTransitionReason
-import com.google.android.exoplayer2.Tracks
-import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
-import com.google.android.exoplayer2.Player.PlayWhenReadyChangeReason
-import com.google.android.exoplayer2.Player.PlaybackSuppressionReason
-import com.google.android.exoplayer2.Player.DiscontinuityReason
-import com.google.android.exoplayer2.DeviceInfo
-import com.google.android.exoplayer2.Rating.RatingType
-import com.google.common.primitives.Booleans
-import com.google.common.base.MoreObjects
-import com.google.android.exoplayer2.MediaItem.LiveConfiguration
-import com.google.android.exoplayer2.BundleListRetriever
-import com.google.android.exoplayer2.Timeline.RemotableTimeline
-import com.google.android.exoplayer2.MediaItem.ClippingProperties
-import com.google.android.exoplayer2.MediaItem.PlaybackProperties
-import com.google.android.exoplayer2.MediaItem.RequestMetadata
-import com.google.android.exoplayer2.MediaItem.AdsConfiguration
-import com.google.android.exoplayer2.MediaItem.LocalConfiguration
-import com.google.android.exoplayer2.MediaItem.ClippingConfiguration
-import com.google.android.exoplayer2.MediaItem.DrmConfiguration
-import com.google.android.exoplayer2.trackselection.TrackSelectionOverride
-import com.google.common.primitives.Ints
-import android.view.accessibility.CaptioningManager
-import com.google.android.exoplayer2.DeviceInfo.PlaybackType
-import com.google.android.exoplayer2.MediaMetadata.PictureType
-import com.google.android.exoplayer2.MediaMetadata.FolderType
-import com.google.android.exoplayer2.ForwardingPlayer
-import com.google.android.exoplayer2.BasePlayer
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull
-import org.checkerframework.checker.nullness.qual.RequiresNonNull
-import com.google.android.exoplayer2.SimpleBasePlayer
-import androidx.annotation.CallSuperimport
-
-import com.google.android.exoplayer2.util.*
-import com.google.errorprone.annotations.InlineMeimport
 
 /** Defines constants used by the library.  */
 object C {
@@ -405,7 +328,8 @@ object C {
     /**
      * @see android.media.AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE
      */
-    const val USAGE_ASSISTANCE_NAVIGATION_GUIDANCE: Int = AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE
+    const val USAGE_ASSISTANCE_NAVIGATION_GUIDANCE: Int =
+        AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE
 
     /**
      * @see android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION
@@ -435,17 +359,20 @@ object C {
     /**
      * @see android.media.AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_DELAYED
      */
-    const val USAGE_NOTIFICATION_COMMUNICATION_DELAYED: Int = AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_DELAYED
+    const val USAGE_NOTIFICATION_COMMUNICATION_DELAYED: Int =
+        AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_DELAYED
 
     /**
      * @see android.media.AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT
      */
-    const val USAGE_NOTIFICATION_COMMUNICATION_INSTANT: Int = AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT
+    const val USAGE_NOTIFICATION_COMMUNICATION_INSTANT: Int =
+        AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT
 
     /**
      * @see android.media.AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_REQUEST
      */
-    const val USAGE_NOTIFICATION_COMMUNICATION_REQUEST: Int = AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_REQUEST
+    const val USAGE_NOTIFICATION_COMMUNICATION_REQUEST: Int =
+        AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_REQUEST
 
     /**
      * @see android.media.AudioAttributes.USAGE_NOTIFICATION_EVENT
@@ -470,7 +397,8 @@ object C {
     /**
      * @see android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING
      */
-    const val USAGE_VOICE_COMMUNICATION_SIGNALLING: Int = AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING
+    const val USAGE_VOICE_COMMUNICATION_SIGNALLING: Int =
+        AudioAttributes.USAGE_VOICE_COMMUNICATION_SIGNALLING
 
     /** See [android.media.AudioAttributes.ALLOW_CAPTURE_BY_ALL].  */
     const val ALLOW_CAPTURE_BY_ALL: Int = AudioAttributes.ALLOW_CAPTURE_BY_ALL
@@ -515,7 +443,8 @@ object C {
     const val VIDEO_SCALING_MODE_SCALE_TO_FIT: Int = MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT
 
     /** See [MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING].  */
-    const val VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING: Int = MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
+    const val VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING: Int =
+        MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
 
     /** A default video scaling mode for [MediaCodec]-based renderers.  */
     val VIDEO_SCALING_MODE_DEFAULT: Int = VIDEO_SCALING_MODE_SCALE_TO_FIT
@@ -529,7 +458,8 @@ object C {
     /**
      * Strategy to call [Surface.setFrameRate] with [ ][Surface.CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS] when the output frame rate is known.
      */
-    const val VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS: Int = Surface.CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS
+    const val VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS: Int =
+        Surface.CHANGE_FRAME_RATE_ONLY_IF_SEAMLESS
     // LINT.IfChange(selection_flags)
     /** Indicates that the track should be selected if user preferences do not state otherwise.  */
     const val SELECTION_FLAG_DEFAULT: Int = 1
@@ -1004,35 +934,49 @@ object C {
      */
     const val FORMAT_UNSUPPORTED_TYPE: Int = 0
 
-    @InlineMe(replacement = "Util.usToMs(timeUs)", imports = ["com.google.android.exoplayer2.util.Util"])
+    @InlineMe(
+        replacement = "Util.usToMs(timeUs)", imports = ["com.google.android.exoplayer2.util.Util"]
+    )
     @Deprecated("Use {@link Util#usToMs(long)}.")
     fun usToMs(timeUs: Long): Long {
         return Util.usToMs(timeUs)
     }
 
-    @InlineMe(replacement = "Util.msToUs(timeMs)", imports = ["com.google.android.exoplayer2.util.Util"])
+    @InlineMe(
+        replacement = "Util.msToUs(timeMs)", imports = ["com.google.android.exoplayer2.util.Util"]
+    )
     @Deprecated("Use {@link Util#msToUs(long)}.")
     fun msToUs(timeMs: Long): Long {
         return Util.msToUs(timeMs)
     }
 
-    @InlineMe(replacement = "Util.generateAudioSessionIdV21(context)", imports = ["com.google.android.exoplayer2.util.Util"])
+    @InlineMe(
+        replacement = "Util.generateAudioSessionIdV21(context)",
+        imports = ["com.google.android.exoplayer2.util.Util"]
+    )
     @RequiresApi(21)
     @Deprecated("Use {@link Util#generateAudioSessionIdV21(Context)}.")
     fun generateAudioSessionIdV21(context: Context): Int {
         return Util.generateAudioSessionIdV21(context)
     }
 
-    @InlineMe(replacement = "Util.getFormatSupportString(formatSupport)", imports = ["com.google.android.exoplayer2.util.Util"])
+    @InlineMe(
+        replacement = "Util.getFormatSupportString(formatSupport)",
+        imports = ["com.google.android.exoplayer2.util.Util"]
+    )
     @Deprecated("Use {@link Util#getFormatSupportString(int)}.")
     fun getFormatSupportString(@FormatSupport formatSupport: Int): String? {
         return Util.getFormatSupportString(formatSupport)
     }
 
-    @InlineMe(replacement = "Util.getErrorCodeForMediaDrmErrorCode(mediaDrmErrorCode)", imports = ["com.google.android.exoplayer2.util.Util"])
+    @InlineMe(
+        replacement = "Util.getErrorCodeForMediaDrmErrorCode(mediaDrmErrorCode)",
+        imports = ["com.google.android.exoplayer2.util.Util"]
+    )
     @Deprecated("Use {@link Util#getErrorCodeForMediaDrmErrorCode(int)}.")
     fun getErrorCodeForMediaDrmErrorCode(
-            mediaDrmErrorCode: Int): @PlaybackException.ErrorCode Int {
+        mediaDrmErrorCode: Int
+    ): @PlaybackException.ErrorCode Int {
         return Util.getErrorCodeForMediaDrmErrorCode(mediaDrmErrorCode)
     }
 
@@ -1053,7 +997,7 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([CRYPTO_MODE_UNENCRYPTED, CRYPTO_MODE_AES_CTR, CRYPTO_MODE_AES_CBC])
+    @IntDef(value = [CRYPTO_MODE_UNENCRYPTED, CRYPTO_MODE_AES_CTR, CRYPTO_MODE_AES_CBC])
     annotation class CryptoMode constructor()
 
     /**
@@ -1065,7 +1009,7 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([Format.Companion.NO_VALUE, ENCODING_INVALID, ENCODING_PCM_8BIT, ENCODING_PCM_16BIT, ENCODING_PCM_16BIT_BIG_ENDIAN, ENCODING_PCM_24BIT, ENCODING_PCM_32BIT, ENCODING_PCM_FLOAT, ENCODING_MP3, ENCODING_AAC_LC, ENCODING_AAC_HE_V1, ENCODING_AAC_HE_V2, ENCODING_AAC_XHE, ENCODING_AAC_ELD, ENCODING_AAC_ER_BSAC, ENCODING_AC3, ENCODING_E_AC3, ENCODING_E_AC3_JOC, ENCODING_AC4, ENCODING_DTS, ENCODING_DTS_HD, ENCODING_DOLBY_TRUEHD])
+    @IntDef(value = [Format.NO_VALUE, ENCODING_INVALID, ENCODING_PCM_8BIT, ENCODING_PCM_16BIT, ENCODING_PCM_16BIT_BIG_ENDIAN, ENCODING_PCM_24BIT, ENCODING_PCM_32BIT, ENCODING_PCM_FLOAT, ENCODING_MP3, ENCODING_AAC_LC, ENCODING_AAC_HE_V1, ENCODING_AAC_HE_V2, ENCODING_AAC_XHE, ENCODING_AAC_ELD, ENCODING_AAC_ER_BSAC, ENCODING_AC3, ENCODING_E_AC3, ENCODING_E_AC3_JOC, ENCODING_AC4, ENCODING_DTS, ENCODING_DTS_HD, ENCODING_DOLBY_TRUEHD])
     annotation class Encoding constructor()
 
     /**
@@ -1076,14 +1020,14 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([Format.Companion.NO_VALUE, ENCODING_INVALID, ENCODING_PCM_8BIT, ENCODING_PCM_16BIT, ENCODING_PCM_16BIT_BIG_ENDIAN, ENCODING_PCM_24BIT, ENCODING_PCM_32BIT, ENCODING_PCM_FLOAT])
+    @IntDef(value = [Format.Companion.NO_VALUE, ENCODING_INVALID, ENCODING_PCM_8BIT, ENCODING_PCM_16BIT, ENCODING_PCM_16BIT_BIG_ENDIAN, ENCODING_PCM_24BIT, ENCODING_PCM_32BIT, ENCODING_PCM_FLOAT])
     annotation class PcmEncoding constructor()
 
     /** Represents the behavior affecting whether spatialization will be used.  */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([SPATIALIZATION_BEHAVIOR_AUTO, SPATIALIZATION_BEHAVIOR_NEVER])
+    @IntDef(value = [SPATIALIZATION_BEHAVIOR_AUTO, SPATIALIZATION_BEHAVIOR_NEVER])
     annotation class SpatializationBehavior constructor()
 
     /**
@@ -1094,8 +1038,16 @@ object C {
     @SuppressLint("UniqueConstants") // Intentional duplication to set STREAM_TYPE_DEFAULT.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([STREAM_TYPE_ALARM, STREAM_TYPE_DTMF, STREAM_TYPE_MUSIC, STREAM_TYPE_NOTIFICATION, STREAM_TYPE_RING, STREAM_TYPE_SYSTEM, STREAM_TYPE_VOICE_CALL, STREAM_TYPE_DEFAULT])
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [STREAM_TYPE_ALARM, STREAM_TYPE_DTMF, STREAM_TYPE_MUSIC, STREAM_TYPE_NOTIFICATION, STREAM_TYPE_RING, STREAM_TYPE_SYSTEM, STREAM_TYPE_VOICE_CALL, STREAM_TYPE_DEFAULT])
     annotation class StreamType constructor()
 
     /**
@@ -1113,8 +1065,16 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([AUDIO_CONTENT_TYPE_MOVIE, AUDIO_CONTENT_TYPE_MUSIC, AUDIO_CONTENT_TYPE_SONIFICATION, AUDIO_CONTENT_TYPE_SPEECH, AUDIO_CONTENT_TYPE_UNKNOWN])
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [AUDIO_CONTENT_TYPE_MOVIE, AUDIO_CONTENT_TYPE_MUSIC, AUDIO_CONTENT_TYPE_SONIFICATION, AUDIO_CONTENT_TYPE_SPEECH, AUDIO_CONTENT_TYPE_UNKNOWN])
     annotation class AudioContentType constructor()
 
     /**
@@ -1128,7 +1088,15 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
     @IntDef(flag = true, value = [FLAG_AUDIBILITY_ENFORCED])
     annotation class AudioFlags constructor()
 
@@ -1141,8 +1109,16 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([USAGE_ALARM, USAGE_ASSISTANCE_ACCESSIBILITY, USAGE_ASSISTANCE_NAVIGATION_GUIDANCE, USAGE_ASSISTANCE_SONIFICATION, USAGE_ASSISTANT, USAGE_GAME, USAGE_MEDIA, USAGE_NOTIFICATION, USAGE_NOTIFICATION_COMMUNICATION_DELAYED, USAGE_NOTIFICATION_COMMUNICATION_INSTANT, USAGE_NOTIFICATION_COMMUNICATION_REQUEST, USAGE_NOTIFICATION_EVENT, USAGE_NOTIFICATION_RINGTONE, USAGE_UNKNOWN, USAGE_VOICE_COMMUNICATION, USAGE_VOICE_COMMUNICATION_SIGNALLING])
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [USAGE_ALARM, USAGE_ASSISTANCE_ACCESSIBILITY, USAGE_ASSISTANCE_NAVIGATION_GUIDANCE, USAGE_ASSISTANCE_SONIFICATION, USAGE_ASSISTANT, USAGE_GAME, USAGE_MEDIA, USAGE_NOTIFICATION, USAGE_NOTIFICATION_COMMUNICATION_DELAYED, USAGE_NOTIFICATION_COMMUNICATION_INSTANT, USAGE_NOTIFICATION_COMMUNICATION_REQUEST, USAGE_NOTIFICATION_EVENT, USAGE_NOTIFICATION_RINGTONE, USAGE_UNKNOWN, USAGE_VOICE_COMMUNICATION, USAGE_VOICE_COMMUNICATION_SIGNALLING])
     annotation class AudioUsage constructor()
 
     /**
@@ -1152,8 +1128,16 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([ALLOW_CAPTURE_BY_ALL, ALLOW_CAPTURE_BY_NONE, ALLOW_CAPTURE_BY_SYSTEM])
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [ALLOW_CAPTURE_BY_ALL, ALLOW_CAPTURE_BY_NONE, ALLOW_CAPTURE_BY_SYSTEM])
     annotation class AudioAllowedCapturePolicy constructor()
 
     /**
@@ -1163,7 +1147,10 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef(flag = true, value = [BUFFER_FLAG_KEY_FRAME, BUFFER_FLAG_END_OF_STREAM, BUFFER_FLAG_FIRST_SAMPLE, BUFFER_FLAG_HAS_SUPPLEMENTAL_DATA, BUFFER_FLAG_LAST_SAMPLE, BUFFER_FLAG_ENCRYPTED, BUFFER_FLAG_DECODE_ONLY])
+    @IntDef(
+        flag = true,
+        value = [BUFFER_FLAG_KEY_FRAME, BUFFER_FLAG_END_OF_STREAM, BUFFER_FLAG_FIRST_SAMPLE, BUFFER_FLAG_HAS_SUPPLEMENTAL_DATA, BUFFER_FLAG_LAST_SAMPLE, BUFFER_FLAG_ENCRYPTED, BUFFER_FLAG_DECODE_ONLY]
+    )
     annotation class BufferFlags constructor()
 
     /**
@@ -1184,17 +1171,33 @@ object C {
     @SuppressLint("UniqueConstants") // Intentional duplication to set VIDEO_SCALING_MODE_DEFAULT.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([VIDEO_SCALING_MODE_SCALE_TO_FIT, VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING, VIDEO_SCALING_MODE_DEFAULT])
-    annotation class VideoScalingMode constructor()
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [VIDEO_SCALING_MODE_SCALE_TO_FIT, VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING, VIDEO_SCALING_MODE_DEFAULT])
+    annotation class VideoScalingMode
 
     /** Strategies for calling [Surface.setFrameRate].  */ // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF, VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS])
-    annotation class VideoChangeFrameRateStrategy constructor()
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [VIDEO_CHANGE_FRAME_RATE_STRATEGY_OFF, VIDEO_CHANGE_FRAME_RATE_STRATEGY_ONLY_IF_SEAMLESS])
+    annotation class VideoChangeFrameRateStrategy
 
     /**
      * Track selection flags. Possible flag values are [.SELECTION_FLAG_DEFAULT], [ ][.SELECTION_FLAG_FORCED] and [.SELECTION_FLAG_AUTOSELECT].
@@ -1203,9 +1206,20 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef(flag = true, value = [SELECTION_FLAG_DEFAULT, SELECTION_FLAG_FORCED, SELECTION_FLAG_AUTOSELECT])
-    annotation class SelectionFlags constructor()
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(
+        flag = true,
+        value = [SELECTION_FLAG_DEFAULT, SELECTION_FLAG_FORCED, SELECTION_FLAG_AUTOSELECT]
+    )
+    annotation class SelectionFlags
 
     /**
      * Represents a streaming or other media type. One of:
@@ -1222,9 +1236,17 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([CONTENT_TYPE_DASH, CONTENT_TYPE_SS, CONTENT_TYPE_HLS, CONTENT_TYPE_RTSP, CONTENT_TYPE_OTHER])
-    annotation class ContentType constructor()
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [CONTENT_TYPE_DASH, CONTENT_TYPE_SS, CONTENT_TYPE_HLS, CONTENT_TYPE_RTSP, CONTENT_TYPE_OTHER])
+    annotation class ContentType
 
     /**
      * Represents a type of data. May be one of [.DATA_TYPE_UNKNOWN], [.DATA_TYPE_MEDIA],
@@ -1234,8 +1256,11 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef(open = true, value = [DATA_TYPE_UNKNOWN, DATA_TYPE_MEDIA, DATA_TYPE_MEDIA_INITIALIZATION, DATA_TYPE_DRM, DATA_TYPE_MANIFEST, DATA_TYPE_TIME_SYNCHRONIZATION, DATA_TYPE_AD, DATA_TYPE_MEDIA_PROGRESSIVE_LIVE])
-    annotation class DataType constructor()
+    @IntDef(
+        open = true,
+        value = [DATA_TYPE_UNKNOWN, DATA_TYPE_MEDIA, DATA_TYPE_MEDIA_INITIALIZATION, DATA_TYPE_DRM, DATA_TYPE_MANIFEST, DATA_TYPE_TIME_SYNCHRONIZATION, DATA_TYPE_AD, DATA_TYPE_MEDIA_PROGRESSIVE_LIVE]
+    )
+    annotation class DataType
 
     /**
      * Represents a type of media track. May be one of [.TRACK_TYPE_UNKNOWN], [ ][.TRACK_TYPE_DEFAULT], [.TRACK_TYPE_AUDIO], [.TRACK_TYPE_VIDEO], [ ][.TRACK_TYPE_TEXT], [.TRACK_TYPE_IMAGE], [.TRACK_TYPE_METADATA], [ ][.TRACK_TYPE_CAMERA_MOTION] or [.TRACK_TYPE_NONE]. May also be an app-defined value (see
@@ -1243,9 +1268,18 @@ object C {
      */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(TYPE_USE)
-    @IntDef(open = true, value = [TRACK_TYPE_UNKNOWN, TRACK_TYPE_DEFAULT, TRACK_TYPE_AUDIO, TRACK_TYPE_VIDEO, TRACK_TYPE_TEXT, TRACK_TYPE_IMAGE, TRACK_TYPE_METADATA, TRACK_TYPE_CAMERA_MOTION, TRACK_TYPE_NONE])
-    annotation class TrackType constructor()
+    @Target(TYPE_USE,
+        AnnotationTarget.PROPERTY,
+        AnnotationTarget.LOCAL_VARIABLE,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.TYPE
+    )
+    @IntDef(
+        open = true,
+        value = [TRACK_TYPE_UNKNOWN, TRACK_TYPE_DEFAULT, TRACK_TYPE_AUDIO, TRACK_TYPE_VIDEO, TRACK_TYPE_TEXT, TRACK_TYPE_IMAGE, TRACK_TYPE_METADATA, TRACK_TYPE_CAMERA_MOTION, TRACK_TYPE_NONE]
+    )
+    annotation class TrackType
 
     /**
      * Represents a reason for selection. May be one of [.SELECTION_REASON_UNKNOWN], [ ][.SELECTION_REASON_INITIAL], [.SELECTION_REASON_MANUAL], [ ][.SELECTION_REASON_ADAPTIVE] or [.SELECTION_REASON_TRICK_PLAY]. May also be an app-defined
@@ -1254,8 +1288,11 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef(open = true, value = [SELECTION_REASON_UNKNOWN, SELECTION_REASON_INITIAL, SELECTION_REASON_MANUAL, SELECTION_REASON_ADAPTIVE, SELECTION_REASON_TRICK_PLAY])
-    annotation class SelectionReason constructor()
+    @IntDef(
+        open = true,
+        value = [SELECTION_REASON_UNKNOWN, SELECTION_REASON_INITIAL, SELECTION_REASON_MANUAL, SELECTION_REASON_ADAPTIVE, SELECTION_REASON_TRICK_PLAY]
+    )
+    annotation class SelectionReason
 
     /**
      * The stereo mode for 360/3D/VR videos. One of [Format.NO_VALUE], [ ][.STEREO_MODE_MONO], [.STEREO_MODE_TOP_BOTTOM], [.STEREO_MODE_LEFT_RIGHT] or [ ][.STEREO_MODE_STEREO_MESH].
@@ -1263,8 +1300,8 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([Format.Companion.NO_VALUE, STEREO_MODE_MONO, STEREO_MODE_TOP_BOTTOM, STEREO_MODE_LEFT_RIGHT, STEREO_MODE_STEREO_MESH])
-    annotation class StereoMode constructor()
+    @IntDef(value = [Format.Companion.NO_VALUE, STEREO_MODE_MONO, STEREO_MODE_TOP_BOTTOM, STEREO_MODE_LEFT_RIGHT, STEREO_MODE_STEREO_MESH])
+    annotation class StereoMode
     // LINT.IfChange(color_space)
     /**
      * Video colorspaces. One of [Format.NO_VALUE], [.COLOR_SPACE_BT601], [ ][.COLOR_SPACE_BT709] or [.COLOR_SPACE_BT2020].
@@ -1272,8 +1309,8 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([Format.Companion.NO_VALUE, COLOR_SPACE_BT601, COLOR_SPACE_BT709, COLOR_SPACE_BT2020])
-    annotation class ColorSpace constructor()
+    @IntDef(value = [Format.Companion.NO_VALUE, COLOR_SPACE_BT601, COLOR_SPACE_BT709, COLOR_SPACE_BT2020])
+    annotation class ColorSpace
     // LINT.IfChange(color_transfer)
     /**
      * Video color transfer characteristics. One of [Format.NO_VALUE], [ ][.COLOR_TRANSFER_SDR], [.COLOR_TRANSFER_ST2084] or [.COLOR_TRANSFER_HLG].
@@ -1281,8 +1318,8 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([Format.Companion.NO_VALUE, COLOR_TRANSFER_SDR, COLOR_TRANSFER_ST2084, COLOR_TRANSFER_HLG])
-    annotation class ColorTransfer constructor()
+    @IntDef(value = [Format.Companion.NO_VALUE, COLOR_TRANSFER_SDR, COLOR_TRANSFER_ST2084, COLOR_TRANSFER_HLG])
+    annotation class ColorTransfer
     // LINT.IfChange(color_range)
     /**
      * Video color range. One of [Format.NO_VALUE], [.COLOR_RANGE_LIMITED] or [ ][.COLOR_RANGE_FULL].
@@ -1290,15 +1327,15 @@ object C {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([Format.Companion.NO_VALUE, COLOR_RANGE_LIMITED, COLOR_RANGE_FULL])
-    annotation class ColorRange constructor()
+    @IntDef(value = [Format.Companion.NO_VALUE, COLOR_RANGE_LIMITED, COLOR_RANGE_FULL])
+    annotation class ColorRange
 
     /** Video projection types.  */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([Format.Companion.NO_VALUE, PROJECTION_RECTANGULAR, PROJECTION_EQUIRECTANGULAR, PROJECTION_CUBEMAP, PROJECTION_MESH])
-    annotation class Projection constructor()
+    @IntDef(value = [Format.Companion.NO_VALUE, PROJECTION_RECTANGULAR, PROJECTION_EQUIRECTANGULAR, PROJECTION_CUBEMAP, PROJECTION_MESH])
+    annotation class Projection
 
     /**
      * Network connection type. One of [.NETWORK_TYPE_UNKNOWN], [.NETWORK_TYPE_OFFLINE],
@@ -1308,9 +1345,17 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([NETWORK_TYPE_UNKNOWN, NETWORK_TYPE_OFFLINE, NETWORK_TYPE_WIFI, NETWORK_TYPE_2G, NETWORK_TYPE_3G, NETWORK_TYPE_4G, NETWORK_TYPE_5G_SA, NETWORK_TYPE_5G_NSA, NETWORK_TYPE_CELLULAR_UNKNOWN, NETWORK_TYPE_ETHERNET, NETWORK_TYPE_OTHER])
-    annotation class NetworkType constructor()
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [NETWORK_TYPE_UNKNOWN, NETWORK_TYPE_OFFLINE, NETWORK_TYPE_WIFI, NETWORK_TYPE_2G, NETWORK_TYPE_3G, NETWORK_TYPE_4G, NETWORK_TYPE_5G_SA, NETWORK_TYPE_5G_NSA, NETWORK_TYPE_CELLULAR_UNKNOWN, NETWORK_TYPE_ETHERNET, NETWORK_TYPE_OTHER])
+    annotation class NetworkType
 
     /**
      * Mode specifying whether the player should hold a WakeLock and a WifiLock. One of [ ][.WAKE_MODE_NONE], [.WAKE_MODE_LOCAL] or [.WAKE_MODE_NETWORK].
@@ -1319,9 +1364,17 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([WAKE_MODE_NONE, WAKE_MODE_LOCAL, WAKE_MODE_NETWORK])
-    annotation class WakeMode constructor()
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [WAKE_MODE_NONE, WAKE_MODE_LOCAL, WAKE_MODE_NETWORK])
+    annotation class WakeMode
 
     /**
      * Track role flags. Possible flag values are [.ROLE_FLAG_MAIN], [ ][.ROLE_FLAG_ALTERNATE], [.ROLE_FLAG_SUPPLEMENTARY], [.ROLE_FLAG_COMMENTARY], [ ][.ROLE_FLAG_DUB], [.ROLE_FLAG_EMERGENCY], [.ROLE_FLAG_CAPTION], [ ][.ROLE_FLAG_SUBTITLE], [.ROLE_FLAG_SIGN], [.ROLE_FLAG_DESCRIBES_VIDEO], [ ][.ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND], [.ROLE_FLAG_ENHANCED_DIALOG_INTELLIGIBILITY],
@@ -1331,9 +1384,20 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef(flag = true, value = [ROLE_FLAG_MAIN, ROLE_FLAG_ALTERNATE, ROLE_FLAG_SUPPLEMENTARY, ROLE_FLAG_COMMENTARY, ROLE_FLAG_DUB, ROLE_FLAG_EMERGENCY, ROLE_FLAG_CAPTION, ROLE_FLAG_SUBTITLE, ROLE_FLAG_SIGN, ROLE_FLAG_DESCRIBES_VIDEO, ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND, ROLE_FLAG_ENHANCED_DIALOG_INTELLIGIBILITY, ROLE_FLAG_TRANSCRIBES_DIALOG, ROLE_FLAG_EASY_TO_READ, ROLE_FLAG_TRICK_PLAY])
-    annotation class RoleFlags constructor()
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(
+        flag = true,
+        value = [ROLE_FLAG_MAIN, ROLE_FLAG_ALTERNATE, ROLE_FLAG_SUPPLEMENTARY, ROLE_FLAG_COMMENTARY, ROLE_FLAG_DUB, ROLE_FLAG_EMERGENCY, ROLE_FLAG_CAPTION, ROLE_FLAG_SUBTITLE, ROLE_FLAG_SIGN, ROLE_FLAG_DESCRIBES_VIDEO, ROLE_FLAG_DESCRIBES_MUSIC_AND_SOUND, ROLE_FLAG_ENHANCED_DIALOG_INTELLIGIBILITY, ROLE_FLAG_TRANSCRIBES_DIALOG, ROLE_FLAG_EASY_TO_READ, ROLE_FLAG_TRICK_PLAY]
+    )
+    annotation class RoleFlags
 
     /**
      * Level of renderer support for a format. One of [.FORMAT_HANDLED], [ ][.FORMAT_EXCEEDS_CAPABILITIES], [.FORMAT_UNSUPPORTED_DRM], [ ][.FORMAT_UNSUPPORTED_SUBTYPE] or [.FORMAT_UNSUPPORTED_TYPE].
@@ -1342,7 +1406,15 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([FORMAT_HANDLED, FORMAT_EXCEEDS_CAPABILITIES, FORMAT_UNSUPPORTED_DRM, FORMAT_UNSUPPORTED_SUBTYPE, FORMAT_UNSUPPORTED_TYPE])
-    annotation class FormatSupport constructor()
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        TYPE_USE
+    )
+    @IntDef(value = [FORMAT_HANDLED, FORMAT_EXCEEDS_CAPABILITIES, FORMAT_UNSUPPORTED_DRM, FORMAT_UNSUPPORTED_SUBTYPE, FORMAT_UNSUPPORTED_TYPE])
+    annotation class FormatSupport
 }

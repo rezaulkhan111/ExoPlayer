@@ -13,267 +13,254 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source;
+package com.google.android.exoplayer2.source
 
-import com.google.android.exoplayer2.C;
-import java.util.Arrays;
-import java.util.Random;
+import com.google.android.exoplayer2.C
+import java.util.*
 
 /**
  * Shuffled order of indices.
  *
- * <p>The shuffle order must be immutable to ensure thread safety.
  *
- * <p>The order must be consistent when traversed both {@linkplain #getNextIndex(int) forwards} and
- * {@linkplain #getPreviousIndex(int) backwards}.
+ * The shuffle order must be immutable to ensure thread safety.
+ *
+ *
+ * The order must be consistent when traversed both [forwards][.getNextIndex] and
+ * [backwards][.getPreviousIndex].
  */
-public interface ShuffleOrder {
+interface ShuffleOrder {
+    /** The default [ShuffleOrder] implementation for random shuffle order.  */
+    class DefaultShuffleOrder : ShuffleOrder {
 
-  /** The default {@link ShuffleOrder} implementation for random shuffle order. */
-  class DefaultShuffleOrder implements ShuffleOrder {
+        private var random: Random = Random()
+        private var shuffled: IntArray = IntArray(0)
+        private var indexInShuffled: IntArray = IntArray(0)
 
-    private final Random random;
-    private final int[] shuffled;
-    private final int[] indexInShuffled;
-
-    /**
-     * Creates an instance with a specified length.
-     *
-     * @param length The length of the shuffle order.
-     */
-    public DefaultShuffleOrder(int length) {
-      this(length, new Random());
-    }
-
-    /**
-     * Creates an instance with a specified length and the specified random seed. Shuffle orders of
-     * the same length initialized with the same random seed are guaranteed to be equal.
-     *
-     * @param length The length of the shuffle order.
-     * @param randomSeed A random seed.
-     */
-    public DefaultShuffleOrder(int length, long randomSeed) {
-      this(length, new Random(randomSeed));
-    }
-
-    /**
-     * Creates an instance with a specified shuffle order and the specified random seed. The random
-     * seed is used for {@link #cloneAndInsert(int, int)} invocations.
-     *
-     * @param shuffledIndices The shuffled indices to use as order.
-     * @param randomSeed A random seed.
-     */
-    public DefaultShuffleOrder(int[] shuffledIndices, long randomSeed) {
-      this(Arrays.copyOf(shuffledIndices, shuffledIndices.length), new Random(randomSeed));
-    }
-
-    private DefaultShuffleOrder(int length, Random random) {
-      this(createShuffledList(length, random), random);
-    }
-
-    private DefaultShuffleOrder(int[] shuffled, Random random) {
-      this.shuffled = shuffled;
-      this.random = random;
-      this.indexInShuffled = new int[shuffled.length];
-      for (int i = 0; i < shuffled.length; i++) {
-        indexInShuffled[shuffled[i]] = i;
-      }
-    }
-
-    @Override
-    public int getLength() {
-      return shuffled.length;
-    }
-
-    @Override
-    public int getNextIndex(int index) {
-      int shuffledIndex = indexInShuffled[index];
-      return ++shuffledIndex < shuffled.length ? shuffled[shuffledIndex] : C.INDEX_UNSET;
-    }
-
-    @Override
-    public int getPreviousIndex(int index) {
-      int shuffledIndex = indexInShuffled[index];
-      return --shuffledIndex >= 0 ? shuffled[shuffledIndex] : C.INDEX_UNSET;
-    }
-
-    @Override
-    public int getLastIndex() {
-      return shuffled.length > 0 ? shuffled[shuffled.length - 1] : C.INDEX_UNSET;
-    }
-
-    @Override
-    public int getFirstIndex() {
-      return shuffled.length > 0 ? shuffled[0] : C.INDEX_UNSET;
-    }
-
-    @Override
-    public ShuffleOrder cloneAndInsert(int insertionIndex, int insertionCount) {
-      int[] insertionPoints = new int[insertionCount];
-      int[] insertionValues = new int[insertionCount];
-      for (int i = 0; i < insertionCount; i++) {
-        insertionPoints[i] = random.nextInt(shuffled.length + 1);
-        int swapIndex = random.nextInt(i + 1);
-        insertionValues[i] = insertionValues[swapIndex];
-        insertionValues[swapIndex] = i + insertionIndex;
-      }
-      Arrays.sort(insertionPoints);
-      int[] newShuffled = new int[shuffled.length + insertionCount];
-      int indexInOldShuffled = 0;
-      int indexInInsertionList = 0;
-      for (int i = 0; i < shuffled.length + insertionCount; i++) {
-        if (indexInInsertionList < insertionCount
-            && indexInOldShuffled == insertionPoints[indexInInsertionList]) {
-          newShuffled[i] = insertionValues[indexInInsertionList++];
-        } else {
-          newShuffled[i] = shuffled[indexInOldShuffled++];
-          if (newShuffled[i] >= insertionIndex) {
-            newShuffled[i] += insertionCount;
-          }
+        /**
+         * Creates an instance with a specified length.
+         *
+         * @param length The length of the shuffle order.
+         */
+        constructor(length: Int) {
+            DefaultShuffleOrder(length, Random())
         }
-      }
-      return new DefaultShuffleOrder(newShuffled, new Random(random.nextLong()));
-    }
 
-    @Override
-    public ShuffleOrder cloneAndRemove(int indexFrom, int indexToExclusive) {
-      int numberOfElementsToRemove = indexToExclusive - indexFrom;
-      int[] newShuffled = new int[shuffled.length - numberOfElementsToRemove];
-      int foundElementsCount = 0;
-      for (int i = 0; i < shuffled.length; i++) {
-        if (shuffled[i] >= indexFrom && shuffled[i] < indexToExclusive) {
-          foundElementsCount++;
-        } else {
-          newShuffled[i - foundElementsCount] =
-              shuffled[i] >= indexFrom ? shuffled[i] - numberOfElementsToRemove : shuffled[i];
+        /**
+         * Creates an instance with a specified length and the specified random seed. Shuffle orders of
+         * the same length initialized with the same random seed are guaranteed to be equal.
+         *
+         * @param length The length of the shuffle order.
+         * @param randomSeed A random seed.
+         */
+        constructor(length: Int, randomSeed: Long) {
+            DefaultShuffleOrder(length, Random(randomSeed))
         }
-      }
-      return new DefaultShuffleOrder(newShuffled, new Random(random.nextLong()));
+
+        /**
+         * Creates an instance with a specified shuffle order and the specified random seed. The random
+         * seed is used for [.cloneAndInsert] invocations.
+         *
+         * @param shuffledIndices The shuffled indices to use as order.
+         * @param randomSeed A random seed.
+         */
+        constructor(shuffledIndices: IntArray, randomSeed: Long) {
+            DefaultShuffleOrder(
+                Arrays.copyOf(shuffledIndices, shuffledIndices.size), Random(randomSeed)
+            )
+        }
+
+        private constructor(length: Int, random: Random) {
+            DefaultShuffleOrder(createShuffledList(length, random), random)
+        }
+
+        private constructor(shuffled: IntArray, random: Random) {
+            this.shuffled = shuffled
+            this.random = random
+            indexInShuffled = IntArray(shuffled.size)
+            for (i in shuffled.indices) {
+                indexInShuffled[shuffled[i]] = i
+            }
+        }
+
+        override fun getLength(): Int {
+            return shuffled.size
+        }
+
+        override fun getNextIndex(index: Int): Int {
+            var shuffledIndex = indexInShuffled[index]
+            return if (++shuffledIndex < shuffled.size) shuffled[shuffledIndex] else C.INDEX_UNSET
+        }
+
+        override fun getPreviousIndex(index: Int): Int {
+            var shuffledIndex = indexInShuffled[index]
+            return if (--shuffledIndex >= 0) shuffled[shuffledIndex] else C.INDEX_UNSET
+        }
+
+        override fun getLastIndex(): Int {
+            return if (shuffled.size > 0) shuffled[shuffled.size - 1] else C.INDEX_UNSET
+        }
+
+        override fun getFirstIndex(): Int {
+            return if (shuffled.size > 0) shuffled[0] else C.INDEX_UNSET
+        }
+
+        override fun cloneAndInsert(insertionIndex: Int, insertionCount: Int): ShuffleOrder {
+            val insertionPoints = IntArray(insertionCount)
+            val insertionValues = IntArray(insertionCount)
+            for (i in 0 until insertionCount) {
+                insertionPoints[i] = random.nextInt(shuffled.size + 1)
+                val swapIndex = random.nextInt(i + 1)
+                insertionValues[i] = insertionValues[swapIndex]
+                insertionValues[swapIndex] = i + insertionIndex
+            }
+            Arrays.sort(insertionPoints)
+            val newShuffled = IntArray(shuffled.size + insertionCount)
+            var indexInOldShuffled = 0
+            var indexInInsertionList = 0
+            for (i in 0 until shuffled.size + insertionCount) {
+                if (indexInInsertionList < insertionCount && indexInOldShuffled == insertionPoints[indexInInsertionList]) {
+                    newShuffled[i] = insertionValues[indexInInsertionList++]
+                } else {
+                    newShuffled[i] = shuffled[indexInOldShuffled++]
+                    if (newShuffled[i] >= insertionIndex) {
+                        newShuffled[i] += insertionCount
+                    }
+                }
+            }
+            return DefaultShuffleOrder(newShuffled, Random(random.nextLong()))
+        }
+
+        override fun cloneAndRemove(indexFrom: Int, indexToExclusive: Int): ShuffleOrder {
+            val numberOfElementsToRemove = indexToExclusive - indexFrom
+            val newShuffled = IntArray(shuffled.size - numberOfElementsToRemove)
+            var foundElementsCount = 0
+            for (i in shuffled.indices) {
+                if (shuffled[i] >= indexFrom && shuffled[i] < indexToExclusive) {
+                    foundElementsCount++
+                } else {
+                    newShuffled[i - foundElementsCount] =
+                        if (shuffled[i] >= indexFrom) shuffled[i] - numberOfElementsToRemove else shuffled[i]
+                }
+            }
+            return DefaultShuffleOrder(newShuffled, Random(random.nextLong()))
+        }
+
+        override fun cloneAndClear(): ShuffleOrder {
+            return DefaultShuffleOrder( /* length= */0, Random(random.nextLong()))
+        }
+
+        private fun createShuffledList(length: Int, random: Random): IntArray {
+            val shuffled = IntArray(length)
+            for (i in 0 until length) {
+                val swapIndex = random.nextInt(i + 1)
+                shuffled[i] = shuffled[swapIndex]
+                shuffled[swapIndex] = i
+            }
+            return shuffled
+        }
     }
 
-    @Override
-    public ShuffleOrder cloneAndClear() {
-      return new DefaultShuffleOrder(/* length= */ 0, new Random(random.nextLong()));
+    /** A [ShuffleOrder] implementation which does not shuffle.  */
+    class UnshuffledShuffleOrder : ShuffleOrder {
+
+        private var length = 0
+
+        /**
+         * Creates an instance with a specified length.
+         *
+         * @param length The length of the shuffle order.
+         */
+        constructor(length: Int) {
+            this.length = length
+        }
+
+        override fun getLength(): Int {
+            return length
+        }
+
+        override fun getNextIndex(index: Int): Int {
+            var mIndex = index
+            return if (++mIndex < length) mIndex else C.INDEX_UNSET
+        }
+
+        override fun getPreviousIndex(index: Int): Int {
+            var mIndex = index
+            return if (--mIndex >= 0) mIndex else C.INDEX_UNSET
+        }
+
+        override fun getLastIndex(): Int {
+            return if (length > 0) length - 1 else C.INDEX_UNSET
+        }
+
+        override fun getFirstIndex(): Int {
+            return if (length > 0) 0 else C.INDEX_UNSET
+        }
+
+        override fun cloneAndInsert(insertionIndex: Int, insertionCount: Int): ShuffleOrder {
+            return UnshuffledShuffleOrder(length + insertionCount)
+        }
+
+        override fun cloneAndRemove(indexFrom: Int, indexToExclusive: Int): ShuffleOrder {
+            return UnshuffledShuffleOrder(length - indexToExclusive + indexFrom)
+        }
+
+        override fun cloneAndClear(): ShuffleOrder {
+            return UnshuffledShuffleOrder( /* length= */0)
+        }
     }
 
-    private static int[] createShuffledList(int length, Random random) {
-      int[] shuffled = new int[length];
-      for (int i = 0; i < length; i++) {
-        int swapIndex = random.nextInt(i + 1);
-        shuffled[i] = shuffled[swapIndex];
-        shuffled[swapIndex] = i;
-      }
-      return shuffled;
-    }
-  }
-
-  /** A {@link ShuffleOrder} implementation which does not shuffle. */
-  final class UnshuffledShuffleOrder implements ShuffleOrder {
-
-    private final int length;
+    /** Returns length of shuffle order.  */
+    fun getLength(): Int
 
     /**
-     * Creates an instance with a specified length.
+     * Returns the next index in the shuffle order.
      *
-     * @param length The length of the shuffle order.
+     * @param index An index.
+     * @return The index after `index`, or [C.INDEX_UNSET] if `index` is the last
+     * element.
      */
-    public UnshuffledShuffleOrder(int length) {
-      this.length = length;
-    }
+    fun getNextIndex(index: Int): Int
 
-    @Override
-    public int getLength() {
-      return length;
-    }
+    /**
+     * Returns the previous index in the shuffle order.
+     *
+     * @param index An index.
+     * @return The index before `index`, or [C.INDEX_UNSET] if `index` is the first
+     * element.
+     */
+    fun getPreviousIndex(index: Int): Int
 
-    @Override
-    public int getNextIndex(int index) {
-      return ++index < length ? index : C.INDEX_UNSET;
-    }
+    /**
+     * Returns the last index in the shuffle order, or [C.INDEX_UNSET] if the shuffle order is
+     * empty.
+     */
+    fun getLastIndex(): Int
 
-    @Override
-    public int getPreviousIndex(int index) {
-      return --index >= 0 ? index : C.INDEX_UNSET;
-    }
+    /**
+     * Returns the first index in the shuffle order, or [C.INDEX_UNSET] if the shuffle order is
+     * empty.
+     */
+    fun getFirstIndex(): Int
 
-    @Override
-    public int getLastIndex() {
-      return length > 0 ? length - 1 : C.INDEX_UNSET;
-    }
+    /**
+     * Returns a copy of the shuffle order with newly inserted elements.
+     *
+     * @param insertionIndex The index in the unshuffled order at which elements are inserted.
+     * @param insertionCount The number of elements inserted at `insertionIndex`.
+     * @return A copy of this [ShuffleOrder] with newly inserted elements.
+     */
+    fun cloneAndInsert(insertionIndex: Int, insertionCount: Int): ShuffleOrder
 
-    @Override
-    public int getFirstIndex() {
-      return length > 0 ? 0 : C.INDEX_UNSET;
-    }
+    /**
+     * Returns a copy of the shuffle order with a range of elements removed.
+     *
+     * @param indexFrom The starting index in the unshuffled order of the range to remove.
+     * @param indexToExclusive The smallest index (must be greater or equal to `indexFrom`) that
+     * will not be removed.
+     * @return A copy of this [ShuffleOrder] without the elements in the removed range.
+     */
+    fun cloneAndRemove(indexFrom: Int, indexToExclusive: Int): ShuffleOrder
 
-    @Override
-    public ShuffleOrder cloneAndInsert(int insertionIndex, int insertionCount) {
-      return new UnshuffledShuffleOrder(length + insertionCount);
-    }
-
-    @Override
-    public ShuffleOrder cloneAndRemove(int indexFrom, int indexToExclusive) {
-      return new UnshuffledShuffleOrder(length - indexToExclusive + indexFrom);
-    }
-
-    @Override
-    public ShuffleOrder cloneAndClear() {
-      return new UnshuffledShuffleOrder(/* length= */ 0);
-    }
-  }
-
-  /** Returns length of shuffle order. */
-  int getLength();
-
-  /**
-   * Returns the next index in the shuffle order.
-   *
-   * @param index An index.
-   * @return The index after {@code index}, or {@link C#INDEX_UNSET} if {@code index} is the last
-   *     element.
-   */
-  int getNextIndex(int index);
-
-  /**
-   * Returns the previous index in the shuffle order.
-   *
-   * @param index An index.
-   * @return The index before {@code index}, or {@link C#INDEX_UNSET} if {@code index} is the first
-   *     element.
-   */
-  int getPreviousIndex(int index);
-
-  /**
-   * Returns the last index in the shuffle order, or {@link C#INDEX_UNSET} if the shuffle order is
-   * empty.
-   */
-  int getLastIndex();
-
-  /**
-   * Returns the first index in the shuffle order, or {@link C#INDEX_UNSET} if the shuffle order is
-   * empty.
-   */
-  int getFirstIndex();
-
-  /**
-   * Returns a copy of the shuffle order with newly inserted elements.
-   *
-   * @param insertionIndex The index in the unshuffled order at which elements are inserted.
-   * @param insertionCount The number of elements inserted at {@code insertionIndex}.
-   * @return A copy of this {@link ShuffleOrder} with newly inserted elements.
-   */
-  ShuffleOrder cloneAndInsert(int insertionIndex, int insertionCount);
-
-  /**
-   * Returns a copy of the shuffle order with a range of elements removed.
-   *
-   * @param indexFrom The starting index in the unshuffled order of the range to remove.
-   * @param indexToExclusive The smallest index (must be greater or equal to {@code indexFrom}) that
-   *     will not be removed.
-   * @return A copy of this {@link ShuffleOrder} without the elements in the removed range.
-   */
-  ShuffleOrder cloneAndRemove(int indexFrom, int indexToExclusive);
-
-  /** Returns a copy of the shuffle order with all elements removed. */
-  ShuffleOrder cloneAndClear();
+    /** Returns a copy of the shuffle order with all elements removed.  */
+    fun cloneAndClear(): ShuffleOrder
 }

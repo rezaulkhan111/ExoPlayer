@@ -24,6 +24,7 @@ import androidx.annotation.RequiresApi
 import com.google.android.exoplayer2.util.*
 import com.google.errorprone.annotations.InlineMe
 import java.lang.annotation.Documented
+import java.lang.annotation.ElementType
 import java.lang.annotation.RetentionPolicy
 import java.util.*
 
@@ -76,19 +77,19 @@ object C {
     const val BYTES_PER_FLOAT: Int = 4
 
     @Deprecated("Use {@link java.nio.charset.StandardCharsets} or {@link\n" + "   *     com.google.common.base.Charsets} instead.")
-    val ASCII_NAME: String = "US-ASCII"
+    const val ASCII_NAME: String = "US-ASCII"
 
     @Deprecated("Use {@link java.nio.charset.StandardCharsets} or {@link\n" + "   *     com.google.common.base.Charsets} instead.")
-    val UTF8_NAME: String = "UTF-8"
+    const val UTF8_NAME: String = "UTF-8"
 
     @Deprecated("Use {@link java.nio.charset.StandardCharsets} or {@link\n" + "   *     com.google.common.base.Charsets} instead.")
-    val ISO88591_NAME: String = "ISO-8859-1"
+    const val ISO88591_NAME: String = "ISO-8859-1"
 
     @Deprecated("Use {@link java.nio.charset.StandardCharsets} or {@link\n" + "   *     com.google.common.base.Charsets} instead.")
-    val UTF16_NAME: String = "UTF-16"
+    const val UTF16_NAME: String = "UTF-16"
 
     @Deprecated("Use {@link java.nio.charset.StandardCharsets} or {@link\n" + "   *     com.google.common.base.Charsets} instead.")
-    val UTF16LE_NAME: String = "UTF-16LE"
+    const val UTF16LE_NAME: String = "UTF-16LE"
 
     /** The name of the serif font family.  */
     const val SERIF_NAME: String = "serif"
@@ -283,31 +284,31 @@ object C {
     const val AUDIO_CONTENT_TYPE_MOVIE: Int = AudioAttributes.CONTENT_TYPE_MOVIE
 
     @Deprecated("Use {@link #AUDIO_CONTENT_TYPE_MOVIE} instead.")
-    val CONTENT_TYPE_MOVIE: Int = AUDIO_CONTENT_TYPE_MOVIE
+    const val CONTENT_TYPE_MOVIE: Int = AUDIO_CONTENT_TYPE_MOVIE
 
     /** See [AudioAttributes.CONTENT_TYPE_MUSIC].  */
     const val AUDIO_CONTENT_TYPE_MUSIC: Int = AudioAttributes.CONTENT_TYPE_MUSIC
 
     @Deprecated("Use {@link #AUDIO_CONTENT_TYPE_MUSIC} instead.")
-    val CONTENT_TYPE_MUSIC: Int = AUDIO_CONTENT_TYPE_MUSIC
+    const val CONTENT_TYPE_MUSIC: Int = AUDIO_CONTENT_TYPE_MUSIC
 
     /** See [AudioAttributes.CONTENT_TYPE_SONIFICATION].  */
     const val AUDIO_CONTENT_TYPE_SONIFICATION: Int = AudioAttributes.CONTENT_TYPE_SONIFICATION
 
     @Deprecated("Use {@link #AUDIO_CONTENT_TYPE_SONIFICATION} instead.")
-    val CONTENT_TYPE_SONIFICATION: Int = AUDIO_CONTENT_TYPE_SONIFICATION
+    const val CONTENT_TYPE_SONIFICATION: Int = AUDIO_CONTENT_TYPE_SONIFICATION
 
     /** See [AudioAttributes.CONTENT_TYPE_SPEECH].  */
     const val AUDIO_CONTENT_TYPE_SPEECH: Int = AudioAttributes.CONTENT_TYPE_SPEECH
 
     @Deprecated("Use {@link #AUDIO_CONTENT_TYPE_SPEECH} instead.")
-    val CONTENT_TYPE_SPEECH: Int = AUDIO_CONTENT_TYPE_SPEECH
+    const val CONTENT_TYPE_SPEECH: Int = AUDIO_CONTENT_TYPE_SPEECH
 
     /** See [AudioAttributes.CONTENT_TYPE_UNKNOWN].  */
     const val AUDIO_CONTENT_TYPE_UNKNOWN: Int = AudioAttributes.CONTENT_TYPE_UNKNOWN
 
     @Deprecated("Use {@link #AUDIO_CONTENT_TYPE_UNKNOWN} instead.")
-    val CONTENT_TYPE_UNKNOWN: Int = AUDIO_CONTENT_TYPE_UNKNOWN
+    const val CONTENT_TYPE_UNKNOWN: Int = AUDIO_CONTENT_TYPE_UNKNOWN
 
     /**
      * @see android.media.AudioAttributes.FLAG_AUDIBILITY_ENFORCED
@@ -446,7 +447,7 @@ object C {
         MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING
 
     /** A default video scaling mode for [MediaCodec]-based renderers.  */
-    val VIDEO_SCALING_MODE_DEFAULT: Int = VIDEO_SCALING_MODE_SCALE_TO_FIT
+    const val VIDEO_SCALING_MODE_DEFAULT: Int = VIDEO_SCALING_MODE_SCALE_TO_FIT
 
     /**
      * Strategy to never call [Surface.setFrameRate]. Use this strategy if you prefer to call
@@ -487,31 +488,31 @@ object C {
     const val CONTENT_TYPE_DASH: Int = 0
 
     @Deprecated("Use {@link #CONTENT_TYPE_DASH} instead.")
-    val TYPE_DASH: Int = CONTENT_TYPE_DASH
+    const val TYPE_DASH: Int = CONTENT_TYPE_DASH
 
     /** Value representing a Smooth Streaming manifest.  */
     const val CONTENT_TYPE_SS: Int = 1
 
     @Deprecated("Use {@link #CONTENT_TYPE_SS} instead.")
-    val TYPE_SS: Int = CONTENT_TYPE_SS
+    const val TYPE_SS: Int = CONTENT_TYPE_SS
 
     /** Value representing an HLS manifest.  */
     const val CONTENT_TYPE_HLS: Int = 2
 
     @Deprecated("Use {@link #CONTENT_TYPE_HLS} instead.")
-    val TYPE_HLS: Int = CONTENT_TYPE_HLS
+    const val TYPE_HLS: Int = CONTENT_TYPE_HLS
 
     /** Value representing an RTSP stream.  */
     const val CONTENT_TYPE_RTSP: Int = 3
 
     @Deprecated("Use {@link #CONTENT_TYPE_RTSP} instead.")
-    val TYPE_RTSP: Int = CONTENT_TYPE_RTSP
+    const val TYPE_RTSP: Int = CONTENT_TYPE_RTSP
 
     /** Value representing files other than DASH, HLS or Smooth Streaming manifests, or RTSP URIs.  */
     const val CONTENT_TYPE_OTHER: Int = 4
 
     @Deprecated("Use {@link #CONTENT_TYPE_OTHER} instead.")
-    val TYPE_OTHER: Int = CONTENT_TYPE_OTHER
+    const val TYPE_OTHER: Int = CONTENT_TYPE_OTHER
 
     /** A return value for methods where the end of an input was encountered.  */
     const val RESULT_END_OF_INPUT: Int = -1
@@ -617,31 +618,31 @@ object C {
     const val SELECTION_REASON_CUSTOM_BASE: Int = 10000
 
     /** A default size in bytes for an individual allocation that forms part of a larger buffer.  */
-    val DEFAULT_BUFFER_SEGMENT_SIZE: Int = 64 * 1024
+    const val DEFAULT_BUFFER_SEGMENT_SIZE: Int = 64 * 1024
 
     /** A default seek back increment, in milliseconds.  */
-    val DEFAULT_SEEK_BACK_INCREMENT_MS: Long = 5000
+    const val DEFAULT_SEEK_BACK_INCREMENT_MS: Long = 5000
 
     /** A default seek forward increment, in milliseconds.  */
-    val DEFAULT_SEEK_FORWARD_INCREMENT_MS: Long = 15000
+    const val DEFAULT_SEEK_FORWARD_INCREMENT_MS: Long = 15000
 
     /**
      * A default maximum position for which a seek to previous will seek to the previous window, in
      * milliseconds.
      */
-    val DEFAULT_MAX_SEEK_TO_PREVIOUS_POSITION_MS: Long = 3000
+    const val DEFAULT_MAX_SEEK_TO_PREVIOUS_POSITION_MS: Long = 3000
 
     /** "cenc" scheme type name as defined in ISO/IEC 23001-7:2016.  */
-    val CENC_TYPE_cenc: String = "cenc"
+    const val CENC_TYPE_cenc: String = "cenc"
 
     /** "cbc1" scheme type name as defined in ISO/IEC 23001-7:2016.  */
-    val CENC_TYPE_cbc1: String = "cbc1"
+    const val CENC_TYPE_cbc1: String = "cbc1"
 
     /** "cens" scheme type name as defined in ISO/IEC 23001-7:2016.  */
-    val CENC_TYPE_cens: String = "cens"
+    const val CENC_TYPE_cens: String = "cens"
 
     /** "cbcs" scheme type name as defined in ISO/IEC 23001-7:2016.  */
-    val CENC_TYPE_cbcs: String = "cbcs"
+    const val CENC_TYPE_cbcs: String = "cbcs"
 
     /**
      * The Nil UUID as defined by [RFC4122](https://tools.ietf.org/html/rfc4122#section-4.1.7).
@@ -760,7 +761,7 @@ object C {
      *
      * Larger values indicate higher priorities.
      */
-    val PRIORITY_DOWNLOAD: Int = PRIORITY_PLAYBACK - 1000
+    const val PRIORITY_DOWNLOAD: Int = PRIORITY_PLAYBACK - 1000
 
     /** Unknown network type.  */
     const val NETWORK_TYPE_UNKNOWN: Int = 0
@@ -985,7 +986,7 @@ object C {
      * (see [.CRYPTO_TYPE_CUSTOM_BASE]).
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
     @IntDef(open = true, value = [CRYPTO_TYPE_UNSUPPORTED, CRYPTO_TYPE_NONE, CRYPTO_TYPE_FRAMEWORK])
     annotation class CryptoType
@@ -995,7 +996,7 @@ object C {
      * or [.CRYPTO_MODE_AES_CBC].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [CRYPTO_MODE_UNENCRYPTED, CRYPTO_MODE_AES_CTR, CRYPTO_MODE_AES_CBC])
     annotation class CryptoMode
@@ -1007,8 +1008,8 @@ object C {
      * [.ENCODING_DTS_HD] or [.ENCODING_DOLBY_TRUEHD].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
-    @Target(TYPE_USE)
+    @Retention(AnnotationRetention.SOURCE)
+    @Target(ElementType.TYPE_USE)
     @IntDef(value = [Format.NO_VALUE, ENCODING_INVALID, ENCODING_PCM_8BIT, ENCODING_PCM_16BIT, ENCODING_PCM_16BIT_BIG_ENDIAN, ENCODING_PCM_24BIT, ENCODING_PCM_32BIT, ENCODING_PCM_FLOAT, ENCODING_MP3, ENCODING_AAC_LC, ENCODING_AAC_HE_V1, ENCODING_AAC_HE_V2, ENCODING_AAC_XHE, ENCODING_AAC_ELD, ENCODING_AAC_ER_BSAC, ENCODING_AC3, ENCODING_E_AC3, ENCODING_E_AC3_JOC, ENCODING_AC4, ENCODING_DTS, ENCODING_DTS_HD, ENCODING_DOLBY_TRUEHD])
     annotation class Encoding
 
@@ -1018,14 +1019,14 @@ object C {
      * [.ENCODING_PCM_FLOAT].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [Format.Companion.NO_VALUE, ENCODING_INVALID, ENCODING_PCM_8BIT, ENCODING_PCM_16BIT, ENCODING_PCM_16BIT_BIG_ENDIAN, ENCODING_PCM_24BIT, ENCODING_PCM_32BIT, ENCODING_PCM_FLOAT])
     annotation class PcmEncoding
 
     /** Represents the behavior affecting whether spatialization will be used.  */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [SPATIALIZATION_BEHAVIOR_AUTO, SPATIALIZATION_BEHAVIOR_NEVER])
     annotation class SpatializationBehavior
@@ -1037,7 +1038,7 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @SuppressLint("UniqueConstants") // Intentional duplication to set STREAM_TYPE_DEFAULT.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1048,8 +1049,7 @@ object C {
         TYPE_USE
     )
     @IntDef(
-        value = [STREAM_TYPE_ALARM, STREAM_TYPE_DTMF, STREAM_TYPE_MUSIC, STREAM_TYPE_NOTIFICATION, STREAM_TYPE_RING, STREAM_TYPE_SYSTEM, STREAM_TYPE_VOICE_CALL,
-            STREAM_TYPE_DEFAULT]
+        value = [STREAM_TYPE_ALARM, STREAM_TYPE_DTMF, STREAM_TYPE_MUSIC, STREAM_TYPE_NOTIFICATION, STREAM_TYPE_RING, STREAM_TYPE_SYSTEM, STREAM_TYPE_VOICE_CALL, STREAM_TYPE_DEFAULT]
     )
     annotation class StreamType
 
@@ -1067,7 +1067,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1090,7 +1090,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1111,7 +1111,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1130,7 +1130,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1148,7 +1148,7 @@ object C {
      * [.BUFFER_FLAG_LAST_SAMPLE], [.BUFFER_FLAG_ENCRYPTED] and [ ][.BUFFER_FLAG_DECODE_ONLY].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
     @IntDef(
         flag = true,
@@ -1160,7 +1160,7 @@ object C {
      * Video decoder output modes. Possible modes are [.VIDEO_OUTPUT_MODE_NONE], [ ][.VIDEO_OUTPUT_MODE_YUV] and [.VIDEO_OUTPUT_MODE_SURFACE_YUV].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [VIDEO_OUTPUT_MODE_NONE, VIDEO_OUTPUT_MODE_YUV, VIDEO_OUTPUT_MODE_SURFACE_YUV])
     annotation class VideoOutputMode
@@ -1173,7 +1173,7 @@ object C {
     // with Kotlin usages from before TYPE_USE was added.
     @SuppressLint("UniqueConstants") // Intentional duplication to set VIDEO_SCALING_MODE_DEFAULT.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1189,7 +1189,7 @@ object C {
     /** Strategies for calling [Surface.setFrameRate].  */ // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1208,7 +1208,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1238,7 +1238,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1257,7 +1257,7 @@ object C {
      * [.DATA_TYPE_TIME_SYNCHRONIZATION], [.DATA_TYPE_AD], or [ ][.DATA_TYPE_MEDIA_PROGRESSIVE_LIVE]. May also be an app-defined value (see [ ][.DATA_TYPE_CUSTOM_BASE]).
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
     @IntDef(
         open = true,
@@ -1270,7 +1270,7 @@ object C {
      * [.TRACK_TYPE_CUSTOM_BASE]).
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         TYPE_USE,
         AnnotationTarget.PROPERTY,
@@ -1290,7 +1290,7 @@ object C {
      * value (see [.SELECTION_REASON_CUSTOM_BASE]).
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
     @IntDef(
         open = true,
@@ -1302,43 +1302,43 @@ object C {
      * The stereo mode for 360/3D/VR videos. One of [Format.NO_VALUE], [ ][.STEREO_MODE_MONO], [.STEREO_MODE_TOP_BOTTOM], [.STEREO_MODE_LEFT_RIGHT] or [ ][.STEREO_MODE_STEREO_MESH].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
-    @IntDef(value = [Format.Companion.NO_VALUE, STEREO_MODE_MONO, STEREO_MODE_TOP_BOTTOM, STEREO_MODE_LEFT_RIGHT, STEREO_MODE_STEREO_MESH])
+    @IntDef(value = [Format.NO_VALUE, STEREO_MODE_MONO, STEREO_MODE_TOP_BOTTOM, STEREO_MODE_LEFT_RIGHT, STEREO_MODE_STEREO_MESH])
     annotation class StereoMode
     // LINT.IfChange(color_space)
     /**
      * Video colorspaces. One of [Format.NO_VALUE], [.COLOR_SPACE_BT601], [ ][.COLOR_SPACE_BT709] or [.COLOR_SPACE_BT2020].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
-    @IntDef(value = [Format.Companion.NO_VALUE, COLOR_SPACE_BT601, COLOR_SPACE_BT709, COLOR_SPACE_BT2020])
+    @IntDef(value = [Format.NO_VALUE, COLOR_SPACE_BT601, COLOR_SPACE_BT709, COLOR_SPACE_BT2020])
     annotation class ColorSpace
     // LINT.IfChange(color_transfer)
     /**
      * Video color transfer characteristics. One of [Format.NO_VALUE], [ ][.COLOR_TRANSFER_SDR], [.COLOR_TRANSFER_ST2084] or [.COLOR_TRANSFER_HLG].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
-    @IntDef(value = [Format.Companion.NO_VALUE, COLOR_TRANSFER_SDR, COLOR_TRANSFER_ST2084, COLOR_TRANSFER_HLG])
+    @IntDef(value = [Format.NO_VALUE, COLOR_TRANSFER_SDR, COLOR_TRANSFER_ST2084, COLOR_TRANSFER_HLG])
     annotation class ColorTransfer
     // LINT.IfChange(color_range)
     /**
      * Video color range. One of [Format.NO_VALUE], [.COLOR_RANGE_LIMITED] or [ ][.COLOR_RANGE_FULL].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
-    @IntDef(value = [Format.Companion.NO_VALUE, COLOR_RANGE_LIMITED, COLOR_RANGE_FULL])
+    @IntDef(value = [Format.NO_VALUE, COLOR_RANGE_LIMITED, COLOR_RANGE_FULL])
     annotation class ColorRange
 
     /** Video projection types.  */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
-    @IntDef(value = [Format.Companion.NO_VALUE, PROJECTION_RECTANGULAR, PROJECTION_EQUIRECTANGULAR, PROJECTION_CUBEMAP, PROJECTION_MESH])
+    @IntDef(value = [Format.NO_VALUE, PROJECTION_RECTANGULAR, PROJECTION_EQUIRECTANGULAR, PROJECTION_CUBEMAP, PROJECTION_MESH])
     annotation class Projection
 
     /**
@@ -1348,7 +1348,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1367,7 +1367,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1387,7 +1387,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,
@@ -1409,7 +1409,7 @@ object C {
     // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
     // with Kotlin usages from before TYPE_USE was added.
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(
         AnnotationTarget.FIELD,
         AnnotationTarget.FUNCTION,

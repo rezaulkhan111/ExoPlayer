@@ -13,33 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.extractor;
+package com.google.android.exoplayer2.extractor
 
-import android.net.Uri;
-import java.util.List;
-import java.util.Map;
+import android.net.Uri
+import com.google.android.exoplayer2.extractor.ExtractorsFactory
+import kotlin.Array
+import kotlin.String
+import kotlin.arrayOf
+import kotlin.invoke
 
-/** Factory for arrays of {@link Extractor} instances. */
-public interface ExtractorsFactory {
+/** Factory for arrays of [Extractor] instances.  */
+interface ExtractorsFactory {
+    /** Returns an array of new [Extractor] instances.  */
+    fun createExtractors(): Array<Extractor?>?
 
-  /**
-   * Extractor factory that returns an empty list of extractors. Can be used whenever {@link
-   * Extractor Extractors} are not required.
-   */
-  ExtractorsFactory EMPTY = () -> new Extractor[] {};
+    /**
+     * Returns an array of new [Extractor] instances.
+     *
+     * @param uri The [Uri] of the media to extract.
+     * @param responseHeaders The response headers of the media to extract, or an empty map if there
+     * are none. The map lookup should be case-insensitive.
+     * @return The [Extractor] instances.
+     */
+    fun createExtractors(
+        uri: Uri?,
+        responseHeaders: Map<String?, List<String?>?>?
+    ): Array<Extractor?>? {
+        return createExtractors()
+    }
 
-  /** Returns an array of new {@link Extractor} instances. */
-  Extractor[] createExtractors();
-
-  /**
-   * Returns an array of new {@link Extractor} instances.
-   *
-   * @param uri The {@link Uri} of the media to extract.
-   * @param responseHeaders The response headers of the media to extract, or an empty map if there
-   *     are none. The map lookup should be case-insensitive.
-   * @return The {@link Extractor} instances.
-   */
-  default Extractor[] createExtractors(Uri uri, Map<String, List<String>> responseHeaders) {
-    return createExtractors();
-  }
+    companion object {
+        /**
+         * Extractor factory that returns an empty list of extractors. Can be used whenever [ ] are not required.
+         */
+        @JvmField
+        val EMPTY: ExtractorsFactory = ExtractorsFactory { arrayOf<Extractor?>() }
+    }
 }

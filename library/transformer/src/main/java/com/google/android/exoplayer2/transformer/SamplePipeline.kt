@@ -13,40 +13,42 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.google.android.exoplayer2.transformer
 
-package com.google.android.exoplayer2.transformer;
-
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
+import com.google.android.exoplayer2.decoder.DecoderInputBuffer
 
 /**
- * Pipeline for processing {@link DecoderInputBuffer DecoderInputBuffers}.
+ * Pipeline for processing [DecoderInputBuffers][DecoderInputBuffer].
  *
- * <p>This pipeline can be used to implement transformations of audio or video samples.
+ *
+ * This pipeline can be used to implement transformations of audio or video samples.
  */
-/* package */ interface SamplePipeline {
+/* package */
+internal interface SamplePipeline {
+    /** Returns a buffer if the pipeline is ready to accept input, and `null` otherwise.  */
+    @Throws(TransformationException::class)
+    fun dequeueInputBuffer(): DecoderInputBuffer?
 
-  /** Returns a buffer if the pipeline is ready to accept input, and {@code null} otherwise. */
-  @Nullable
-  DecoderInputBuffer dequeueInputBuffer() throws TransformationException;
+    /**
+     * Informs the pipeline that its input buffer contains new input.
+     *
+     *
+     * Should be called after filling the input buffer from [.dequeueInputBuffer] with new
+     * input.
+     */
+    @Throws(TransformationException::class)
+    fun queueInputBuffer()
 
-  /**
-   * Informs the pipeline that its input buffer contains new input.
-   *
-   * <p>Should be called after filling the input buffer from {@link #dequeueInputBuffer()} with new
-   * input.
-   */
-  void queueInputBuffer() throws TransformationException;
+    /**
+     * Processes the input data and returns whether it may be possible to process more data by calling
+     * this method again.
+     */
+    @Throws(TransformationException::class)
+    fun processData(): Boolean
 
-  /**
-   * Processes the input data and returns whether it may be possible to process more data by calling
-   * this method again.
-   */
-  boolean processData() throws TransformationException;
+    /** Returns whether the pipeline has ended.  */
+    fun isEnded(): Boolean
 
-  /** Returns whether the pipeline has ended. */
-  boolean isEnded();
-
-  /** Releases all resources held by the pipeline. */
-  void release();
+    /** Releases all resources held by the pipeline.  */
+    fun release()
 }

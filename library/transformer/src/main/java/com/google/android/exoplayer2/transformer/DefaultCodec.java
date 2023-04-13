@@ -163,7 +163,7 @@ public final class DefaultCodec implements Codec {
     }
     // Otherwise don't limit the number of frames that can be pending at a time, to maximize
     // throughput.
-    return UNLIMITED_PENDING_FRAME_COUNT;
+    return maxPendingFrameCount;
   }
 
   @Override

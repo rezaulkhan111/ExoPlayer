@@ -13,28 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.effect;
+package com.google.android.exoplayer2.effect
 
-import android.content.Context;
-import com.google.android.exoplayer2.util.Effect;
-import com.google.android.exoplayer2.util.FrameProcessingException;
+import android.content.Context
+import com.google.android.exoplayer2.util.Effect
+import com.google.android.exoplayer2.util.FrameProcessingException
 
 /**
- * Interface for a video frame effect with a {@link GlTextureProcessor} implementation.
+ * Interface for a video frame effect with a [GlTextureProcessor] implementation.
  *
- * <p>Implementations contain information specifying the effect and can be {@linkplain
- * #toGlTextureProcessor(Context, boolean) converted} to a {@link GlTextureProcessor} which applies
+ *
+ * Implementations contain information specifying the effect and can be [ ][.toGlTextureProcessor] to a [GlTextureProcessor] which applies
  * the effect.
  */
-public interface GlEffect extends Effect {
-
-  /**
-   * Returns a {@link SingleFrameGlTextureProcessor} that applies the effect.
-   *
-   * @param context A {@link Context}.
-   * @param useHdr Whether input textures come from an HDR source. If {@code true}, colors will be
-   *     in linear RGB BT.2020. If {@code false}, colors will be in linear RGB BT.709.
-   */
-  GlTextureProcessor toGlTextureProcessor(Context context, boolean useHdr)
-      throws FrameProcessingException;
+interface GlEffect : Effect {
+    /**
+     * Returns a [SingleFrameGlTextureProcessor] that applies the effect.
+     *
+     * @param context A [Context].
+     * @param useHdr Whether input textures come from an HDR source. If `true`, colors will be
+     * in linear RGB BT.2020. If `false`, colors will be in linear RGB BT.709.
+     */
+    @Throws(FrameProcessingException::class)
+    fun toGlTextureProcessor(context: Context?, useHdr: Boolean): GlTextureProcessor?
 }

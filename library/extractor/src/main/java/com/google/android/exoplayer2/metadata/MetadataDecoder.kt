@@ -13,25 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.metadata;
+package com.google.android.exoplayer2.metadata
 
-import androidx.annotation.Nullable;
-import java.nio.ByteBuffer;
-
-/** Decodes metadata from binary data. */
-public interface MetadataDecoder {
-
-  /**
-   * Decodes a {@link Metadata} element from the provided input buffer.
-   *
-   * <p>Respects {@link ByteBuffer#limit()} of {@code inputBuffer.data}, but assumes {@link
-   * ByteBuffer#position()} and {@link ByteBuffer#arrayOffset()} are both zero and {@link
-   * ByteBuffer#hasArray()} is true.
-   *
-   * @param inputBuffer The input buffer to decode.
-   * @return The decoded metadata object, or {@code null} if the metadata could not be decoded or if
-   *     {@link MetadataInputBuffer#isDecodeOnly()} was set on the input buffer.
-   */
-  @Nullable
-  Metadata decode(MetadataInputBuffer inputBuffer);
+/** Decodes metadata from binary data.  */
+interface MetadataDecoder {
+    /**
+     * Decodes a [Metadata] element from the provided input buffer.
+     *
+     *
+     * Respects [ByteBuffer.limit] of `inputBuffer.data`, but assumes [ ][ByteBuffer.position] and [ByteBuffer.arrayOffset] are both zero and [ ][ByteBuffer.hasArray] is true.
+     *
+     * @param inputBuffer The input buffer to decode.
+     * @return The decoded metadata object, or `null` if the metadata could not be decoded or if
+     * [MetadataInputBuffer.isDecodeOnly] was set on the input buffer.
+     */
+    fun decode(inputBuffer: MetadataInputBuffer?): Metadata?
 }

@@ -337,7 +337,7 @@ import org.checkerframework.dataflow.qual.Pure;
       return true;
     }
 
-    if (maxPendingFrameCount != Codec.UNLIMITED_PENDING_FRAME_COUNT
+    if (maxPendingFrameCount != Codec.maxPendingFrameCount
         && frameProcessor.getPendingInputFrameCount() == maxPendingFrameCount) {
       return false;
     }

@@ -13,43 +13,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.extractor.mkv;
+package com.google.android.exoplayer2.extractor.mkv
 
-import com.google.android.exoplayer2.ParserException;
-import com.google.android.exoplayer2.extractor.ExtractorInput;
-import java.io.IOException;
+import com.google.android.exoplayer2.extractor.ExtractorInput
+import java.io.IOException
 
 /**
- * Event-driven EBML reader that delivers events to an {@link EbmlProcessor}.
+ * Event-driven EBML reader that delivers events to an [EbmlProcessor].
  *
- * <p>EBML can be summarized as a binary XML format somewhat similar to Protocol Buffers. It was
+ *
+ * EBML can be summarized as a binary XML format somewhat similar to Protocol Buffers. It was
  * originally designed for the Matroska container format. More information about EBML and Matroska
- * is available <a href="http://www.matroska.org/technical/specs/index.html">here</a>.
+ * is available [here](http://www.matroska.org/technical/specs/index.html).
  */
-/* package */ interface EbmlReader {
+/* package */
+internal interface EbmlReader {
+    /**
+     * Initializes the extractor with an [EbmlProcessor].
+     *
+     * @param processor An [EbmlProcessor] to process events.
+     */
+    fun init(processor: EbmlProcessor?)
 
-  /**
-   * Initializes the extractor with an {@link EbmlProcessor}.
-   *
-   * @param processor An {@link EbmlProcessor} to process events.
-   */
-  void init(EbmlProcessor processor);
+    /**
+     * Resets the state of the reader.
+     *
+     *
+     * Subsequent calls to [.read] will start reading a new EBML structure
+     * from scratch.
+     */
+    fun reset()
 
-  /**
-   * Resets the state of the reader.
-   *
-   * <p>Subsequent calls to {@link #read(ExtractorInput)} will start reading a new EBML structure
-   * from scratch.
-   */
-  void reset();
-
-  /**
-   * Reads from an {@link ExtractorInput}, invoking an event callback if possible.
-   *
-   * @param input The {@link ExtractorInput} from which data should be read.
-   * @return True if data can continue to be read. False if the end of the input was encountered.
-   * @throws ParserException If parsing fails.
-   * @throws IOException If an error occurs reading from the input.
-   */
-  boolean read(ExtractorInput input) throws IOException;
+    /**
+     * Reads from an [ExtractorInput], invoking an event callback if possible.
+     *
+     * @param input The [ExtractorInput] from which data should be read.
+     * @return True if data can continue to be read. False if the end of the input was encountered.
+     * @throws ParserException If parsing fails.
+     * @throws IOException If an error occurs reading from the input.
+     */
+    @Throws(IOException::class)
+    fun read(input: ExtractorInput?): Boolean
 }

@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.extractor.avi;
+package com.google.android.exoplayer2.extractor.avi
 
 /**
  * A chunk, as defined in the AVI spec.
  *
- * <p>See https://docs.microsoft.com/en-us/windows/win32/directshow/avi-riff-file-reference.
+ *
+ * See https://docs.microsoft.com/en-us/windows/win32/directshow/avi-riff-file-reference.
  */
-/* package */ interface AviChunk {
-
-  /** Returns the chunk type fourcc. */
-  int getType();
+/* package */
+internal interface AviChunk {
+    /** Returns the chunk type fourcc.  */
+    fun getType(): Int
 }

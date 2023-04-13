@@ -13,109 +13,111 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.extractor;
+package com.google.android.exoplayer2.extractor
 
-import static java.lang.annotation.ElementType.TYPE_USE;
+import androidx.annotation.IntDef
+import com.google.android.exoplayer2.C
+import java.io.IOException
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 
-import androidx.annotation.IntDef;
-import com.google.android.exoplayer2.C;
-import java.io.IOException;
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+/** Extracts media data from a container format.  */
+interface Extractor {
+    /**
+     * Result values that can be returned by [.read]. One of
+     * [.RESULT_CONTINUE], [.RESULT_SEEK] or [.RESULT_END_OF_INPUT].
+     */
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(TYPE_USE)
+    @IntDef(value = [RESULT_CONTINUE, RESULT_SEEK, RESULT_END_OF_INPUT])
+    annotation class ReadResult
 
-/** Extracts media data from a container format. */
-public interface Extractor {
+    /**
+     * Returns whether this extractor can extract samples from the [ExtractorInput], which must
+     * provide data from the start of the stream.
+     *
+     *
+     * If `true` is returned, the `input`'s reading position may have been modified.
+     * Otherwise, only its peek position may have been modified.
+     *
+     * @param input The [ExtractorInput] from which data should be peeked/read.
+     * @return Whether this extractor can read the provided input.
+     * @throws IOException If an error occurred reading from the input.
+     */
+    @Throws(IOException::class)
+    fun sniff(input: ExtractorInput?): Boolean
 
-  /**
-   * Returned by {@link #read(ExtractorInput, PositionHolder)} if the {@link ExtractorInput} passed
-   * to the next {@link #read(ExtractorInput, PositionHolder)} is required to provide data
-   * continuing from the position in the stream reached by the returning call.
-   */
-  int RESULT_CONTINUE = 0;
-  /**
-   * Returned by {@link #read(ExtractorInput, PositionHolder)} if the {@link ExtractorInput} passed
-   * to the next {@link #read(ExtractorInput, PositionHolder)} is required to provide data starting
-   * from a specified position in the stream.
-   */
-  int RESULT_SEEK = 1;
-  /**
-   * Returned by {@link #read(ExtractorInput, PositionHolder)} if the end of the {@link
-   * ExtractorInput} was reached. Equal to {@link C#RESULT_END_OF_INPUT}.
-   */
-  int RESULT_END_OF_INPUT = C.RESULT_END_OF_INPUT;
+    /**
+     * Initializes the extractor with an [ExtractorOutput]. Called at most once.
+     *
+     * @param output An [ExtractorOutput] to receive extracted data.
+     */
+    fun init(output: ExtractorOutput?)
 
-  /**
-   * Result values that can be returned by {@link #read(ExtractorInput, PositionHolder)}. One of
-   * {@link #RESULT_CONTINUE}, {@link #RESULT_SEEK} or {@link #RESULT_END_OF_INPUT}.
-   */
-  @Documented
-  @Retention(RetentionPolicy.SOURCE)
-  @Target(TYPE_USE)
-  @IntDef(value = {RESULT_CONTINUE, RESULT_SEEK, RESULT_END_OF_INPUT})
-  @interface ReadResult {}
+    /**
+     * Extracts data read from a provided [ExtractorInput]. Must not be called before [ ][.init].
+     *
+     *
+     * A single call to this method will block until some progress has been made, but will not
+     * block for longer than this. Hence each call will consume only a small amount of input data.
+     *
+     *
+     * In the common case, [.RESULT_CONTINUE] is returned to indicate that the [ ] passed to the next read is required to provide data continuing from the
+     * position in the stream reached by the returning call. If the extractor requires data to be
+     * provided from a different position, then that position is set in `seekPosition` and
+     * [.RESULT_SEEK] is returned. If the extractor reached the end of the data provided by the
+     * [ExtractorInput], then [.RESULT_END_OF_INPUT] is returned.
+     *
+     *
+     * When this method throws an [IOException], extraction may continue by providing an
+     * [ExtractorInput] with an unchanged [read position][ExtractorInput.getPosition] to
+     * a subsequent call to this method.
+     *
+     * @param input The [ExtractorInput] from which data should be read.
+     * @param seekPosition If [.RESULT_SEEK] is returned, this holder is updated to hold the
+     * position of the required data.
+     * @return One of the `RESULT_` values defined in this interface.
+     * @throws IOException If an error occurred reading from or parsing the input.
+     */
+    @Throws(IOException::class)
+    fun read(input: ExtractorInput?, seekPosition: PositionHolder?): @ReadResult Int
 
-  /**
-   * Returns whether this extractor can extract samples from the {@link ExtractorInput}, which must
-   * provide data from the start of the stream.
-   *
-   * <p>If {@code true} is returned, the {@code input}'s reading position may have been modified.
-   * Otherwise, only its peek position may have been modified.
-   *
-   * @param input The {@link ExtractorInput} from which data should be peeked/read.
-   * @return Whether this extractor can read the provided input.
-   * @throws IOException If an error occurred reading from the input.
-   */
-  boolean sniff(ExtractorInput input) throws IOException;
+    /**
+     * Notifies the extractor that a seek has occurred.
+     *
+     *
+     * Following a call to this method, the [ExtractorInput] passed to the next invocation of
+     * [.read] is required to provide data starting from `position` in the stream. Valid random access positions are the start of the stream and
+     * positions that can be obtained from any [SeekMap] passed to the [ExtractorOutput].
+     *
+     * @param position The byte offset in the stream from which data will be provided.
+     * @param timeUs The seek time in microseconds.
+     */
+    fun seek(position: Long, timeUs: Long)
 
-  /**
-   * Initializes the extractor with an {@link ExtractorOutput}. Called at most once.
-   *
-   * @param output An {@link ExtractorOutput} to receive extracted data.
-   */
-  void init(ExtractorOutput output);
+    /** Releases all kept resources.  */
+    fun release()
 
-  /**
-   * Extracts data read from a provided {@link ExtractorInput}. Must not be called before {@link
-   * #init(ExtractorOutput)}.
-   *
-   * <p>A single call to this method will block until some progress has been made, but will not
-   * block for longer than this. Hence each call will consume only a small amount of input data.
-   *
-   * <p>In the common case, {@link #RESULT_CONTINUE} is returned to indicate that the {@link
-   * ExtractorInput} passed to the next read is required to provide data continuing from the
-   * position in the stream reached by the returning call. If the extractor requires data to be
-   * provided from a different position, then that position is set in {@code seekPosition} and
-   * {@link #RESULT_SEEK} is returned. If the extractor reached the end of the data provided by the
-   * {@link ExtractorInput}, then {@link #RESULT_END_OF_INPUT} is returned.
-   *
-   * <p>When this method throws an {@link IOException}, extraction may continue by providing an
-   * {@link ExtractorInput} with an unchanged {@link ExtractorInput#getPosition() read position} to
-   * a subsequent call to this method.
-   *
-   * @param input The {@link ExtractorInput} from which data should be read.
-   * @param seekPosition If {@link #RESULT_SEEK} is returned, this holder is updated to hold the
-   *     position of the required data.
-   * @return One of the {@code RESULT_} values defined in this interface.
-   * @throws IOException If an error occurred reading from or parsing the input.
-   */
-  @ReadResult
-  int read(ExtractorInput input, PositionHolder seekPosition) throws IOException;
+    companion object {
+        /**
+         * Returned by [.read] if the [ExtractorInput] passed
+         * to the next [.read] is required to provide data
+         * continuing from the position in the stream reached by the returning call.
+         */
+        const val RESULT_CONTINUE = 0
 
-  /**
-   * Notifies the extractor that a seek has occurred.
-   *
-   * <p>Following a call to this method, the {@link ExtractorInput} passed to the next invocation of
-   * {@link #read(ExtractorInput, PositionHolder)} is required to provide data starting from {@code
-   * position} in the stream. Valid random access positions are the start of the stream and
-   * positions that can be obtained from any {@link SeekMap} passed to the {@link ExtractorOutput}.
-   *
-   * @param position The byte offset in the stream from which data will be provided.
-   * @param timeUs The seek time in microseconds.
-   */
-  void seek(long position, long timeUs);
+        /**
+         * Returned by [.read] if the [ExtractorInput] passed
+         * to the next [.read] is required to provide data starting
+         * from a specified position in the stream.
+         */
+        const val RESULT_SEEK = 1
 
-  /** Releases all kept resources. */
-  void release();
+        /**
+         * Returned by [.read] if the end of the [ ] was reached. Equal to [C.RESULT_END_OF_INPUT].
+         */
+        const val RESULT_END_OF_INPUT = C.RESULT_END_OF_INPUT
+    }
 }

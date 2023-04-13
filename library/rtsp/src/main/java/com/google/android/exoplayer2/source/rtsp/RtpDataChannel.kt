@@ -13,48 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source.rtsp;
+package com.google.android.exoplayer2.source.rtsp
 
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.source.rtsp.RtspMessageChannel.InterleavedBinaryDataListener;
-import com.google.android.exoplayer2.upstream.DataSource;
-import java.io.IOException;
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.source.rtsp.RtspMessageChannel.InterleavedBinaryDataListener
+import com.google.android.exoplayer2.upstream.DataSource
+import java.io.IOException
 
-/** An RTP {@link DataSource}. */
-/* package */ interface RtpDataChannel extends DataSource {
+/** An RTP [DataSource].  */ /* package */
+internal interface RtpDataChannel : DataSource {
+    /** Creates [RtpDataChannel] for RTSP streams.  */
+    interface Factory {
+        /**
+         * Creates a new [RtpDataChannel] instance for RTP data transfer.
+         *
+         * @param trackId The track ID.
+         * @throws IOException If the data channels failed to open.
+         */
+        @Throws(IOException::class)
+        fun createAndOpenDataChannel(trackId: Int): RtpDataChannel?
 
-  /** Creates {@link RtpDataChannel} for RTSP streams. */
-  interface Factory {
+        /** Returns a fallback `Factory`, `null` when there is no fallback available.  */
+        fun createFallbackDataChannelFactory(): Factory? {
+            return null
+        }
+    }
+
+    /** Returns the RTSP transport header for this [RtpDataChannel]  */
+    fun getTransport(): String?
 
     /**
-     * Creates a new {@link RtpDataChannel} instance for RTP data transfer.
-     *
-     * @param trackId The track ID.
-     * @throws IOException If the data channels failed to open.
+     * Returns the receiving port or channel used by the underlying transport protocol, [ ][C.INDEX_UNSET] if the data channel is not opened.
      */
-    RtpDataChannel createAndOpenDataChannel(int trackId) throws IOException;
+    fun getLocalPort(): Int
 
-    /** Returns a fallback {@code Factory}, {@code null} when there is no fallback available. */
-    @Nullable
-    default Factory createFallbackDataChannelFactory() {
-      return null;
-    }
-  }
-
-  /** Returns the RTSP transport header for this {@link RtpDataChannel} */
-  String getTransport();
-
-  /**
-   * Returns the receiving port or channel used by the underlying transport protocol, {@link
-   * C#INDEX_UNSET} if the data channel is not opened.
-   */
-  int getLocalPort();
-
-  /**
-   * Returns a {@link InterleavedBinaryDataListener} if the implementation supports receiving RTP
-   * packets on a side-band protocol, for example RTP-over-RTSP; otherwise {@code null}.
-   */
-  @Nullable
-  InterleavedBinaryDataListener getInterleavedBinaryDataListener();
+    /**
+     * Returns a [InterleavedBinaryDataListener] if the implementation supports receiving RTP
+     * packets on a side-band protocol, for example RTP-over-RTSP; otherwise `null`.
+     */
+    fun getInterleavedBinaryDataListener(): InterleavedBinaryDataListener?
 }

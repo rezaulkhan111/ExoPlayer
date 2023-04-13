@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source.hls;
+package com.google.android.exoplayer2.source.hls
 
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.upstream.DataSource;
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.upstream.DataSource
 
-/** Creates {@link DataSource}s for HLS playlists, encryption and media chunks. */
-public interface HlsDataSourceFactory {
-
-  /**
-   * Creates a {@link DataSource} for the given data type.
-   *
-   * @param dataType The {@link C.DataType} for which the {@link DataSource} will be used.
-   * @return A {@link DataSource} for the given data type.
-   */
-  DataSource createDataSource(@C.DataType int dataType);
+/** Creates [DataSource]s for HLS playlists, encryption and media chunks.  */
+interface HlsDataSourceFactory {
+    /**
+     * Creates a [DataSource] for the given data type.
+     *
+     * @param dataType The [C.DataType] for which the [DataSource] will be used.
+     * @return A [DataSource] for the given data type.
+     */
+    fun createDataSource(@C.DataType dataType: Int): DataSource?
 }

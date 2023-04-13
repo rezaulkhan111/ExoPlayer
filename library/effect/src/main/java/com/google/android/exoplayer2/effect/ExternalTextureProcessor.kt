@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.effect;
+package com.google.android.exoplayer2.effect
 
 /**
- * Interface for a {@link GlTextureProcessor} that samples from an external texture.
+ * Interface for a [GlTextureProcessor] that samples from an external texture.
  *
- * <p>Use {@link #setTextureTransformMatrix(float[])} to provide the texture's transformation
+ *
+ * Use [.setTextureTransformMatrix] to provide the texture's transformation
  * matrix.
  */
-/* package */ interface ExternalTextureProcessor extends GlTextureProcessor {
-
-  /**
-   * Sets the texture transform matrix for converting an external surface texture's coordinates to
-   * sampling locations.
-   *
-   * @param textureTransformMatrix The external surface texture's {@linkplain
-   *     android.graphics.SurfaceTexture#getTransformMatrix(float[]) transform matrix}.
-   */
-  void setTextureTransformMatrix(float[] textureTransformMatrix);
+/* package */
+internal interface ExternalTextureProcessor : GlTextureProcessor {
+    /**
+     * Sets the texture transform matrix for converting an external surface texture's coordinates to
+     * sampling locations.
+     *
+     * @param textureTransformMatrix The external surface texture's [     ][android.graphics.SurfaceTexture.getTransformMatrix].
+     */
+    fun setTextureTransformMatrix(textureTransformMatrix: FloatArray?)
 }

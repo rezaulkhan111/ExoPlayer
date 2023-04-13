@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.effect;
+package com.google.android.exoplayer2.effect
 
-import com.google.android.exoplayer2.util.FrameProcessingException;
-import com.google.android.exoplayer2.util.GlUtil;
+import com.google.android.exoplayer2.util.FrameProcessingException
+import com.google.android.exoplayer2.util.GlUtil.GlException
 
 /**
- * Interface for tasks that may throw a {@link GlUtil.GlException} or {@link
- * FrameProcessingException}.
+ * Interface for tasks that may throw a [GlUtil.GlException] or [ ].
  */
-/* package */ interface FrameProcessingTask {
-  /** Runs the task. */
-  void run() throws FrameProcessingException, GlUtil.GlException;
+/* package */
+internal interface FrameProcessingTask {
+    /** Runs the task.  */
+    @Throws(FrameProcessingException::class, GlException::class)
+    fun run()
 }

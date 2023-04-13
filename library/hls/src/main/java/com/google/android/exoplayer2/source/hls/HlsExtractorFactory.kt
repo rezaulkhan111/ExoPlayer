@@ -13,49 +13,47 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.source.hls;
+package com.google.android.exoplayer2.source.hls
 
-import android.net.Uri;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.analytics.PlayerId;
-import com.google.android.exoplayer2.extractor.Extractor;
-import com.google.android.exoplayer2.extractor.ExtractorInput;
-import com.google.android.exoplayer2.extractor.PositionHolder;
-import com.google.android.exoplayer2.util.TimestampAdjuster;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import android.net.Uri
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.analytics.PlayerId
+import com.google.android.exoplayer2.extractor.ExtractorInput
+import com.google.android.exoplayer2.util.TimestampAdjuster
+import java.io.IOException
 
-/** Factory for HLS media chunk extractors. */
-public interface HlsExtractorFactory {
+/** Factory for HLS media chunk extractors.  */
+interface HlsExtractorFactory {
+    /**
+     * Creates an [Extractor] for extracting HLS media chunks.
+     *
+     * @param uri The URI of the media chunk.
+     * @param format A [Format] associated with the chunk to extract.
+     * @param muxedCaptionFormats List of muxed caption [Format]s. Null if no closed caption
+     * information is available in the multivariant playlist.
+     * @param timestampAdjuster Adjuster corresponding to the provided discontinuity sequence number.
+     * @param responseHeaders The HTTP response headers associated with the media segment or
+     * initialization section to extract.
+     * @param sniffingExtractorInput The first extractor input that will be passed to the returned
+     * extractor's [Extractor.read]. Must only be used to
+     * call [Extractor.sniff].
+     * @param playerId The [PlayerId] of the player using this extractors factory.
+     * @return An [HlsMediaChunkExtractor].
+     * @throws IOException If an I/O error is encountered while sniffing.
+     */
+    @Throws(IOException::class)
+    fun createExtractor(
+        uri: Uri?,
+        format: Format?,
+        muxedCaptionFormats: List<Format?>?,
+        timestampAdjuster: TimestampAdjuster?,
+        responseHeaders: Map<String?, List<String?>?>?,
+        sniffingExtractorInput: ExtractorInput?,
+        playerId: PlayerId?
+    ): HlsMediaChunkExtractor?
 
-  HlsExtractorFactory DEFAULT = new DefaultHlsExtractorFactory();
-
-  /**
-   * Creates an {@link Extractor} for extracting HLS media chunks.
-   *
-   * @param uri The URI of the media chunk.
-   * @param format A {@link Format} associated with the chunk to extract.
-   * @param muxedCaptionFormats List of muxed caption {@link Format}s. Null if no closed caption
-   *     information is available in the multivariant playlist.
-   * @param timestampAdjuster Adjuster corresponding to the provided discontinuity sequence number.
-   * @param responseHeaders The HTTP response headers associated with the media segment or
-   *     initialization section to extract.
-   * @param sniffingExtractorInput The first extractor input that will be passed to the returned
-   *     extractor's {@link Extractor#read(ExtractorInput, PositionHolder)}. Must only be used to
-   *     call {@link Extractor#sniff(ExtractorInput)}.
-   * @param playerId The {@link PlayerId} of the player using this extractors factory.
-   * @return An {@link HlsMediaChunkExtractor}.
-   * @throws IOException If an I/O error is encountered while sniffing.
-   */
-  HlsMediaChunkExtractor createExtractor(
-      Uri uri,
-      Format format,
-      @Nullable List<Format> muxedCaptionFormats,
-      TimestampAdjuster timestampAdjuster,
-      Map<String, List<String>> responseHeaders,
-      ExtractorInput sniffingExtractorInput,
-      PlayerId playerId)
-      throws IOException;
+    companion object {
+        @JvmField
+        val DEFAULT: HlsExtractorFactory = DefaultHlsExtractorFactory()
+    }
 }

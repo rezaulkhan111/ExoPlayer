@@ -13,36 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.extractor.ts;
+package com.google.android.exoplayer2.extractor.ts
 
-import com.google.android.exoplayer2.extractor.ExtractorOutput;
-import com.google.android.exoplayer2.extractor.TrackOutput;
-import com.google.android.exoplayer2.extractor.ts.TsPayloadReader.TrackIdGenerator;
-import com.google.android.exoplayer2.util.ParsableByteArray;
-import com.google.android.exoplayer2.util.TimestampAdjuster;
+import com.google.android.exoplayer2.extractor.ExtractorOutput
+import com.google.android.exoplayer2.extractor.ts.TsPayloadReader.TrackIdGenerator
+import com.google.android.exoplayer2.util.ParsableByteArray
+import com.google.android.exoplayer2.util.TimestampAdjuster
 
-/** Reads section data. */
-public interface SectionPayloadReader {
+/** Reads section data.  */
+interface SectionPayloadReader {
+    /**
+     * Initializes the section payload reader.
+     *
+     * @param timestampAdjuster A timestamp adjuster for offsetting and scaling sample timestamps.
+     * @param extractorOutput The [ExtractorOutput] that receives the extracted data.
+     * @param idGenerator A [PesReader.TrackIdGenerator] that generates unique track ids for the
+     * [TrackOutput]s.
+     */
+    fun init(
+        timestampAdjuster: TimestampAdjuster?,
+        extractorOutput: ExtractorOutput?,
+        idGenerator: TrackIdGenerator?
+    )
 
-  /**
-   * Initializes the section payload reader.
-   *
-   * @param timestampAdjuster A timestamp adjuster for offsetting and scaling sample timestamps.
-   * @param extractorOutput The {@link ExtractorOutput} that receives the extracted data.
-   * @param idGenerator A {@link PesReader.TrackIdGenerator} that generates unique track ids for the
-   *     {@link TrackOutput}s.
-   */
-  void init(
-      TimestampAdjuster timestampAdjuster,
-      ExtractorOutput extractorOutput,
-      TrackIdGenerator idGenerator);
-
-  /**
-   * Called by a {@link SectionReader} when a full section is received.
-   *
-   * @param sectionData The data belonging to a section starting from the table_id. If
-   *     section_syntax_indicator is set to '1', {@code sectionData} excludes the CRC_32 field.
-   *     Otherwise, all bytes belonging to the table section are included.
-   */
-  void consume(ParsableByteArray sectionData);
+    /**
+     * Called by a [SectionReader] when a full section is received.
+     *
+     * @param sectionData The data belonging to a section starting from the table_id. If
+     * section_syntax_indicator is set to '1', `sectionData` excludes the CRC_32 field.
+     * Otherwise, all bytes belonging to the table section are included.
+     */
+    fun consume(sectionData: ParsableByteArray?)
 }

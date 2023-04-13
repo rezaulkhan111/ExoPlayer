@@ -13,27 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.upstream.cache;
+package com.google.android.exoplayer2.upstream.cache
 
-import com.google.android.exoplayer2.upstream.DataSpec;
+import com.google.android.exoplayer2.upstream.DataSpec
+import com.google.android.exoplayer2.upstream.cache.CacheKeyFactory
+import kotlin.String
+import kotlin.invoke
 
-/** Factory for cache keys. */
-public interface CacheKeyFactory {
+/** Factory for cache keys.  */
+interface CacheKeyFactory {
+    /**
+     * Returns the cache key of the resource containing the data defined by a [DataSpec].
+     *
+     *
+     * Note that since the returned cache key corresponds to the whole resource, implementations
+     * must not return different cache keys for [DataSpecs][DataSpec] that define different
+     * ranges of the same resource. As a result, implementations should not use fields such as [ ][DataSpec.position] and [DataSpec.length].
+     *
+     * @param dataSpec The [DataSpec].
+     * @return The cache key of the resource.
+     */
+    fun buildCacheKey(dataSpec: DataSpec?): String?
 
-  /** Default {@link CacheKeyFactory}. */
-  CacheKeyFactory DEFAULT =
-      (dataSpec) -> dataSpec.key != null ? dataSpec.key : dataSpec.uri.toString();
-
-  /**
-   * Returns the cache key of the resource containing the data defined by a {@link DataSpec}.
-   *
-   * <p>Note that since the returned cache key corresponds to the whole resource, implementations
-   * must not return different cache keys for {@link DataSpec DataSpecs} that define different
-   * ranges of the same resource. As a result, implementations should not use fields such as {@link
-   * DataSpec#position} and {@link DataSpec#length}.
-   *
-   * @param dataSpec The {@link DataSpec}.
-   * @return The cache key of the resource.
-   */
-  String buildCacheKey(DataSpec dataSpec);
+    companion object {
+        /** Default [CacheKeyFactory].  */
+        @JvmField
+        val DEFAULT: CacheKeyFactory =
+            CacheKeyFactory { dataSpec: DataSpec -> dataSpec.key ?: dataSpec.uri.toString() }
+    }
 }

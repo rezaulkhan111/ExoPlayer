@@ -13,58 +13,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.extractor;
+package com.google.android.exoplayer2.extractor
 
-import com.google.android.exoplayer2.C;
+import com.google.android.exoplayer2.C.TrackType
 
-/** Receives stream level data extracted by an {@link Extractor}. */
-public interface ExtractorOutput {
+/** Receives stream level data extracted by an [Extractor].  */
+interface ExtractorOutput {
+    /**
+     * Called by the [Extractor] to get the [TrackOutput] for a specific track.
+     *
+     *
+     * The same [TrackOutput] is returned if multiple calls are made with the same `id`.
+     *
+     * @param id A track identifier.
+     * @param type The [track type][C.TrackType].
+     * @return The [TrackOutput] for the given track identifier.
+     */
+    fun track(id: Int, type: @TrackType Int): TrackOutput?
 
-  /**
-   * Placeholder {@link ExtractorOutput} implementation throwing an {@link
-   * UnsupportedOperationException} in each method.
-   */
-  ExtractorOutput PLACEHOLDER =
-      new ExtractorOutput() {
+    /**
+     * Called when all tracks have been identified, meaning no new `trackId` values will be
+     * passed to [.track].
+     */
+    fun endTracks()
 
-        @Override
-        public TrackOutput track(int id, int type) {
-          throw new UnsupportedOperationException();
+    /**
+     * Called when a [SeekMap] has been extracted from the stream.
+     *
+     * @param seekMap The extracted [SeekMap].
+     */
+    fun seekMap(seekMap: SeekMap?)
+
+    companion object {
+        /**
+         * Placeholder [ExtractorOutput] implementation throwing an [ ] in each method.
+         */
+        @JvmField
+        val PLACEHOLDER: ExtractorOutput = object : ExtractorOutput {
+            override fun track(id: Int, type: Int): TrackOutput? {
+                throw UnsupportedOperationException()
+            }
+
+            override fun endTracks() {
+                throw UnsupportedOperationException()
+            }
+
+            override fun seekMap(seekMap: SeekMap?) {
+                throw UnsupportedOperationException()
+            }
         }
-
-        @Override
-        public void endTracks() {
-          throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void seekMap(SeekMap seekMap) {
-          throw new UnsupportedOperationException();
-        }
-      };
-
-  /**
-   * Called by the {@link Extractor} to get the {@link TrackOutput} for a specific track.
-   *
-   * <p>The same {@link TrackOutput} is returned if multiple calls are made with the same {@code
-   * id}.
-   *
-   * @param id A track identifier.
-   * @param type The {@link C.TrackType track type}.
-   * @return The {@link TrackOutput} for the given track identifier.
-   */
-  TrackOutput track(int id, @C.TrackType int type);
-
-  /**
-   * Called when all tracks have been identified, meaning no new {@code trackId} values will be
-   * passed to {@link #track(int, int)}.
-   */
-  void endTracks();
-
-  /**
-   * Called when a {@link SeekMap} has been extracted from the stream.
-   *
-   * @param seekMap The extracted {@link SeekMap}.
-   */
-  void seekMap(SeekMap seekMap);
+    }
 }

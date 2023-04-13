@@ -13,73 +13,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.upstream.cache;
+package com.google.android.exoplayer2.upstream.cache
 
-import android.net.Uri;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
+import android.net.Uri
+import com.google.android.exoplayer2.C
 
-/** Interface for an immutable snapshot of keyed metadata. */
-public interface ContentMetadata {
+/** Interface for an immutable snapshot of keyed metadata.  */
+interface ContentMetadata {
+    /**
+     * Returns a metadata value.
+     *
+     * @param key Key of the metadata to be returned.
+     * @param defaultValue Value to return if the metadata doesn't exist.
+     * @return The metadata value.
+     */
+    operator fun get(key: String?, defaultValue: ByteArray?): ByteArray?
 
-  /**
-   * Prefix for custom metadata keys. Applications can use keys starting with this prefix without
-   * any risk of their keys colliding with ones defined by the ExoPlayer library.
-   */
-  @SuppressWarnings("unused")
-  String KEY_CUSTOM_PREFIX = "custom_";
-  /** Key for redirected uri (type: String). */
-  String KEY_REDIRECTED_URI = "exo_redir";
-  /** Key for content length in bytes (type: long). */
-  String KEY_CONTENT_LENGTH = "exo_len";
+    /**
+     * Returns a metadata value.
+     *
+     * @param key Key of the metadata to be returned.
+     * @param defaultValue Value to return if the metadata doesn't exist.
+     * @return The metadata value.
+     */
+    operator fun get(key: String?, defaultValue: String?): String?
 
-  /**
-   * Returns a metadata value.
-   *
-   * @param key Key of the metadata to be returned.
-   * @param defaultValue Value to return if the metadata doesn't exist.
-   * @return The metadata value.
-   */
-  @Nullable
-  byte[] get(String key, @Nullable byte[] defaultValue);
+    /**
+     * Returns a metadata value.
+     *
+     * @param key Key of the metadata to be returned.
+     * @param defaultValue Value to return if the metadata doesn't exist.
+     * @return The metadata value.
+     */
+    operator fun get(key: String?, defaultValue: Long): Long
 
-  /**
-   * Returns a metadata value.
-   *
-   * @param key Key of the metadata to be returned.
-   * @param defaultValue Value to return if the metadata doesn't exist.
-   * @return The metadata value.
-   */
-  @Nullable
-  String get(String key, @Nullable String defaultValue);
+    /** Returns whether the metadata is available.  */
+    operator fun contains(key: String?): Boolean
 
-  /**
-   * Returns a metadata value.
-   *
-   * @param key Key of the metadata to be returned.
-   * @param defaultValue Value to return if the metadata doesn't exist.
-   * @return The metadata value.
-   */
-  long get(String key, long defaultValue);
+    companion object {
+        /**
+         * Returns the value stored under [.KEY_CONTENT_LENGTH], or [C.LENGTH_UNSET] if not
+         * set.
+         */
+        @JvmStatic
+        fun getContentLength(contentMetadata: ContentMetadata): Long {
+            return contentMetadata[KEY_CONTENT_LENGTH, C.LENGTH_UNSET.toLong()]
+        }
 
-  /** Returns whether the metadata is available. */
-  boolean contains(String key);
+        /**
+         * Returns the value stored under [.KEY_REDIRECTED_URI] as a [Uri], or {code null} if
+         * not set.
+         */
+        @JvmStatic
+        fun getRedirectedUri(contentMetadata: ContentMetadata): Uri? {
+            val redirectedUri = contentMetadata[KEY_REDIRECTED_URI, null as String?]
+            return if (redirectedUri == null) null else Uri.parse(redirectedUri)
+        }
 
-  /**
-   * Returns the value stored under {@link #KEY_CONTENT_LENGTH}, or {@link C#LENGTH_UNSET} if not
-   * set.
-   */
-  static long getContentLength(ContentMetadata contentMetadata) {
-    return contentMetadata.get(KEY_CONTENT_LENGTH, C.LENGTH_UNSET);
-  }
+        /**
+         * Prefix for custom metadata keys. Applications can use keys starting with this prefix without
+         * any risk of their keys colliding with ones defined by the ExoPlayer library.
+         */
+        const val KEY_CUSTOM_PREFIX = "custom_"
 
-  /**
-   * Returns the value stored under {@link #KEY_REDIRECTED_URI} as a {@link Uri}, or {code null} if
-   * not set.
-   */
-  @Nullable
-  static Uri getRedirectedUri(ContentMetadata contentMetadata) {
-    @Nullable String redirectedUri = contentMetadata.get(KEY_REDIRECTED_URI, (String) null);
-    return redirectedUri == null ? null : Uri.parse(redirectedUri);
-  }
+        /** Key for redirected uri (type: String).  */
+        const val KEY_REDIRECTED_URI = "exo_redir"
+
+        /** Key for content length in bytes (type: long).  */
+        const val KEY_CONTENT_LENGTH = "exo_len"
+    }
 }

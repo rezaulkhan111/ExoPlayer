@@ -13,9 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.decoder;
-
-import androidx.annotation.Nullable;
+package com.google.android.exoplayer2.decoder
 
 /**
  * A media decoder.
@@ -23,48 +21,49 @@ import androidx.annotation.Nullable;
  * @param <I> The type of buffer input to the decoder.
  * @param <O> The type of buffer output from the decoder.
  * @param <E> The type of exception thrown from the decoder.
- */
-public interface Decoder<I, O, E extends DecoderException> {
+</E></O></I> */
+interface Decoder<I, O, E : DecoderException?> {
 
-  /**
-   * Returns the name of the decoder.
-   *
-   * @return The name of the decoder.
-   */
-  String getName();
+    /**
+     * Returns the name of the decoder.
+     *
+     * @return The name of the decoder.
+     */
+    fun getName(): String?
 
-  /**
-   * Dequeues the next input buffer to be filled and queued to the decoder.
-   *
-   * @return The input buffer, which will have been cleared, or null if a buffer isn't available.
-   * @throws E If a decoder error has occurred.
-   */
-  @Nullable
-  I dequeueInputBuffer() throws E;
+    /**
+     * Dequeues the next input buffer to be filled and queued to the decoder.
+     *
+     * @return The input buffer, which will have been cleared, or null if a buffer isn't available.
+     * @throws E If a decoder error has occurred.
+     */
+    @Throws(E::class)
+    fun dequeueInputBuffer(): I?
 
-  /**
-   * Queues an input buffer to the decoder.
-   *
-   * @param inputBuffer The input buffer.
-   * @throws E If a decoder error has occurred.
-   */
-  void queueInputBuffer(I inputBuffer) throws E;
+    /**
+     * Queues an input buffer to the decoder.
+     *
+     * @param inputBuffer The input buffer.
+     * @throws E If a decoder error has occurred.
+     */
+    @Throws(E::class)
+    fun queueInputBuffer(inputBuffer: I)
 
-  /**
-   * Dequeues the next output buffer from the decoder.
-   *
-   * @return The output buffer, or null if an output buffer isn't available.
-   * @throws E If a decoder error has occurred.
-   */
-  @Nullable
-  O dequeueOutputBuffer() throws E;
+    /**
+     * Dequeues the next output buffer from the decoder.
+     *
+     * @return The output buffer, or null if an output buffer isn't available.
+     * @throws E If a decoder error has occurred.
+     */
+    @Throws(E::class)
+    fun dequeueOutputBuffer(): O?
 
-  /**
-   * Flushes the decoder. Ownership of dequeued input buffers is returned to the decoder. The caller
-   * is still responsible for releasing any dequeued output buffers.
-   */
-  void flush();
+    /**
+     * Flushes the decoder. Ownership of dequeued input buffers is returned to the decoder. The caller
+     * is still responsible for releasing any dequeued output buffers.
+     */
+    fun flush()
 
-  /** Releases the decoder. Must be called when the decoder is no longer needed. */
-  void release();
+    /** Releases the decoder. Must be called when the decoder is no longer needed.  */
+    fun release()
 }

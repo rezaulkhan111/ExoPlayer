@@ -19,6 +19,7 @@ import android.util.SparseArray
 import androidx.annotation.IntDef
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.Player.*
+import com.google.android.exoplayer2.analytics.AnalyticsListener.EventFlags
 import com.google.android.exoplayer2.analytics.AnalyticsListener.EventTime
 import com.google.android.exoplayer2.audio.AudioAttributes
 import com.google.android.exoplayer2.decoder.DecoderCounters
@@ -72,6 +73,7 @@ interface AnalyticsListener {
             this.flags = flags
             val flagsToTimes = SparseArray<EventTime>( /* initialCapacity= */flags.size())
             for (i in 0 until flags.size()) {
+                @EventFlags
                 val eventFlag = flags[i]
                 flagsToTimes.append(eventFlag, checkNotNull(eventTimes[eventFlag]))
             }

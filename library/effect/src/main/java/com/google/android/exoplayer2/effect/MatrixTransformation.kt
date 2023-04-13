@@ -13,28 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.effect;
+package com.google.android.exoplayer2.effect
 
-import android.graphics.Matrix;
+import android.graphics.Matrix
 
 /**
- * Specifies a 3x3 transformation {@link Matrix} to apply in the vertex shader for each frame.
+ * Specifies a 3x3 transformation [Matrix] to apply in the vertex shader for each frame.
  *
- * <p>The matrix is applied to points given in normalized device coordinates (-1 to 1 on x and y
+ *
+ * The matrix is applied to points given in normalized device coordinates (-1 to 1 on x and y
  * axes). Transformed pixels that are moved outside of the normal device coordinate range are
  * clipped.
  *
- * <p>Output frame pixels outside of the transformed input frame will be black, with alpha = 0 if
+ *
+ * Output frame pixels outside of the transformed input frame will be black, with alpha = 0 if
  * applicable.
  */
-public interface MatrixTransformation extends GlMatrixTransformation {
-  /**
-   * Returns the 3x3 transformation {@link Matrix} to apply to the frame with the given timestamp.
-   */
-  Matrix getMatrix(long presentationTimeUs);
-
-  @Override
-  default float[] getGlMatrixArray(long presentationTimeUs) {
-    return MatrixUtils.getGlMatrixArray(getMatrix(presentationTimeUs));
-  }
+interface MatrixTransformation : GlMatrixTransformation {
+    /**
+     * Returns the 3x3 transformation [Matrix] to apply to the frame with the given timestamp.
+     */
+    fun getMatrix(presentationTimeUs: Long): Matrix?
+    override fun getGlMatrixArray(presentationTimeUs: Long): FloatArray {
+        return MatrixUtils.getGlMatrixArray(getMatrix(presentationTimeUs)!!)
+    }
 }

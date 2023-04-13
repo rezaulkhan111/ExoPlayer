@@ -22,7 +22,6 @@ import android.view.Surface
 import androidx.annotation.IntDef
 import androidx.annotation.RequiresApi
 import com.google.android.exoplayer2.util.*
-import com.google.android.exoplayer2import.PlaybackException
 import com.google.errorprone.annotations.InlineMe
 import java.lang.annotation.Documented
 import java.lang.annotation.RetentionPolicy
@@ -278,7 +277,7 @@ object C {
     const val STREAM_TYPE_VOICE_CALL: Int = AudioManager.STREAM_VOICE_CALL
 
     /** The default stream type used by audio renderers. Equal to [.STREAM_TYPE_MUSIC].  */
-    val STREAM_TYPE_DEFAULT: Int = STREAM_TYPE_MUSIC
+    const val STREAM_TYPE_DEFAULT: Int = STREAM_TYPE_MUSIC
 
     /** See [AudioAttributes.CONTENT_TYPE_MOVIE].  */
     const val AUDIO_CONTENT_TYPE_MOVIE: Int = AudioAttributes.CONTENT_TYPE_MOVIE
@@ -974,9 +973,10 @@ object C {
         imports = ["com.google.android.exoplayer2.util.Util"]
     )
     @Deprecated("Use {@link Util#getErrorCodeForMediaDrmErrorCode(int)}.")
+    @PlaybackException.ErrorCode
     fun getErrorCodeForMediaDrmErrorCode(
         mediaDrmErrorCode: Int
-    ): @PlaybackException.ErrorCode Int {
+    ): Int {
         return Util.getErrorCodeForMediaDrmErrorCode(mediaDrmErrorCode)
     }
 
@@ -988,7 +988,7 @@ object C {
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
     @IntDef(open = true, value = [CRYPTO_TYPE_UNSUPPORTED, CRYPTO_TYPE_NONE, CRYPTO_TYPE_FRAMEWORK])
-    annotation class CryptoType constructor()
+    annotation class CryptoType
 
     /**
      * Crypto modes for a codec. One of [.CRYPTO_MODE_UNENCRYPTED], [.CRYPTO_MODE_AES_CTR]
@@ -998,7 +998,7 @@ object C {
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [CRYPTO_MODE_UNENCRYPTED, CRYPTO_MODE_AES_CTR, CRYPTO_MODE_AES_CBC])
-    annotation class CryptoMode constructor()
+    annotation class CryptoMode
 
     /**
      * Represents an audio encoding, or an invalid or unset value. One of [Format.NO_VALUE],
@@ -1010,7 +1010,7 @@ object C {
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [Format.NO_VALUE, ENCODING_INVALID, ENCODING_PCM_8BIT, ENCODING_PCM_16BIT, ENCODING_PCM_16BIT_BIG_ENDIAN, ENCODING_PCM_24BIT, ENCODING_PCM_32BIT, ENCODING_PCM_FLOAT, ENCODING_MP3, ENCODING_AAC_LC, ENCODING_AAC_HE_V1, ENCODING_AAC_HE_V2, ENCODING_AAC_XHE, ENCODING_AAC_ELD, ENCODING_AAC_ER_BSAC, ENCODING_AC3, ENCODING_E_AC3, ENCODING_E_AC3_JOC, ENCODING_AC4, ENCODING_DTS, ENCODING_DTS_HD, ENCODING_DOLBY_TRUEHD])
-    annotation class Encoding constructor()
+    annotation class Encoding
 
     /**
      * Represents a PCM audio encoding, or an invalid or unset value. One of [Format.NO_VALUE],
@@ -1021,14 +1021,14 @@ object C {
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [Format.Companion.NO_VALUE, ENCODING_INVALID, ENCODING_PCM_8BIT, ENCODING_PCM_16BIT, ENCODING_PCM_16BIT_BIG_ENDIAN, ENCODING_PCM_24BIT, ENCODING_PCM_32BIT, ENCODING_PCM_FLOAT])
-    annotation class PcmEncoding constructor()
+    annotation class PcmEncoding
 
     /** Represents the behavior affecting whether spatialization will be used.  */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [SPATIALIZATION_BEHAVIOR_AUTO, SPATIALIZATION_BEHAVIOR_NEVER])
-    annotation class SpatializationBehavior constructor()
+    annotation class SpatializationBehavior
 
     /**
      * Stream types for an [android.media.AudioTrack]. One of [.STREAM_TYPE_ALARM], [ ][.STREAM_TYPE_DTMF], [.STREAM_TYPE_MUSIC], [.STREAM_TYPE_NOTIFICATION], [ ][.STREAM_TYPE_RING], [.STREAM_TYPE_SYSTEM], [.STREAM_TYPE_VOICE_CALL] or [ ][.STREAM_TYPE_DEFAULT].
@@ -1047,8 +1047,11 @@ object C {
         AnnotationTarget.LOCAL_VARIABLE,
         TYPE_USE
     )
-    @IntDef(value = [STREAM_TYPE_ALARM, STREAM_TYPE_DTMF, STREAM_TYPE_MUSIC, STREAM_TYPE_NOTIFICATION, STREAM_TYPE_RING, STREAM_TYPE_SYSTEM, STREAM_TYPE_VOICE_CALL, STREAM_TYPE_DEFAULT])
-    annotation class StreamType constructor()
+    @IntDef(
+        value = [STREAM_TYPE_ALARM, STREAM_TYPE_DTMF, STREAM_TYPE_MUSIC, STREAM_TYPE_NOTIFICATION, STREAM_TYPE_RING, STREAM_TYPE_SYSTEM, STREAM_TYPE_VOICE_CALL,
+            STREAM_TYPE_DEFAULT]
+    )
+    annotation class StreamType
 
     /**
      * Content types for audio attributes. One of:
@@ -1075,7 +1078,7 @@ object C {
         TYPE_USE
     )
     @IntDef(value = [AUDIO_CONTENT_TYPE_MOVIE, AUDIO_CONTENT_TYPE_MUSIC, AUDIO_CONTENT_TYPE_SONIFICATION, AUDIO_CONTENT_TYPE_SPEECH, AUDIO_CONTENT_TYPE_UNKNOWN])
-    annotation class AudioContentType constructor()
+    annotation class AudioContentType
 
     /**
      * Flags for audio attributes. Possible flag value is [.FLAG_AUDIBILITY_ENFORCED].
@@ -1098,7 +1101,7 @@ object C {
         TYPE_USE
     )
     @IntDef(flag = true, value = [FLAG_AUDIBILITY_ENFORCED])
-    annotation class AudioFlags constructor()
+    annotation class AudioFlags
 
     /**
      * Usage types for audio attributes. One of [.USAGE_ALARM], [ ][.USAGE_ASSISTANCE_ACCESSIBILITY], [.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE], [ ][.USAGE_ASSISTANCE_SONIFICATION], [.USAGE_ASSISTANT], [.USAGE_GAME], [ ][.USAGE_MEDIA], [.USAGE_NOTIFICATION], [.USAGE_NOTIFICATION_COMMUNICATION_DELAYED],
@@ -1119,7 +1122,7 @@ object C {
         TYPE_USE
     )
     @IntDef(value = [USAGE_ALARM, USAGE_ASSISTANCE_ACCESSIBILITY, USAGE_ASSISTANCE_NAVIGATION_GUIDANCE, USAGE_ASSISTANCE_SONIFICATION, USAGE_ASSISTANT, USAGE_GAME, USAGE_MEDIA, USAGE_NOTIFICATION, USAGE_NOTIFICATION_COMMUNICATION_DELAYED, USAGE_NOTIFICATION_COMMUNICATION_INSTANT, USAGE_NOTIFICATION_COMMUNICATION_REQUEST, USAGE_NOTIFICATION_EVENT, USAGE_NOTIFICATION_RINGTONE, USAGE_UNKNOWN, USAGE_VOICE_COMMUNICATION, USAGE_VOICE_COMMUNICATION_SIGNALLING])
-    annotation class AudioUsage constructor()
+    annotation class AudioUsage
 
     /**
      * Capture policies for audio attributes. One of [.ALLOW_CAPTURE_BY_ALL], [ ][.ALLOW_CAPTURE_BY_NONE] or [.ALLOW_CAPTURE_BY_SYSTEM].
@@ -1138,7 +1141,7 @@ object C {
         TYPE_USE
     )
     @IntDef(value = [ALLOW_CAPTURE_BY_ALL, ALLOW_CAPTURE_BY_NONE, ALLOW_CAPTURE_BY_SYSTEM])
-    annotation class AudioAllowedCapturePolicy constructor()
+    annotation class AudioAllowedCapturePolicy
 
     /**
      * Flags which can apply to a buffer containing a media sample. Possible flag values are [ ][.BUFFER_FLAG_KEY_FRAME], [.BUFFER_FLAG_END_OF_STREAM], [.BUFFER_FLAG_FIRST_SAMPLE],
@@ -1151,7 +1154,7 @@ object C {
         flag = true,
         value = [BUFFER_FLAG_KEY_FRAME, BUFFER_FLAG_END_OF_STREAM, BUFFER_FLAG_FIRST_SAMPLE, BUFFER_FLAG_HAS_SUPPLEMENTAL_DATA, BUFFER_FLAG_LAST_SAMPLE, BUFFER_FLAG_ENCRYPTED, BUFFER_FLAG_DECODE_ONLY]
     )
-    annotation class BufferFlags constructor()
+    annotation class BufferFlags
 
     /**
      * Video decoder output modes. Possible modes are [.VIDEO_OUTPUT_MODE_NONE], [ ][.VIDEO_OUTPUT_MODE_YUV] and [.VIDEO_OUTPUT_MODE_SURFACE_YUV].
@@ -1160,7 +1163,7 @@ object C {
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
     @IntDef(value = [VIDEO_OUTPUT_MODE_NONE, VIDEO_OUTPUT_MODE_YUV, VIDEO_OUTPUT_MODE_SURFACE_YUV])
-    annotation class VideoOutputMode constructor()
+    annotation class VideoOutputMode
 
     /**
      * Video scaling modes for [MediaCodec]-based renderers. One of [ ][.VIDEO_SCALING_MODE_SCALE_TO_FIT], [.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING] or
@@ -1268,7 +1271,8 @@ object C {
      */
     @Documented
     @Retention(RetentionPolicy.SOURCE)
-    @Target(TYPE_USE,
+    @Target(
+        TYPE_USE,
         AnnotationTarget.PROPERTY,
         AnnotationTarget.LOCAL_VARIABLE,
         AnnotationTarget.VALUE_PARAMETER,

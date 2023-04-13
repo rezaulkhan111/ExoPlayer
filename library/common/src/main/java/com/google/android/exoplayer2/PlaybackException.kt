@@ -77,14 +77,14 @@ open class PlaybackException
 
     /** Creates a new instance using the fields obtained from the given [Bundle].  */
     protected constructor(bundle: Bundle) : this( /* message= */
-        bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_MESSAGE)),  /* cause= */
+        bundle.getString(keyForField(FIELD_STRING_MESSAGE)),  /* cause= */
         PlaybackException.Companion.getCauseFromBundle(bundle),  /* errorCode= */
         bundle.getInt(
-            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_INT_ERROR_CODE),  /* defaultValue= */
+            keyForField(FIELD_INT_ERROR_CODE),  /* defaultValue= */
             PlaybackException.Companion.ERROR_CODE_UNSPECIFIED
         ),  /* timestampMs= */
         bundle.getLong(
-            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_LONG_TIMESTAMP_MS),  /* defaultValue= */
+            keyForField(FIELD_LONG_TIMESTAMP_MS),  /* defaultValue= */
             SystemClock.elapsedRealtime()
         )
     ) {
@@ -118,8 +118,7 @@ open class PlaybackException
             return false
         }
         return ((errorCode == other.errorCode) && Util.areEqual(
-            message,
-            other.message
+            message, other.message
         ) && (timestampMs == other.timestampMs))
     }
 
@@ -128,25 +127,25 @@ open class PlaybackException
     public override fun toBundle(): Bundle {
         val bundle: Bundle = Bundle()
         bundle.putInt(
-            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_INT_ERROR_CODE),
+            keyForField(FIELD_INT_ERROR_CODE),
             errorCode
         )
         bundle.putLong(
-            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_LONG_TIMESTAMP_MS),
+            keyForField(FIELD_LONG_TIMESTAMP_MS),
             timestampMs
         )
         bundle.putString(
-            PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_MESSAGE),
+            keyForField(FIELD_STRING_MESSAGE),
             message
         )
         val cause: Throwable? = cause
         if (cause != null) {
             bundle.putString(
-                PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_CLASS_NAME),
+                keyForField(FIELD_STRING_CAUSE_CLASS_NAME),
                 cause.javaClass.getName()
             )
             bundle.putString(
-                PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_MESSAGE),
+                keyForField(FIELD_STRING_CAUSE_MESSAGE),
                 cause.message
             )
         }
@@ -156,19 +155,19 @@ open class PlaybackException
     companion object {
         // Miscellaneous errors (1xxx).
         /** Caused by an error whose cause could not be identified.  */
-        val ERROR_CODE_UNSPECIFIED: Int = 1000
+        const val ERROR_CODE_UNSPECIFIED: Int = 1000
 
         /**
          * Caused by an unidentified error in a remote Player, which is a Player that runs on a different
          * host or process.
          */
-        val ERROR_CODE_REMOTE_ERROR: Int = 1001
+        const val ERROR_CODE_REMOTE_ERROR: Int = 1001
 
         /** Caused by the loading position falling behind the sliding window of available live content.  */
-        val ERROR_CODE_BEHIND_LIVE_WINDOW: Int = 1002
+        const val ERROR_CODE_BEHIND_LIVE_WINDOW: Int = 1002
 
         /** Caused by a generic timeout.  */
-        val ERROR_CODE_TIMEOUT: Int = 1003
+        const val ERROR_CODE_TIMEOUT: Int = 1003
 
         /**
          * Caused by a failed runtime check.
@@ -177,10 +176,10 @@ open class PlaybackException
          * This can happen when the application fails to comply with the player's API requirements (for
          * example, by passing invalid arguments), or when the player reaches an invalid state.
          */
-        val ERROR_CODE_FAILED_RUNTIME_CHECK: Int = 1004
+        const val ERROR_CODE_FAILED_RUNTIME_CHECK: Int = 1004
         // Input/Output errors (2xxx).
         /** Caused by an Input/Output error which could not be identified.  */
-        val ERROR_CODE_IO_UNSPECIFIED: Int = 2000
+        const val ERROR_CODE_IO_UNSPECIFIED: Int = 2000
 
         /**
          * Caused by a network connection failure.
@@ -195,10 +194,10 @@ open class PlaybackException
          *  * The server unexpectedly closes the connection.
          *
          */
-        val ERROR_CODE_IO_NETWORK_CONNECTION_FAILED: Int = 2001
+        const val ERROR_CODE_IO_NETWORK_CONNECTION_FAILED: Int = 2001
 
         /** Caused by a network timeout, meaning the server is taking too long to fulfill a request.  */
-        val ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT: Int = 2002
+        const val ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT: Int = 2002
 
         /**
          * Caused by a server returning a resource with an invalid "Content-Type" HTTP header value.
@@ -207,19 +206,19 @@ open class PlaybackException
          * For example, this can happen when the player is expecting a piece of media, but the server
          * returns a paywall HTML page, with content type "text/html".
          */
-        val ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE: Int = 2003
+        const val ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE: Int = 2003
 
         /** Caused by an HTTP server returning an unexpected HTTP response status code.  */
-        val ERROR_CODE_IO_BAD_HTTP_STATUS: Int = 2004
+        const val ERROR_CODE_IO_BAD_HTTP_STATUS: Int = 2004
 
         /** Caused by a non-existent file.  */
-        val ERROR_CODE_IO_FILE_NOT_FOUND: Int = 2005
+        const val ERROR_CODE_IO_FILE_NOT_FOUND: Int = 2005
 
         /**
          * Caused by lack of permission to perform an IO operation. For example, lack of permission to
          * access internet or external storage.
          */
-        val ERROR_CODE_IO_NO_PERMISSION: Int = 2006
+        const val ERROR_CODE_IO_NO_PERMISSION: Int = 2006
 
         /**
          * Caused by the player trying to access cleartext HTTP traffic (meaning http:// rather than
@@ -229,64 +228,64 @@ open class PlaybackException
          * See [this corresponding
  * troubleshooting topic](https://exoplayer.dev/issues/cleartext-not-permitted).
          */
-        val ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED: Int = 2007
+        const val ERROR_CODE_IO_CLEARTEXT_NOT_PERMITTED: Int = 2007
 
         /** Caused by reading data out of the data bound.  */
-        val ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE: Int = 2008
+        const val ERROR_CODE_IO_READ_POSITION_OUT_OF_RANGE: Int = 2008
         // Content parsing errors (3xxx).
         /** Caused by a parsing error associated with a media container format bitstream.  */
-        val ERROR_CODE_PARSING_CONTAINER_MALFORMED: Int = 3001
+        const val ERROR_CODE_PARSING_CONTAINER_MALFORMED: Int = 3001
 
         /**
          * Caused by a parsing error associated with a media manifest. Examples of a media manifest are a
          * DASH or a SmoothStreaming manifest, or an HLS playlist.
          */
-        val ERROR_CODE_PARSING_MANIFEST_MALFORMED: Int = 3002
+        const val ERROR_CODE_PARSING_MANIFEST_MALFORMED: Int = 3002
 
         /**
          * Caused by attempting to extract a file with an unsupported media container format, or an
          * unsupported media container feature.
          */
-        val ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED: Int = 3003
+        const val ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED: Int = 3003
 
         /**
          * Caused by an unsupported feature in a media manifest. Examples of a media manifest are a DASH
          * or a SmoothStreaming manifest, or an HLS playlist.
          */
-        val ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED: Int = 3004
+        const val ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED: Int = 3004
         // Decoding errors (4xxx).
         /** Caused by a decoder initialization failure.  */
-        val ERROR_CODE_DECODER_INIT_FAILED: Int = 4001
+        const val ERROR_CODE_DECODER_INIT_FAILED: Int = 4001
 
         /** Caused by a decoder query failure.  */
-        val ERROR_CODE_DECODER_QUERY_FAILED: Int = 4002
+        const val ERROR_CODE_DECODER_QUERY_FAILED: Int = 4002
 
         /** Caused by a failure while trying to decode media samples.  */
-        val ERROR_CODE_DECODING_FAILED: Int = 4003
+        const val ERROR_CODE_DECODING_FAILED: Int = 4003
 
         /** Caused by trying to decode content whose format exceeds the capabilities of the device.  */
-        val ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES: Int = 4004
+        const val ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES: Int = 4004
 
         /** Caused by trying to decode content whose format is not supported.  */
-        val ERROR_CODE_DECODING_FORMAT_UNSUPPORTED: Int = 4005
+        const val ERROR_CODE_DECODING_FORMAT_UNSUPPORTED: Int = 4005
         // AudioTrack errors (5xxx).
         /** Caused by an AudioTrack initialization failure.  */
-        val ERROR_CODE_AUDIO_TRACK_INIT_FAILED: Int = 5001
+        const val ERROR_CODE_AUDIO_TRACK_INIT_FAILED: Int = 5001
 
         /** Caused by an AudioTrack write operation failure.  */
-        val ERROR_CODE_AUDIO_TRACK_WRITE_FAILED: Int = 5002
+        const val ERROR_CODE_AUDIO_TRACK_WRITE_FAILED: Int = 5002
         // DRM errors (6xxx).
         /** Caused by an unspecified error related to DRM protection.  */
-        val ERROR_CODE_DRM_UNSPECIFIED: Int = 6000
+        const val ERROR_CODE_DRM_UNSPECIFIED: Int = 6000
 
         /**
          * Caused by a chosen DRM protection scheme not being supported by the device. Examples of DRM
          * protection schemes are ClearKey and Widevine.
          */
-        val ERROR_CODE_DRM_SCHEME_UNSUPPORTED: Int = 6001
+        const val ERROR_CODE_DRM_SCHEME_UNSUPPORTED: Int = 6001
 
         /** Caused by a failure while provisioning the device.  */
-        val ERROR_CODE_DRM_PROVISIONING_FAILED: Int = 6002
+        const val ERROR_CODE_DRM_PROVISIONING_FAILED: Int = 6002
 
         /**
          * Caused by attempting to play incompatible DRM-protected content.
@@ -295,28 +294,28 @@ open class PlaybackException
          * For example, this can happen when attempting to play a DRM protected stream using a scheme
          * (like Widevine) for which there is no corresponding license acquisition data (like a pssh box).
          */
-        val ERROR_CODE_DRM_CONTENT_ERROR: Int = 6003
+        const val ERROR_CODE_DRM_CONTENT_ERROR: Int = 6003
 
         /** Caused by a failure while trying to obtain a license.  */
-        val ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED: Int = 6004
+        const val ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED: Int = 6004
 
         /** Caused by an operation being disallowed by a license policy.  */
-        val ERROR_CODE_DRM_DISALLOWED_OPERATION: Int = 6005
+        const val ERROR_CODE_DRM_DISALLOWED_OPERATION: Int = 6005
 
         /** Caused by an error in the DRM system.  */
-        val ERROR_CODE_DRM_SYSTEM_ERROR: Int = 6006
+        const val ERROR_CODE_DRM_SYSTEM_ERROR: Int = 6006
 
         /** Caused by the device having revoked DRM privileges.  */
-        val ERROR_CODE_DRM_DEVICE_REVOKED: Int = 6007
+        const val ERROR_CODE_DRM_DEVICE_REVOKED: Int = 6007
 
         /** Caused by an expired DRM license being loaded into an open DRM session.  */
-        val ERROR_CODE_DRM_LICENSE_EXPIRED: Int = 6008
+        const val ERROR_CODE_DRM_LICENSE_EXPIRED: Int = 6008
 
         /**
          * Player implementations that want to surface custom errors can use error codes greater than this
          * value, so as to avoid collision with other error codes defined in this class.
          */
-        val CUSTOM_ERROR_CODE_BASE: Int = 1000000
+        const val CUSTOM_ERROR_CODE_BASE: Int = 1000000
 
         /** Returns the name of a given `errorCode`.  */
         fun getErrorCodeName(errorCode: @PlaybackException.ErrorCode Int): String {
@@ -408,9 +407,9 @@ open class PlaybackException
 
         private fun getCauseFromBundle(bundle: Bundle): Throwable? {
             val causeClassName: String? =
-                bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_CLASS_NAME))
+                bundle.getString(keyForField(FIELD_STRING_CAUSE_CLASS_NAME))
             val causeMessage: String? =
-                bundle.getString(PlaybackException.Companion.keyForField(PlaybackException.Companion.FIELD_STRING_CAUSE_MESSAGE))
+                bundle.getString(keyForField(FIELD_STRING_CAUSE_MESSAGE))
             var cause: Throwable? = null
             if (!TextUtils.isEmpty(causeClassName)) {
                 try {

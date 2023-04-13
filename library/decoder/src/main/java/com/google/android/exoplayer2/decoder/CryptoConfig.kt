@@ -13,12 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.decoder;
-
-import com.google.android.exoplayer2.C;
+package com.google.android.exoplayer2.decoder
 
 /**
  * Configuration for a decoder to allow it to decode encrypted media data. The configuration is
- * {@link C.CryptoType} specific.
+ * [C.CryptoType] specific.
  */
-public interface CryptoConfig {}
+interface CryptoConfig 

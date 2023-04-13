@@ -13,33 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.upstream.cache;
-
-import com.google.android.exoplayer2.C;
+package com.google.android.exoplayer2.upstream.cache
 
 /**
- * Evicts data from a {@link Cache}. Implementations should call {@link Cache#removeSpan(CacheSpan)}
+ * Evicts data from a [Cache]. Implementations should call [Cache.removeSpan]
  * to evict cache entries based on their eviction policies.
  */
-public interface CacheEvictor extends Cache.Listener {
+interface CacheEvictor : Cache.Listener {
+    /**
+     * Returns whether the evictor requires the [Cache] to touch [CacheSpans][CacheSpan]
+     * when it accesses them. Implementations that do not use [CacheSpan.lastTouchTimestamp]
+     * should return `false`.
+     */
+    fun requiresCacheSpanTouches(): Boolean
 
-  /**
-   * Returns whether the evictor requires the {@link Cache} to touch {@link CacheSpan CacheSpans}
-   * when it accesses them. Implementations that do not use {@link CacheSpan#lastTouchTimestamp}
-   * should return {@code false}.
-   */
-  boolean requiresCacheSpanTouches();
+    /** Called when cache has been initialized.  */
+    fun onCacheInitialized()
 
-  /** Called when cache has been initialized. */
-  void onCacheInitialized();
-
-  /**
-   * Called when a writer starts writing to the cache.
-   *
-   * @param cache The source of the event.
-   * @param key The key being written.
-   * @param position The starting position of the data being written.
-   * @param length The length of the data being written, or {@link C#LENGTH_UNSET} if unknown.
-   */
-  void onStartFile(Cache cache, String key, long position, long length);
+    /**
+     * Called when a writer starts writing to the cache.
+     *
+     * @param cache The source of the event.
+     * @param key The key being written.
+     * @param position The starting position of the data being written.
+     * @param length The length of the data being written, or [C.LENGTH_UNSET] if unknown.
+     */
+    fun onStartFile(cache: Cache?, key: String?, position: Long, length: Long)
 }

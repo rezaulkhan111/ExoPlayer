@@ -15,103 +15,35 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.Manifest.permissionimport
+import android.annotation.SuppressLint
+import android.content.*
+import android.graphics.Point
+import android.media.*
+import android.os.*
+import android.text.TextUtils
+import android.view.*
+import androidx.annotation.RequiresApi
+import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.C.*
+import com.google.common.base.Charsets
+import com.google.common.util.concurrent.*
+import org.checkerframework.checker.initialization.qual.UnknownInitialization
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull
+import java.io.*
+import java.math.BigDecimal
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.*
-import kotlin.NoSuchElementException
+import java.util.concurrent.CancellationException
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.regex.Pattern
+import java.util.zip.DataFormatException
+import java.util.zip.GZIPOutputStream
+import java.util.zip.Inflater
 import kotlin.collections.ArrayDeque
-import kotlin.collections.HashMap
 
-android.annotation .SuppressLintimport android.app.Activityimport android.app.UiModeManagerimport android.content.pm.PackageManagerimport android.database.DatabaseUtilsimport android.database.sqlite.SQLiteDatabaseimport android.hardware.display.DisplayManagerimport android.provider.MediaStoreimport android.security.NetworkSecurityPolicyimport android.telephony.TelephonyManagerimport android.text.TextUtilsimport android.util.SparseLongArrayimport androidx.annotation .RequiresApiimport com.google.android.exoplayer2.*import com.google.android.exoplayer2.C.*
-import com.google.android.exoplayer2.MediaItem.SubtitleConfigurationimport
-
-org.checkerframework.checker.initialization.qual.UnknownInitializationimport org.checkerframework.checker.nullness.qual.EnsuresNonNullimport org.checkerframework.checker.nullness.qual.PolyNullimport java.io.* android.content.*import android.content.res.Configurationimport
-
-android.content.res.Resourcesimport android.graphics.Point
-import com.google.android.exoplayer2.util.NotificationUtil
-import com.google.android.exoplayer2.util.EGLSurfaceTexture.TextureImageListener
-import android.graphics.SurfaceTextureimport
-
-android.media.*
-import com.google.android.exoplayer2.util.EGLSurfaceTexture
-import com.google.android.exoplayer2.util.EGLSurfaceTexture.SecureMode
-import com.google.android.exoplayer2.util.ParsableBitArray
-import com.google.android.exoplayer2.util.TimestampAdjuster
-import org.xmlpull.v1.XmlPullParserException
-import org.xmlpull.v1.XmlPullParser
-import com.google.android.exoplayer2.util.XmlPullParserUtil
-import com.google.android.exoplayer2.util.UnknownNull
-import android.net.ConnectivityManager
-import com.google.android.exoplayer2.util.NetworkTypeObserver
-import com.google.android.exoplayer2.util.NetworkTypeObserver.Api31.DisplayInfoCallback
-import android.telephony.TelephonyCallback
-import android.telephony.TelephonyCallback.DisplayInfoListener
-import android.telephony.TelephonyDisplayInfo
-import android.net.NetworkInfo
-import com.google.android.exoplayer2.util.PriorityTaskManager.PriorityTooLowException
-import com.google.android.exoplayer2.util.SystemHandlerWrapper.SystemMessage
-import com.google.android.exoplayer2.util.CodecSpecificDataUtil
-import com.google.android.exoplayer2.audio.AuxEffectInfo
-import com.google.android.exoplayer2.audio.AudioProcessor.UnhandledAudioFormatException
-import com.google.android.exoplayer2.C.AudioFlags
-import com.google.android.exoplayer2.C.AudioAllowedCapturePolicy
-import com.google.android.exoplayer2.C.SpatializationBehavior
-import com.google.android.exoplayer2.audio.AudioAttributes.Api32
-import com.google.android.exoplayer2.audio.AudioAttributes.AudioAttributesV21
-import com.google.android.exoplayer2.audio.AudioProcessor
-import com.google.android.exoplayer2.C.ColorRange
-import com.google.android.exoplayer2.C.ColorTransfer
-import androidx.annotation.FloatRange
-import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdGroup
-import com.google.android.exoplayer2.source.ads.AdPlaybackState
-import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdState
-import com.google.android.exoplayer2.source.TrackGroup
-import com.google.android.exoplayer2.C.RoleFlags
-import com.google.android.exoplayer2.offline.StreamKey
-import com.google.android.exoplayer2.C.SelectionFlags
-import com.google.android.exoplayer2.C.StereoMode
-import com.google.android.exoplayer2.C.CryptoType
-import com.google.android.exoplayer2.Player.PositionInfo
-import com.google.android.exoplayer2.Player.TimelineChangeReason
-import com.google.android.exoplayer2.Player.MediaItemTransitionReason
-import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
-import com.google.android.exoplayer2.Player.PlayWhenReadyChangeReason
-import com.google.android.exoplayer2.Player.PlaybackSuppressionReason
-import com.google.android.exoplayer2.Player.DiscontinuityReason
-import com.google.android.exoplayer2.Rating.RatingType
-import com.google.common.primitives.Booleans
-import com.google.common.base.MoreObjects
-import com.google.android.exoplayer2.MediaItem.LiveConfiguration
-import com.google.android.exoplayer2.Timeline.RemotableTimeline
-import com.google.android.exoplayer2.MediaItem.ClippingProperties
-import com.google.android.exoplayer2.MediaItem.PlaybackProperties
-import com.google.android.exoplayer2.MediaItem.RequestMetadata
-import com.google.android.exoplayer2.MediaItem.AdsConfiguration
-import com.google.android.exoplayer2.MediaItem.LocalConfiguration
-import com.google.android.exoplayer2.MediaItem.ClippingConfiguration
-import com.google.android.exoplayer2.MediaItem.DrmConfiguration
-import com.google.android.exoplayer2.trackselection.TrackSelectionOverride
-import com.google.common.primitives.Ints
-import android.view.accessibility.CaptioningManager
-import com.google.android.exoplayer2.DeviceInfo.PlaybackType
-import com.google.android.exoplayer2.MediaMetadata.PictureType
-import com.google.android.exoplayer2.MediaMetadata.FolderType
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull
-import org.checkerframework.checker.nullness.qual.RequiresNonNull
-import androidx.annotation.CallSuper
-import android.net.Uriimport
-
-android.os.*import android.os.SystemClockimport
-
-android.util.Base64import android.view.*import com.google.android.exoplayer2.*
-import com.google.common.base.Asciiimport
-
-com.google.common.base.Charsetsimport com.google.common.util.concurrent.*import java.io.*
-import java.lang.Errorimport
-
-java.lang.Exceptionimport java.lang.IllegalArgumentExceptionimport java.lang.IllegalStateExceptionimport java.lang.NumberFormatExceptionimport java.lang.RuntimeExceptionimport java.lang.StringBuilderimport java.math.BigDecimalimport java.nio.ByteBufferimport java.nio.ByteOrderimport java.util.*
-
-java.util.concurrent.CancellationExceptionimport java.util.concurrent.ExecutionExceptionimport java.util.concurrent.ExecutorServiceimport java.util.concurrent.Executorsimport java.util.regex.Patternimport java.util.zip.DataFormatExceptionimport java.util.zip.GZIPOutputStreamimport java.util.zip.Inflater
 /** Miscellaneous utility methods.  */
 object Util {
     /**
@@ -145,15 +77,16 @@ object Util {
     val EMPTY_BYTE_ARRAY = ByteArray(0)
     private const val TAG = "Util"
     private val XS_DATE_TIME_PATTERN = Pattern.compile(
-            "(\\d\\d\\d\\d)\\-(\\d\\d)\\-(\\d\\d)[Tt]"
-                    + "(\\d\\d):(\\d\\d):(\\d\\d)([\\.,](\\d+))?"
-                    + "([Zz]|((\\+|\\-)(\\d?\\d):?(\\d\\d)))?")
-    private val XS_DURATION_PATTERN = Pattern.compile("^(-)?P(([0-9]*)Y)?(([0-9]*)M)?(([0-9]*)D)?"
-            + "(T(([0-9]*)H)?(([0-9]*)M)?(([0-9.]*)S)?)?$")
+        "(\\d\\d\\d\\d)\\-(\\d\\d)\\-(\\d\\d)[Tt]" + "(\\d\\d):(\\d\\d):(\\d\\d)([\\.,](\\d+))?" + "([Zz]|((\\+|\\-)(\\d?\\d):?(\\d\\d)))?"
+    )
+    private val XS_DURATION_PATTERN = Pattern.compile(
+        "^(-)?P(([0-9]*)Y)?(([0-9]*)M)?(([0-9]*)D)?" + "(T(([0-9]*)H)?(([0-9]*)M)?(([0-9.]*)S)?)?$"
+    )
     private val ESCAPED_CHARACTER_PATTERN = Pattern.compile("%([A-Fa-f0-9]{2})")
 
     // https://docs.microsoft.com/en-us/azure/media-services/previous/media-services-deliver-content-overview#URLs
-    private val ISM_PATH_PATTERN = Pattern.compile("(?:.*\\.)?isml?(?:/(manifest(.*))?)?", Pattern.CASE_INSENSITIVE)
+    private val ISM_PATH_PATTERN =
+        Pattern.compile("(?:.*\\.)?isml?(?:/(manifest(.*))?)?", Pattern.CASE_INSENSITIVE)
     private const val ISM_HLS_FORMAT_EXTENSION = "format=m3u8-aapl"
     private const val ISM_DASH_FORMAT_EXTENSION = "format=mpd-time-csf"
 
@@ -189,7 +122,8 @@ object Util {
      * @return The first sticky intent found that matches `filter`, or null if there are none.
      */
     fun registerReceiverNotExported(
-            context: Context, receiver: BroadcastReceiver?, filter: IntentFilter?): Intent? {
+        context: Context, receiver: BroadcastReceiver?, filter: IntentFilter?
+    ): Intent? {
         return if (SDK_INT < 33) {
             context.registerReceiver(receiver, filter)
         } else {
@@ -208,16 +142,15 @@ object Util {
      * @return The first sticky intent found that matches `filter`, or null if there are none.
      */
     fun registerReceiverNotExported(
-            context: Context, receiver: BroadcastReceiver?, filter: IntentFilter?, handler: Handler?): Intent? {
+        context: Context, receiver: BroadcastReceiver?, filter: IntentFilter?, handler: Handler?
+    ): Intent? {
         return if (SDK_INT < 33) {
             context.registerReceiver(receiver, filter,  /* broadcastPermission= */null, handler)
         } else {
             context.registerReceiver(
-                    receiver,
-                    filter,  /* broadcastPermission= */
-                    null,
-                    handler,
-                    Context.RECEIVER_NOT_EXPORTED)
+                receiver, filter,  /* broadcastPermission= */
+                null, handler, Context.RECEIVER_NOT_EXPORTED
+            )
         }
     }
 
@@ -267,7 +200,8 @@ object Util {
      * @return Whether a permission request was made.
      */
     fun maybeRequestReadExternalStoragePermission(
-            activity: Activity, vararg mediaItems: MediaItem): Boolean {
+        activity: Activity, vararg mediaItems: MediaItem
+    ): Boolean {
         if (SDK_INT < 23) {
             return false
         }
@@ -275,10 +209,14 @@ object Util {
             if (mediaItem.localConfiguration == null) {
                 continue
             }
-            if (maybeRequestReadExternalStoragePermission(activity, mediaItem.localConfiguration.uri)) {
+            if (maybeRequestReadExternalStoragePermission(
+                    activity, mediaItem.localConfiguration.uri
+                )
+            ) {
                 return true
             }
-            val subtitleConfigs: List<SubtitleConfiguration?> = mediaItem.localConfiguration.subtitleConfigurations
+            val subtitleConfigs: List<SubtitleConfiguration?> =
+                mediaItem.localConfiguration.subtitleConfigurations
             for (i in subtitleConfigs.indices) {
                 if (maybeRequestReadExternalStoragePermission(activity, subtitleConfigs[i]!!.uri)) {
                     return true
@@ -289,8 +227,9 @@ object Util {
     }
 
     private fun maybeRequestReadExternalStoragePermission(activity: Activity, uri: Uri?): Boolean {
-        return (SDK_INT >= 23 && (isLocalFileUri(uri) || isMediaStoreExternalContentUri(uri))
-                && requestExternalStoragePermission(activity))
+        return (SDK_INT >= 23 && (isLocalFileUri(uri) || isMediaStoreExternalContentUri(uri)) && requestExternalStoragePermission(
+            activity
+        ))
     }
 
     private fun isMediaStoreExternalContentUri(uri: Uri?): Boolean {
@@ -461,11 +400,12 @@ object Util {
     fun <T> nullSafeArrayConcatenation(first: Array<T>?, second: Array<T>?): Array<T> {
         val concatenation = Arrays.copyOf(first, first!!.size + second!!.size)
         System.arraycopy( /* src= */
-                second,  /* srcPos= */
-                0,  /* dest= */
-                concatenation,  /* destPos= */
-                first.size,  /* length= */
-                second.size)
+            second,  /* srcPos= */
+            0,  /* dest= */
+            concatenation,  /* destPos= */
+            first.size,  /* length= */
+            second.size
+        )
         return concatenation
     }
 
@@ -502,7 +442,8 @@ object Util {
      */
     @JvmOverloads
     fun createHandlerForCurrentLooper(
-            callback: @UnknownInitialization Handler.Callback? =  /* callback= */null): Handler {
+        callback: @UnknownInitialization Handler.Callback? =  /* callback= */null
+    ): Handler {
         return createHandler(Assertions.checkStateNotNull(Looper.myLooper()), callback)
     }
     /**
@@ -527,7 +468,8 @@ object Util {
      */
     @JvmOverloads
     fun createHandlerForCurrentOrMainLooper(
-            callback: @UnknownInitialization Handler.Callback? =  /* callback= */null): Handler {
+        callback: @UnknownInitialization Handler.Callback? =  /* callback= */null
+    ): Handler {
         return createHandler(currentOrMainLooper, callback)
     }
 
@@ -544,7 +486,8 @@ object Util {
      * @return A [Handler] with the specified callback on the current [Looper] thread.
      */
     fun createHandler(
-            looper: Looper?, callback: @UnknownInitialization Handler.Callback?): Handler {
+        looper: Looper?, callback: @UnknownInitialization Handler.Callback?
+    ): Handler {
         return Handler(looper!!, callback)
     }
 
@@ -580,21 +523,20 @@ object Util {
      * @return A [ListenableFuture] for when the [Runnable] has run.
     </T> */
     fun <T> postOrRunWithCompletion(
-            handler: Handler, runnable: Runnable, successValue: T): ListenableFuture<T> {
+        handler: Handler, runnable: Runnable, successValue: T
+    ): ListenableFuture<T> {
         val outputFuture = SettableFuture.create<T>()
-        postOrRun(
-                handler,
-                {
-                    try {
-                        if (outputFuture.isCancelled()) {
-                            return@postOrRun
-                        }
-                        runnable.run()
-                        outputFuture.set(successValue)
-                    } catch (e: Throwable) {
-                        outputFuture.setException(e)
-                    }
-                })
+        postOrRun(handler, {
+            try {
+                if (outputFuture.isCancelled()) {
+                    return@postOrRun
+                }
+                runnable.run()
+                outputFuture.set(successValue)
+            } catch (e: Throwable) {
+                outputFuture.setException(e)
+            }
+        })
         return outputFuture
     }
 
@@ -618,42 +560,43 @@ object Util {
      * @return A [ListenableFuture] for the transformed result.
     </U></T> */
     fun <T, U> transformFutureAsync(
-            future: ListenableFuture<U>, transformFunction: AsyncFunction<U, T>): ListenableFuture<T> {
+        future: ListenableFuture<U>, transformFunction: AsyncFunction<U, T>
+    ): ListenableFuture<T> {
         // This is a simplified copy of Guava's Futures.transformAsync.
         val outputFuture = SettableFuture.create<T>()
         outputFuture.addListener(
-                {
-                    if (outputFuture.isCancelled()) {
-                        future.cancel( /* mayInterruptIfRunning= */false)
-                    }
-                },
-                MoreExecutors.directExecutor())
+            {
+                if (outputFuture.isCancelled()) {
+                    future.cancel( /* mayInterruptIfRunning= */false)
+                }
+            }, MoreExecutors.directExecutor()
+        )
         future.addListener(
-                {
-                    val inputFutureResult: U
-                    try {
-                        inputFutureResult = Futures.getDone(future)
-                    } catch (cancellationException: CancellationException) {
-                        outputFuture.cancel( /* mayInterruptIfRunning= */false)
-                        return@addListener
-                    } catch (exception: ExecutionException) {
-                        val cause: Throwable? = exception.cause
-                        outputFuture.setException(if (cause == null) exception else cause)
-                        return@addListener
-                    } catch (error: RuntimeException) {
-                        outputFuture.setException(error)
-                        return@addListener
-                    } catch (error: Error) {
-                        outputFuture.setException(error)
-                        return@addListener
-                    }
-                    try {
-                        outputFuture.setFuture(transformFunction.apply(inputFutureResult))
-                    } catch (exception: Throwable) {
-                        outputFuture.setException(exception)
-                    }
-                },
-                MoreExecutors.directExecutor())
+            {
+                val inputFutureResult: U
+                try {
+                    inputFutureResult = Futures.getDone(future)
+                } catch (cancellationException: CancellationException) {
+                    outputFuture.cancel( /* mayInterruptIfRunning= */false)
+                    return@addListener
+                } catch (exception: ExecutionException) {
+                    val cause: Throwable? = exception.cause
+                    outputFuture.setException(if (cause == null) exception else cause)
+                    return@addListener
+                } catch (error: RuntimeException) {
+                    outputFuture.setException(error)
+                    return@addListener
+                } catch (error: Error) {
+                    outputFuture.setException(error)
+                    return@addListener
+                }
+                try {
+                    outputFuture.setFuture(transformFunction.apply(inputFutureResult))
+                } catch (exception: Throwable) {
+                    outputFuture.setException(exception)
+                }
+            }, MoreExecutors.directExecutor()
+        )
         return outputFuture
     }
 
@@ -674,7 +617,11 @@ object Util {
      * @return The executor.
      */
     fun newSingleThreadExecutor(threadName: String?): ExecutorService {
-        return Executors.newSingleThreadExecutor({ runnable: Runnable? -> Thread(runnable, threadName) })
+        return Executors.newSingleThreadExecutor({ runnable: Runnable? ->
+            Thread(
+                runnable, threadName
+            )
+        })
     }
 
     /**
@@ -750,7 +697,8 @@ object Util {
         }
         val replacedLanguage = languageTagReplacementMap!![mainLanguage]
         if (replacedLanguage != null) {
-            normalizedTag = replacedLanguage + normalizedTag.substring( /* beginIndex= */mainLanguage.length)
+            normalizedTag =
+                replacedLanguage + normalizedTag.substring( /* beginIndex= */mainLanguage.length)
             mainLanguage = replacedLanguage
         }
         if (("no" == mainLanguage) || "i" == mainLanguage || "zh" == mainLanguage) {
@@ -980,7 +928,8 @@ object Util {
      * equal to) `value`.
      */
     fun binarySearchFloor(
-            array: IntArray, value: Int, inclusive: Boolean, stayInBounds: Boolean): Int {
+        array: IntArray, value: Int, inclusive: Boolean, stayInBounds: Boolean
+    ): Int {
         var index = Arrays.binarySearch(array, value)
         if (index < 0) {
             index = -(index + 2)
@@ -1014,7 +963,8 @@ object Util {
      * equal to) `value`.
      */
     fun binarySearchFloor(
-            array: kotlin.LongArray, value: Long, inclusive: Boolean, stayInBounds: Boolean): Int {
+        array: kotlin.LongArray, value: Long, inclusive: Boolean, stayInBounds: Boolean
+    ): Int {
         var index = Arrays.binarySearch(array, value)
         if (index < 0) {
             index = -(index + 2)
@@ -1049,10 +999,8 @@ object Util {
      * to) `value`.
     </T> */
     fun <T : Comparable<T>?> binarySearchFloor(
-            list: List<Comparable<T>>,
-            value: T,
-            inclusive: Boolean,
-            stayInBounds: Boolean): Int {
+        list: List<Comparable<T>>, value: T, inclusive: Boolean, stayInBounds: Boolean
+    ): Int {
         var index = Collections.binarySearch(list, value)
         if (index < 0) {
             index = -(index + 2)
@@ -1086,7 +1034,8 @@ object Util {
      * equal to) `value`.
      */
     fun binarySearchFloor(
-            longArray: LongArray, value: Long, inclusive: Boolean, stayInBounds: Boolean): Int {
+        longArray: LongArray, value: Long, inclusive: Boolean, stayInBounds: Boolean
+    ): Int {
         var lowIndex = 0
         var highIndex = longArray.size() - 1
         while (lowIndex <= highIndex) {
@@ -1126,7 +1075,8 @@ object Util {
      * equal to) `value`.
      */
     fun binarySearchCeil(
-            array: IntArray, value: Int, inclusive: Boolean, stayInBounds: Boolean): Int {
+        array: IntArray, value: Int, inclusive: Boolean, stayInBounds: Boolean
+    ): Int {
         var index = Arrays.binarySearch(array, value)
         if (index < 0) {
             index = index.inv()
@@ -1161,7 +1111,8 @@ object Util {
      * equal to) `value`.
      */
     fun binarySearchCeil(
-            array: kotlin.LongArray, value: Long, inclusive: Boolean, stayInBounds: Boolean): Int {
+        array: kotlin.LongArray, value: Long, inclusive: Boolean, stayInBounds: Boolean
+    ): Int {
         var index = Arrays.binarySearch(array, value)
         if (index < 0) {
             index = index.inv()
@@ -1196,10 +1147,8 @@ object Util {
      * equal to) `value`.
     </T> */
     fun <T : Comparable<T>?> binarySearchCeil(
-            list: List<Comparable<T>>,
-            value: T,
-            inclusive: Boolean,
-            stayInBounds: Boolean): Int {
+        list: List<Comparable<T>>, value: T, inclusive: Boolean, stayInBounds: Boolean
+    ): Int {
         var index = Collections.binarySearch(list, value)
         if (index < 0) {
             index = index.inv()
@@ -1330,7 +1279,8 @@ object Util {
         val matcher = XS_DATE_TIME_PATTERN.matcher(value)
         if (!matcher.matches()) {
             throw ParserException.Companion.createForMalformedContainer(
-                    "Invalid date/time format: $value",  /* cause= */null)
+                "Invalid date/time format: $value",  /* cause= */null
+            )
         }
         var timezoneShift: Int
         if (matcher.group(9) == null) {
@@ -1347,7 +1297,8 @@ object Util {
         val dateTime: Calendar = GregorianCalendar(TimeZone.getTimeZone("GMT"))
         dateTime.clear()
         // Note: The month value is 0-based, hence the -1 on group(2)
-        dateTime[matcher.group(1).toInt(), matcher.group(2).toInt() - 1, matcher.group(3).toInt(), matcher.group(4).toInt(), matcher.group(5).toInt()] = matcher.group(6).toInt()
+        dateTime[matcher.group(1).toInt(), matcher.group(2).toInt() - 1, matcher.group(3)
+            .toInt(), matcher.group(4).toInt(), matcher.group(5).toInt()] = matcher.group(6).toInt()
         if (!TextUtils.isEmpty(matcher.group(8))) {
             val bd = BigDecimal("0." + matcher.group(8))
             // we care only for milliseconds, so movePointRight(3)
@@ -1393,7 +1344,9 @@ object Util {
      * @param divisor The divisor.
      * @return The scaled timestamps.
      */
-    fun scaleLargeTimestamps(timestamps: List<Long>, multiplier: Long, divisor: Long): kotlin.LongArray {
+    fun scaleLargeTimestamps(
+        timestamps: List<Long>, multiplier: Long, divisor: Long
+    ): kotlin.LongArray {
         val scaledTimestamps = kotlin.LongArray(timestamps.size)
         if (divisor >= multiplier && divisor % multiplier == 0L) {
             val divisionFactor = divisor / multiplier
@@ -1534,8 +1487,8 @@ object Util {
         val data = ByteArray(hexString.length / 2)
         for (i in data.indices) {
             val stringOffset = i * 2
-            data[i] = ((hexString[stringOffset].digitToIntOrNull(16) ?: -1 shl 4)
-            + hexString[stringOffset + 1].digitToIntOrNull(16)!! ?: -1).toByte()
+            data[i] = ((hexString[stringOffset].digitToIntOrNull(16)
+                ?: -1 shl 4) + hexString[stringOffset + 1].digitToIntOrNull(16)!! ?: -1).toByte()
         }
         return data
     }
@@ -1549,9 +1502,8 @@ object Util {
     fun toHexString(bytes: ByteArray): String {
         val result = StringBuilder(bytes.size * 2)
         for (i in bytes.indices) {
-            result
-                    .append(Character.forDigit(bytes[i].toInt() shr 4 and 0xF, 16))
-                    .append(Character.forDigit(bytes[i].toInt() and 0xF, 16))
+            result.append(Character.forDigit(bytes[i].toInt() shr 4 and 0xF, 16))
+                .append(Character.forDigit(bytes[i].toInt() and 0xF, 16))
         }
         return result.toString()
     }
@@ -1589,13 +1541,7 @@ object Util {
         } catch (e: PackageManager.NameNotFoundException) {
             "?"
         }
-        return (applicationName
-                + "/"
-                + versionName
-                + " (Linux;Android "
-                + Build.VERSION.RELEASE
-                + ") "
-                + ExoPlayerLibraryInfo.VERSION_SLASHY)
+        return (applicationName + "/" + versionName + " (Linux;Android " + Build.VERSION.RELEASE + ") " + ExoPlayerLibraryInfo.VERSION_SLASHY)
     }
 
     /** Returns the number of codec strings in `codecs` whose type matches `trackType`.  */
@@ -1655,12 +1601,8 @@ object Util {
      * @return The PCM format.
      */
     fun getPcmFormat(pcmEncoding: @PcmEncoding Int, channels: Int, sampleRate: Int): Format? {
-        return Format.Builder()
-                .setSampleMimeType(MimeTypes.AUDIO_RAW)
-                .setChannelCount(channels)
-                .setSampleRate(sampleRate)
-                .setPcmEncoding(pcmEncoding)
-                .build()
+        return Format.Builder().setSampleMimeType(MimeTypes.AUDIO_RAW).setChannelCount(channels)
+            .setSampleRate(sampleRate).setPcmEncoding(pcmEncoding).build()
     }
 
     /**
@@ -1757,7 +1699,8 @@ object Util {
 
     /** Returns the [C.AudioContentType] corresponding to the specified [C.StreamType].  */
     fun getAudioContentTypeForStreamType(
-            streamType: @C.StreamType Int): @AudioContentType Int {
+        streamType: @C.StreamType Int
+    ): @AudioContentType Int {
         return when (streamType) {
             C.STREAM_TYPE_ALARM, C.STREAM_TYPE_DTMF, C.STREAM_TYPE_NOTIFICATION, C.STREAM_TYPE_RING, C.STREAM_TYPE_SYSTEM -> C.AUDIO_CONTENT_TYPE_SONIFICATION
             C.STREAM_TYPE_VOICE_CALL -> C.AUDIO_CONTENT_TYPE_SPEECH
@@ -1789,7 +1732,8 @@ object Util {
      */
     @RequiresApi(21)
     fun generateAudioSessionIdV21(context: Context): Int {
-        val audioManager: AudioManager? = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioManager: AudioManager? =
+            context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
         return audioManager?.generateAudioSessionId() ?: AudioManager.ERROR
     }
 
@@ -1817,7 +1761,8 @@ object Util {
      * the provided error code isn't recognised.
      */
     fun getErrorCodeForMediaDrmErrorCode(
-            mediaDrmErrorCode: Int): @PlaybackException.ErrorCode Int {
+        mediaDrmErrorCode: Int
+    ): @PlaybackException.ErrorCode Int {
         return when (mediaDrmErrorCode) {
             MediaDrm.ErrorCodes.ERROR_PROVISIONING_CONFIG, MediaDrm.ErrorCodes.ERROR_PROVISIONING_PARSE, MediaDrm.ErrorCodes.ERROR_PROVISIONING_REQUEST_REJECTED, MediaDrm.ErrorCodes.ERROR_PROVISIONING_CERTIFICATE, MediaDrm.ErrorCodes.ERROR_PROVISIONING_RETRY -> PlaybackException.Companion.ERROR_CODE_DRM_PROVISIONING_FAILED
             MediaDrm.ErrorCodes.ERROR_LICENSE_PARSE, MediaDrm.ErrorCodes.ERROR_LICENSE_RELEASE, MediaDrm.ErrorCodes.ERROR_LICENSE_REQUEST_REJECTED, MediaDrm.ErrorCodes.ERROR_LICENSE_RESTORE, MediaDrm.ErrorCodes.ERROR_LICENSE_STATE, MediaDrm.ErrorCodes.ERROR_CERTIFICATE_MALFORMED -> PlaybackException.Companion.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED
@@ -1829,7 +1774,9 @@ object Util {
 
     @Deprecated("Use {@link #inferContentTypeForExtension(String)} when {@code overrideExtension} is\n" + "        non-empty, and {@link #inferContentType(Uri)} otherwise.")
     fun inferContentType(uri: Uri, overrideExtension: String?): @C.ContentType Int {
-        return if (TextUtils.isEmpty(overrideExtension)) inferContentType(uri) else inferContentTypeForExtension(overrideExtension)
+        return if (TextUtils.isEmpty(overrideExtension)) inferContentType(uri) else inferContentTypeForExtension(
+            overrideExtension
+        )
     }
 
     /**
@@ -1843,11 +1790,11 @@ object Util {
         if (scheme != null && Ascii.equalsIgnoreCase("rtsp", scheme)) {
             return C.CONTENT_TYPE_RTSP
         }
-        val lastPathSegment = uri.lastPathSegment
-                ?: return C.CONTENT_TYPE_OTHER
+        val lastPathSegment = uri.lastPathSegment ?: return C.CONTENT_TYPE_OTHER
         val lastDotIndex = lastPathSegment.lastIndexOf('.')
         if (lastDotIndex >= 0) {
-            val contentType = inferContentTypeForExtension(lastPathSegment.substring(lastDotIndex + 1))
+            val contentType =
+                inferContentTypeForExtension(lastPathSegment.substring(lastDotIndex + 1))
             if (contentType != C.CONTENT_TYPE_OTHER) {
                 // If contentType is TYPE_SS that indicates the extension is .ism or .isml and shows the ISM
                 // URI is missing the "/manifest" suffix, which contains the information used to
@@ -1901,7 +1848,8 @@ object Util {
      * @return The content type.
      */
     fun inferContentTypeForUriAndMimeType(
-            uri: Uri, mimeType: String?): @C.ContentType Int {
+        uri: Uri, mimeType: String?
+    ): @C.ContentType Int {
         if (mimeType == null) {
             return inferContentType(uri)
         }
@@ -1965,7 +1913,8 @@ object Util {
         val minutes = totalSeconds / 60 % 60
         val hours = totalSeconds / 3600
         builder.setLength(0)
-        return if (hours > 0) formatter.format("%s%d:%02d:%02d", prefix, hours, minutes, seconds).toString() else formatter.format("%s%02d:%02d", prefix, minutes, seconds).toString()
+        return if (hours > 0) formatter.format("%s%d:%02d:%02d", prefix, hours, minutes, seconds)
+            .toString() else formatter.format("%s%02d:%02d", prefix, minutes, seconds).toString()
     }
 
     /**
@@ -2057,7 +2006,10 @@ object Util {
     /** Returns a data URI with the specified MIME type and data.  */
     fun getDataUriForString(mimeType: String, data: String): Uri {
         return Uri.parse(
-                "data:" + mimeType + ";base64," + Base64.encodeToString(data.toByteArray(), Base64.NO_WRAP))
+            "data:" + mimeType + ";base64," + Base64.encodeToString(
+                data.toByteArray(), Base64.NO_WRAP
+            )
+        )
     }
 
     /**
@@ -2112,8 +2064,8 @@ object Util {
     fun crc32(bytes: ByteArray, start: Int, end: Int, initialValue: Int): Int {
         var initialValue = initialValue
         for (i in start until end) {
-            initialValue = (initialValue shl 8
-                    xor CRC32_BYTES_MSBF[((initialValue ushr 24) xor (bytes[i].toInt() and 0xFF)) and 0xFF])
+            initialValue =
+                (initialValue shl 8 xor CRC32_BYTES_MSBF[((initialValue ushr 24) xor (bytes[i].toInt() and 0xFF)) and 0xFF])
         }
         return initialValue
     }
@@ -2172,7 +2124,8 @@ object Util {
      */
     fun getCountryCode(context: Context?): String {
         if (context != null) {
-            val telephonyManager: TelephonyManager? = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            val telephonyManager: TelephonyManager? =
+                context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
             if (telephonyManager != null) {
                 val countryCode = telephonyManager.networkCountryIso
                 if (!TextUtils.isEmpty(countryCode)) {
@@ -2212,7 +2165,8 @@ object Util {
      * @return Whether the input is uncompressed successfully.
      */
     fun inflate(
-            input: ParsableByteArray, output: ParsableByteArray, inflater: Inflater?): Boolean {
+        input: ParsableByteArray, output: ParsableByteArray, inflater: Inflater?
+    ): Boolean {
         var inflater = inflater
         if (input.bytesLeft() <= 0) {
             return false
@@ -2227,7 +2181,9 @@ object Util {
         try {
             var outputSize = 0
             while (true) {
-                outputSize += inflater.inflate(output.data, outputSize, output.capacity() - outputSize)
+                outputSize += inflater.inflate(
+                    output.data, outputSize, output.capacity() - outputSize
+                )
                 if (inflater.finished()) {
                     output.setLimit(outputSize)
                     return true
@@ -2254,9 +2210,9 @@ object Util {
      */
     fun isTv(context: Context): Boolean {
         // See https://developer.android.com/training/tv/start/hardware.html#runtime-check.
-        val uiModeManager: UiModeManager? = context.applicationContext.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
-        return (uiModeManager != null
-                && uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION)
+        val uiModeManager: UiModeManager? =
+            context.applicationContext.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
+        return (uiModeManager != null && uiModeManager.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION)
     }
 
     /**
@@ -2266,8 +2222,7 @@ object Util {
      * @return Whether the app is running on an automotive device.
      */
     fun isAutomotive(context: Context): Boolean {
-        return (SDK_INT >= 23
-                && context.packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE))
+        return (SDK_INT >= 23 && context.packageManager.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE))
     }
 
     /**
@@ -2286,7 +2241,8 @@ object Util {
     fun getCurrentDisplayModeSize(context: Context): Point {
         var defaultDisplay: Display? = null
         if (SDK_INT >= 17) {
-            val displayManager: DisplayManager? = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
+            val displayManager: DisplayManager? =
+                context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
             // We don't expect displayManager to ever be null, so this check is just precautionary.
             // Consider removing it when the library minSdkVersion is increased to 17 or higher.
             if (displayManager != null) {
@@ -2294,7 +2250,8 @@ object Util {
             }
         }
         if (defaultDisplay == null) {
-            val windowManager: WindowManager = Assertions.checkNotNull(context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
+            val windowManager: WindowManager =
+                Assertions.checkNotNull(context.getSystemService(Context.WINDOW_SERVICE) as WindowManager)
             defaultDisplay = windowManager.defaultDisplay
         }
         return getCurrentDisplayModeSize(context, defaultDisplay)
@@ -2329,7 +2286,8 @@ object Util {
             //
             // From API level 28, Treble may prevent the system from writing sys.display-size, so we check
             // vendor.display-size instead.
-            val displaySize = if (SDK_INT < 28) getSystemProperty("sys.display-size") else getSystemProperty("vendor.display-size")
+            val displaySize =
+                if (SDK_INT < 28) getSystemProperty("sys.display-size") else getSystemProperty("vendor.display-size")
             // If we managed to read the display size, attempt to parse it.
             if (!TextUtils.isEmpty(displaySize)) {
                 try {
@@ -2348,8 +2306,10 @@ object Util {
             }
 
             // Sony Android TVs advertise support for 4k output via a system feature.
-            if ("Sony" == MANUFACTURER && MODEL.startsWith("BRAVIA")
-                    && context.packageManager.hasSystemFeature("com.sony.dtv.hardware.panel.qfhd")) {
+            if ("Sony" == MANUFACTURER && MODEL.startsWith("BRAVIA") && context.packageManager.hasSystemFeature(
+                    "com.sony.dtv.hardware.panel.qfhd"
+                )
+            ) {
                 return Point(3840, 2160)
             }
         }
@@ -2406,7 +2366,8 @@ object Util {
      */
     // See go/lsc-extends-object
     fun <T : Any?> moveItems(
-            items: MutableList<T>, fromIndex: Int, toIndex: Int, newFromIndex: Int) {
+        items: MutableList<T>, fromIndex: Int, toIndex: Int, newFromIndex: Int
+    ) {
         val removedItems = ArrayDeque<T>()
         val removedItemsLength = toIndex - fromIndex
         for (i in removedItemsLength - 1 downTo 0) {
@@ -2418,7 +2379,8 @@ object Util {
     /** Returns whether the table exists in the database.  */
     fun tableExists(database: SQLiteDatabase?, tableName: String): Boolean {
         val count = DatabaseUtils.queryNumEntries(
-                database, "sqlite_master", "tbl_name = ?", arrayOf(tableName))
+            database, "sqlite_master", "tbl_name = ?", arrayOf(tableName)
+        )
         return count > 0
     }
 
@@ -2475,7 +2437,9 @@ object Util {
      * @param permanentAvailableCommands The commands permanently available in the player.
      * @return The available [Commands].
      */
-    fun getAvailableCommands(player: Player, permanentAvailableCommands: Player.Commands): Player.Commands? {
+    fun getAvailableCommands(
+        player: Player, permanentAvailableCommands: Player.Commands
+    ): Player.Commands? {
         val isPlayingAd = player.isPlayingAd
         val isCurrentMediaItemSeekable = player.isCurrentMediaItemSeekable
         val hasPreviousMediaItem = player.hasPreviousMediaItem()
@@ -2483,26 +2447,26 @@ object Util {
         val isCurrentMediaItemLive = player.isCurrentMediaItemLive
         val isCurrentMediaItemDynamic = player.isCurrentMediaItemDynamic
         val isTimelineEmpty = player.currentTimeline.isEmpty
-        return Player.Commands.Builder()
-                .addAll(permanentAvailableCommands)
-                .addIf(Player.Companion.COMMAND_SEEK_TO_DEFAULT_POSITION, !isPlayingAd)
-                .addIf(Player.Companion.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM, isCurrentMediaItemSeekable && !isPlayingAd)
-                .addIf(Player.Companion.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM, hasPreviousMediaItem && !isPlayingAd)
-                .addIf(
-                        Player.Companion.COMMAND_SEEK_TO_PREVIOUS,
-                        !isTimelineEmpty
-                                && (hasPreviousMediaItem || !isCurrentMediaItemLive || isCurrentMediaItemSeekable)
-                                && !isPlayingAd)
-                .addIf(Player.Companion.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, hasNextMediaItem && !isPlayingAd)
-                .addIf(
-                        Player.Companion.COMMAND_SEEK_TO_NEXT,
-                        !isTimelineEmpty
-                                && (hasNextMediaItem || isCurrentMediaItemLive && isCurrentMediaItemDynamic)
-                                && !isPlayingAd)
-                .addIf(Player.Companion.COMMAND_SEEK_TO_MEDIA_ITEM, !isPlayingAd)
-                .addIf(Player.Companion.COMMAND_SEEK_BACK, isCurrentMediaItemSeekable && !isPlayingAd)
-                .addIf(Player.Companion.COMMAND_SEEK_FORWARD, isCurrentMediaItemSeekable && !isPlayingAd)
-                .build()
+        return Player.Commands.Builder().addAll(permanentAvailableCommands)
+            .addIf(Player.Companion.COMMAND_SEEK_TO_DEFAULT_POSITION, !isPlayingAd).addIf(
+                Player.Companion.COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
+                isCurrentMediaItemSeekable && !isPlayingAd
+            ).addIf(
+                Player.Companion.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                hasPreviousMediaItem && !isPlayingAd
+            ).addIf(
+                Player.Companion.COMMAND_SEEK_TO_PREVIOUS,
+                !isTimelineEmpty && (hasPreviousMediaItem || !isCurrentMediaItemLive || isCurrentMediaItemSeekable) && !isPlayingAd
+            ).addIf(
+                Player.Companion.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, hasNextMediaItem && !isPlayingAd
+            ).addIf(
+                Player.Companion.COMMAND_SEEK_TO_NEXT,
+                !isTimelineEmpty && (hasNextMediaItem || isCurrentMediaItemLive && isCurrentMediaItemDynamic) && !isPlayingAd
+            ).addIf(Player.Companion.COMMAND_SEEK_TO_MEDIA_ITEM, !isPlayingAd)
+            .addIf(Player.Companion.COMMAND_SEEK_BACK, isCurrentMediaItemSeekable && !isPlayingAd)
+            .addIf(
+                Player.Companion.COMMAND_SEEK_FORWARD, isCurrentMediaItemSeekable && !isPlayingAd
+            ).build()
     }
 
     /**
@@ -2521,7 +2485,8 @@ object Util {
 
     private fun getSystemProperty(name: String): String? {
         return try {
-            @SuppressLint("PrivateApi") val systemProperties = Class.forName("android.os.SystemProperties")
+            @SuppressLint("PrivateApi") val systemProperties =
+                Class.forName("android.os.SystemProperties")
             val getMethod = systemProperties.getMethod("get", String::class.java)
             getMethod.invoke(systemProperties, name) as String
         } catch (e: Exception) {
@@ -2549,7 +2514,9 @@ object Util {
     private val systemLocales: Array<String?>
         private get() {
             val config = Resources.getSystem().configuration
-            return if (SDK_INT >= 24) getSystemLocalesV24(config) else arrayOf<String>(getLocaleLanguageTag(config.locale))
+            return if (SDK_INT >= 24) getSystemLocalesV24(config) else arrayOf<String>(
+                getLocaleLanguageTag(config.locale)
+            )
         }
 
     @RequiresApi(24)
@@ -2565,7 +2532,8 @@ object Util {
     private fun createIsoLanguageReplacementMap(): HashMap<String, String> {
         val iso2Languages = Locale.getISOLanguages()
         val replacedLanguages = HashMap<String, String>( /* initialCapacity= */
-                iso2Languages.size + additionalIsoLanguageReplacements.size)
+            iso2Languages.size + additionalIsoLanguageReplacements.size
+        )
         for (iso2 in iso2Languages) {
             try {
                 // This returns the ISO 639-2/T code for the language.
@@ -2580,7 +2548,8 @@ object Util {
         // Add additional replacement mappings.
         var i = 0
         while (i < additionalIsoLanguageReplacements.size) {
-            replacedLanguages[additionalIsoLanguageReplacements.get(i)] = additionalIsoLanguageReplacements.get(i + 1)
+            replacedLanguages[additionalIsoLanguageReplacements.get(i)] =
+                additionalIsoLanguageReplacements.get(i + 1)
             i += 2
         }
         return replacedLanguages
@@ -2588,9 +2557,11 @@ object Util {
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     private fun requestExternalStoragePermission(activity: Activity): Boolean {
-        if (activity.checkSelfPermission(permission.READ_EXTERNAL_STORAGE)
-                != PackageManager.PERMISSION_GRANTED) {
-            activity.requestPermissions(arrayOf(permission.READ_EXTERNAL_STORAGE),  /* requestCode= */0)
+        if (activity.checkSelfPermission(permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            activity.requestPermissions(
+                arrayOf(permission.READ_EXTERNAL_STORAGE),  /* requestCode= */
+                0
+            )
             return true
         }
         return false
@@ -2599,15 +2570,16 @@ object Util {
     @RequiresApi(api = Build.VERSION_CODES.N)
     private fun isTrafficRestricted(uri: Uri?): Boolean {
         return "http" == uri!!.scheme && !NetworkSecurityPolicy.getInstance()
-                .isCleartextTrafficPermitted(Assertions.checkNotNull(uri.host))
+            .isCleartextTrafficPermitted(Assertions.checkNotNull(uri.host))
     }
 
     private fun maybeReplaceLegacyLanguageTags(languageTag: String): String {
         var i = 0
         while (i < isoLegacyTagReplacements.size) {
             if (languageTag.startsWith(isoLegacyTagReplacements[i])) {
-                return (isoLegacyTagReplacements[i + 1]
-                        + languageTag.substring( /* beginIndex= */isoLegacyTagReplacements[i].length))
+                return (isoLegacyTagReplacements[i + 1] + languageTag.substring( /* beginIndex= */
+                    isoLegacyTagReplacements[i].length
+                ))
             }
             i += 2
         }
@@ -2615,68 +2587,122 @@ object Util {
     }
 
     // Additional mapping from ISO3 to ISO2 language codes.
-    private val additionalIsoLanguageReplacements = arrayOf( // Bibliographical codes defined in ISO 639-2/B, replaced by terminological code defined in
+    private val additionalIsoLanguageReplacements =
+        arrayOf( // Bibliographical codes defined in ISO 639-2/B, replaced by terminological code defined in
             // ISO 639-2/T. See https://en.wikipedia.org/wiki/List_of_ISO_639-2_codes.
-            "alb", "sq",
-            "arm", "hy",
-            "baq", "eu",
-            "bur", "my",
-            "tib", "bo",
-            "chi", "zh",
-            "cze", "cs",
-            "dut", "nl",
-            "ger", "de",
-            "gre", "el",
-            "fre", "fr",
-            "geo", "ka",
-            "ice", "is",
-            "mac", "mk",
-            "mao", "mi",
-            "may", "ms",
-            "per", "fa",
-            "rum", "ro",
-            "scc", "hbs-srp",
-            "slo", "sk",
-            "wel", "cy",  // Deprecated 2-letter codes, replaced by modern equivalent (including macrolanguage)
+            "alb",
+            "sq",
+            "arm",
+            "hy",
+            "baq",
+            "eu",
+            "bur",
+            "my",
+            "tib",
+            "bo",
+            "chi",
+            "zh",
+            "cze",
+            "cs",
+            "dut",
+            "nl",
+            "ger",
+            "de",
+            "gre",
+            "el",
+            "fre",
+            "fr",
+            "geo",
+            "ka",
+            "ice",
+            "is",
+            "mac",
+            "mk",
+            "mao",
+            "mi",
+            "may",
+            "ms",
+            "per",
+            "fa",
+            "rum",
+            "ro",
+            "scc",
+            "hbs-srp",
+            "slo",
+            "sk",
+            "wel",
+            "cy",  // Deprecated 2-letter codes, replaced by modern equivalent (including macrolanguage)
             // See https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes, "ISO 639:1988"
-            "id", "ms-ind",
-            "iw", "he",
-            "heb", "he",
-            "ji", "yi",  // Individual macrolanguage codes mapped back to full macrolanguage code.
+            "id",
+            "ms-ind",
+            "iw",
+            "he",
+            "heb",
+            "he",
+            "ji",
+            "yi",  // Individual macrolanguage codes mapped back to full macrolanguage code.
             // See https://en.wikipedia.org/wiki/ISO_639_macrolanguage
-            "arb", "ar-arb",
-            "in", "ms-ind",
-            "ind", "ms-ind",
-            "nb", "no-nob",
-            "nob", "no-nob",
-            "nn", "no-nno",
-            "nno", "no-nno",
-            "tw", "ak-twi",
-            "twi", "ak-twi",
-            "bs", "hbs-bos",
-            "bos", "hbs-bos",
-            "hr", "hbs-hrv",
-            "hrv", "hbs-hrv",
-            "sr", "hbs-srp",
-            "srp", "hbs-srp",
-            "cmn", "zh-cmn",
-            "hak", "zh-hak",
-            "nan", "zh-nan",
-            "hsn", "zh-hsn"
-    )
+            "arb",
+            "ar-arb",
+            "in",
+            "ms-ind",
+            "ind",
+            "ms-ind",
+            "nb",
+            "no-nob",
+            "nob",
+            "no-nob",
+            "nn",
+            "no-nno",
+            "nno",
+            "no-nno",
+            "tw",
+            "ak-twi",
+            "twi",
+            "ak-twi",
+            "bs",
+            "hbs-bos",
+            "bos",
+            "hbs-bos",
+            "hr",
+            "hbs-hrv",
+            "hrv",
+            "hbs-hrv",
+            "sr",
+            "hbs-srp",
+            "srp",
+            "hbs-srp",
+            "cmn",
+            "zh-cmn",
+            "hak",
+            "zh-hak",
+            "nan",
+            "zh-nan",
+            "hsn",
+            "zh-hsn"
+        )
 
     // Legacy tags that have been replaced by modern equivalents (including macrolanguage)
     // See https://www.iana.org/assignments/language-subtag-registry/language-subtag-registry.
     private val isoLegacyTagReplacements = arrayOf(
-            "i-lux", "lb",
-            "i-hak", "zh-hak",
-            "i-navajo", "nv",
-            "no-bok", "no-nob",
-            "no-nyn", "no-nno",
-            "zh-guoyu", "zh-cmn",
-            "zh-hakka", "zh-hak",
-            "zh-min-nan", "zh-nan",
-            "zh-xiang", "zh-hsn"
+        "i-lux",
+        "lb",
+        "i-hak",
+        "zh-hak",
+        "i-navajo",
+        "nv",
+        "no-bok",
+        "no-nob",
+        "no-nyn",
+        "no-nno",
+        "zh-guoyu",
+        "zh-cmn",
+        "zh-hakka",
+        "zh-hak",
+        "zh-min-nan",
+        "zh-nan",
+        "zh-xiang",
+        "zh-hsn"
     )
 
     /**
@@ -2684,43 +2710,262 @@ object Util {
      * significant bit first".
      */
     private val CRC32_BYTES_MSBF = intArrayOf(
-            0X00000000, 0X04C11DB7, 0X09823B6E, 0X0D4326D9, 0X130476DC, 0X17C56B6B, 0X1A864DB2,
-            0X1E475005, 0X2608EDB8, 0X22C9F00F, 0X2F8AD6D6, 0X2B4BCB61, 0X350C9B64, 0X31CD86D3,
-            0X3C8EA00A, 0X384FBDBD, 0X4C11DB70, 0X48D0C6C7, 0X4593E01E, 0X4152FDA9, 0X5F15ADAC,
-            0X5BD4B01B, 0X569796C2, 0X52568B75, 0X6A1936C8, 0X6ED82B7F, 0X639B0DA6, 0X675A1011,
-            0X791D4014, 0X7DDC5DA3, 0X709F7B7A, 0X745E66CD, -0x67dc4920, -0x631d54a9, -0x6e5e7272,
-            -0x6a9f6fc7, -0x74d83fc4, -0x70192275, -0x7d5a04ae, -0x799b191b, -0x41d4a4a8, -0x4515b911,
-            -0x48569fca, -0x4c97827f, -0x52d0d27c, -0x5611cfcd, -0x5b52e916, -0x5f93f4a3, -0x2bcd9270,
-            -0x2f0c8fd9, -0x224fa902, -0x268eb4b7, -0x38c9e4b4, -0x3c08f905, -0x314bdfde, -0x358ac26b,
-            -0xdc57fd8, -0x9046261, -0x44744ba, -0x86590f, -0x1ec1090c, -0x1a0014bd, -0x17433266,
-            -0x13822fd3, 0X34867077, 0X30476DC0, 0X3D044B19, 0X39C556AE, 0X278206AB, 0X23431B1C,
-            0X2E003DC5, 0X2AC12072, 0X128E9DCF, 0X164F8078, 0X1B0CA6A1, 0X1FCDBB16, 0X018AEB13,
-            0X054BF6A4, 0X0808D07D, 0X0CC9CDCA, 0X7897AB07, 0X7C56B6B0, 0X71159069, 0X75D48DDE,
-            0X6B93DDDB, 0X6F52C06C, 0X6211E6B5, 0X66D0FB02, 0X5E9F46BF, 0X5A5E5B08, 0X571D7DD1,
-            0X53DC6066, 0X4D9B3063, 0X495A2DD4, 0X44190B0D, 0X40D816BA, -0x535a3969, -0x579b24e0,
-            -0x5ad80207, -0x5e191fb2, -0x405e4fb5, -0x449f5204, -0x49dc74db, -0x4d1d696e, -0x7552d4d1,
-            -0x7193c968, -0x7cd0efbf, -0x7811f20a, -0x6656a20d, -0x6297bfbc, -0x6fd49963, -0x6b1584d6,
-            -0x1f4be219, -0x1b8affb0, -0x16c9d977, -0x1208c4c2, -0xc4f94c5, -0x88e8974, -0x5cdafab,
-            -0x10cb21e, -0x39430fa1, -0x3d821218, -0x30c134cf, -0x3400297a, -0x2a47797d, -0x2e8664cc,
-            -0x23c54213, -0x27045fa6, 0X690CE0EE, 0X6DCDFD59, 0X608EDB80, 0X644FC637, 0X7A089632,
-            0X7EC98B85, 0X738AAD5C, 0X774BB0EB, 0X4F040D56, 0X4BC510E1, 0X46863638, 0X42472B8F,
-            0X5C007B8A, 0X58C1663D, 0X558240E4, 0X51435D53, 0X251D3B9E, 0X21DC2629, 0X2C9F00F0,
-            0X285E1D47, 0X36194D42, 0X32D850F5, 0X3F9B762C, 0X3B5A6B9B, 0X0315D626, 0X07D4CB91,
-            0X0A97ED48, 0X0E56F0FF, 0X1011A0FA, 0X14D0BD4D, 0X19939B94, 0X1D528623, -0xed0a9f2,
-            -0xa11b447, -0x75292a0, -0x3938f29, -0x1dd4df2e, -0x1915c29b, -0x1456e444, -0x1097f9f5,
-            -0x28d8444a, -0x2c1959ff, -0x215a7f28, -0x259b6291, -0x3bdc3296, -0x3f1d2f23, -0x325e09fc,
-            -0x369f144d, -0x42c17282, -0x46006f37, -0x4b4349f0, -0x4f825459, -0x51c5045e, -0x550419eb,
-            -0x58473f34, -0x5c862285, -0x64c99f3a, -0x6008828f, -0x6d4ba458, -0x698ab9e1, -0x77cde9e6,
-            -0x730cf453, -0x7e4fd28c, -0x7a8ecf3d, 0X5D8A9099, 0X594B8D2E, 0X5408ABF7, 0X50C9B640,
-            0X4E8EE645, 0X4A4FFBF2, 0X470CDD2B, 0X43CDC09C, 0X7B827D21, 0X7F436096, 0X7200464F,
-            0X76C15BF8, 0X68860BFD, 0X6C47164A, 0X61043093, 0X65C52D24, 0X119B4BE9, 0X155A565E,
-            0X18197087, 0X1CD86D30, 0X029F3D35, 0X065E2082, 0X0B1D065B, 0X0FDC1BEC, 0X3793A651,
-            0X3352BBE6, 0X3E119D3F, 0X3AD08088, 0X2497D08D, 0X2056CD3A, 0X2D15EBE3, 0X29D4F654,
-            -0x3a56d987, -0x3e97c432, -0x33d4e2e9, -0x3715ff60, -0x2952af5b, -0x2d93b2ee, -0x20d09435,
-            -0x24118984, -0x1c5e343f, -0x189f298a, -0x15dc0f51, -0x111d12e8, -0xf5a42e3, -0xb9b5f56,
-            -0x6d8798d, -0x219643c, -0x764702f7, -0x72861f42, -0x7fc53999, -0x7b042430, -0x6543742b,
-            -0x6182699e, -0x6cc14f45, -0x680052f4, -0x504fef4f, -0x548ef2fa, -0x59cdd421, -0x5d0cc998,
-            -0x434b9993, -0x478a8426, -0x4ac9a2fd, -0x4e08bf4c
+        0X00000000,
+        0X04C11DB7,
+        0X09823B6E,
+        0X0D4326D9,
+        0X130476DC,
+        0X17C56B6B,
+        0X1A864DB2,
+        0X1E475005,
+        0X2608EDB8,
+        0X22C9F00F,
+        0X2F8AD6D6,
+        0X2B4BCB61,
+        0X350C9B64,
+        0X31CD86D3,
+        0X3C8EA00A,
+        0X384FBDBD,
+        0X4C11DB70,
+        0X48D0C6C7,
+        0X4593E01E,
+        0X4152FDA9,
+        0X5F15ADAC,
+        0X5BD4B01B,
+        0X569796C2,
+        0X52568B75,
+        0X6A1936C8,
+        0X6ED82B7F,
+        0X639B0DA6,
+        0X675A1011,
+        0X791D4014,
+        0X7DDC5DA3,
+        0X709F7B7A,
+        0X745E66CD,
+        -0x67dc4920,
+        -0x631d54a9,
+        -0x6e5e7272,
+        -0x6a9f6fc7,
+        -0x74d83fc4,
+        -0x70192275,
+        -0x7d5a04ae,
+        -0x799b191b,
+        -0x41d4a4a8,
+        -0x4515b911,
+        -0x48569fca,
+        -0x4c97827f,
+        -0x52d0d27c,
+        -0x5611cfcd,
+        -0x5b52e916,
+        -0x5f93f4a3,
+        -0x2bcd9270,
+        -0x2f0c8fd9,
+        -0x224fa902,
+        -0x268eb4b7,
+        -0x38c9e4b4,
+        -0x3c08f905,
+        -0x314bdfde,
+        -0x358ac26b,
+        -0xdc57fd8,
+        -0x9046261,
+        -0x44744ba,
+        -0x86590f,
+        -0x1ec1090c,
+        -0x1a0014bd,
+        -0x17433266,
+        -0x13822fd3,
+        0X34867077,
+        0X30476DC0,
+        0X3D044B19,
+        0X39C556AE,
+        0X278206AB,
+        0X23431B1C,
+        0X2E003DC5,
+        0X2AC12072,
+        0X128E9DCF,
+        0X164F8078,
+        0X1B0CA6A1,
+        0X1FCDBB16,
+        0X018AEB13,
+        0X054BF6A4,
+        0X0808D07D,
+        0X0CC9CDCA,
+        0X7897AB07,
+        0X7C56B6B0,
+        0X71159069,
+        0X75D48DDE,
+        0X6B93DDDB,
+        0X6F52C06C,
+        0X6211E6B5,
+        0X66D0FB02,
+        0X5E9F46BF,
+        0X5A5E5B08,
+        0X571D7DD1,
+        0X53DC6066,
+        0X4D9B3063,
+        0X495A2DD4,
+        0X44190B0D,
+        0X40D816BA,
+        -0x535a3969,
+        -0x579b24e0,
+        -0x5ad80207,
+        -0x5e191fb2,
+        -0x405e4fb5,
+        -0x449f5204,
+        -0x49dc74db,
+        -0x4d1d696e,
+        -0x7552d4d1,
+        -0x7193c968,
+        -0x7cd0efbf,
+        -0x7811f20a,
+        -0x6656a20d,
+        -0x6297bfbc,
+        -0x6fd49963,
+        -0x6b1584d6,
+        -0x1f4be219,
+        -0x1b8affb0,
+        -0x16c9d977,
+        -0x1208c4c2,
+        -0xc4f94c5,
+        -0x88e8974,
+        -0x5cdafab,
+        -0x10cb21e,
+        -0x39430fa1,
+        -0x3d821218,
+        -0x30c134cf,
+        -0x3400297a,
+        -0x2a47797d,
+        -0x2e8664cc,
+        -0x23c54213,
+        -0x27045fa6,
+        0X690CE0EE,
+        0X6DCDFD59,
+        0X608EDB80,
+        0X644FC637,
+        0X7A089632,
+        0X7EC98B85,
+        0X738AAD5C,
+        0X774BB0EB,
+        0X4F040D56,
+        0X4BC510E1,
+        0X46863638,
+        0X42472B8F,
+        0X5C007B8A,
+        0X58C1663D,
+        0X558240E4,
+        0X51435D53,
+        0X251D3B9E,
+        0X21DC2629,
+        0X2C9F00F0,
+        0X285E1D47,
+        0X36194D42,
+        0X32D850F5,
+        0X3F9B762C,
+        0X3B5A6B9B,
+        0X0315D626,
+        0X07D4CB91,
+        0X0A97ED48,
+        0X0E56F0FF,
+        0X1011A0FA,
+        0X14D0BD4D,
+        0X19939B94,
+        0X1D528623,
+        -0xed0a9f2,
+        -0xa11b447,
+        -0x75292a0,
+        -0x3938f29,
+        -0x1dd4df2e,
+        -0x1915c29b,
+        -0x1456e444,
+        -0x1097f9f5,
+        -0x28d8444a,
+        -0x2c1959ff,
+        -0x215a7f28,
+        -0x259b6291,
+        -0x3bdc3296,
+        -0x3f1d2f23,
+        -0x325e09fc,
+        -0x369f144d,
+        -0x42c17282,
+        -0x46006f37,
+        -0x4b4349f0,
+        -0x4f825459,
+        -0x51c5045e,
+        -0x550419eb,
+        -0x58473f34,
+        -0x5c862285,
+        -0x64c99f3a,
+        -0x6008828f,
+        -0x6d4ba458,
+        -0x698ab9e1,
+        -0x77cde9e6,
+        -0x730cf453,
+        -0x7e4fd28c,
+        -0x7a8ecf3d,
+        0X5D8A9099,
+        0X594B8D2E,
+        0X5408ABF7,
+        0X50C9B640,
+        0X4E8EE645,
+        0X4A4FFBF2,
+        0X470CDD2B,
+        0X43CDC09C,
+        0X7B827D21,
+        0X7F436096,
+        0X7200464F,
+        0X76C15BF8,
+        0X68860BFD,
+        0X6C47164A,
+        0X61043093,
+        0X65C52D24,
+        0X119B4BE9,
+        0X155A565E,
+        0X18197087,
+        0X1CD86D30,
+        0X029F3D35,
+        0X065E2082,
+        0X0B1D065B,
+        0X0FDC1BEC,
+        0X3793A651,
+        0X3352BBE6,
+        0X3E119D3F,
+        0X3AD08088,
+        0X2497D08D,
+        0X2056CD3A,
+        0X2D15EBE3,
+        0X29D4F654,
+        -0x3a56d987,
+        -0x3e97c432,
+        -0x33d4e2e9,
+        -0x3715ff60,
+        -0x2952af5b,
+        -0x2d93b2ee,
+        -0x20d09435,
+        -0x24118984,
+        -0x1c5e343f,
+        -0x189f298a,
+        -0x15dc0f51,
+        -0x111d12e8,
+        -0xf5a42e3,
+        -0xb9b5f56,
+        -0x6d8798d,
+        -0x219643c,
+        -0x764702f7,
+        -0x72861f42,
+        -0x7fc53999,
+        -0x7b042430,
+        -0x6543742b,
+        -0x6182699e,
+        -0x6cc14f45,
+        -0x680052f4,
+        -0x504fef4f,
+        -0x548ef2fa,
+        -0x59cdd421,
+        -0x5d0cc998,
+        -0x434b9993,
+        -0x478a8426,
+        -0x4ac9a2fd,
+        -0x4e08bf4c
     )
 
     /**
@@ -2728,23 +2973,261 @@ object Util {
      * significant bit first".
      */
     private val CRC8_BYTES_MSBF = intArrayOf(
-            0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15, 0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A,
-            0x2D, 0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65, 0x48, 0x4F, 0x46, 0x41, 0x54, 0x53,
-            0x5A, 0x5D, 0xE0, 0xE7, 0xEE, 0xE9, 0xFC, 0xFB, 0xF2, 0xF5, 0xD8, 0xDF, 0xD6, 0xD1, 0xC4,
-            0xC3, 0xCA, 0xCD, 0x90, 0x97, 0x9E, 0x99, 0x8C, 0x8B, 0x82, 0x85, 0xA8, 0xAF, 0xA6, 0xA1,
-            0xB4, 0xB3, 0xBA, 0xBD, 0xC7, 0xC0, 0xC9, 0xCE, 0xDB, 0xDC, 0xD5, 0xD2, 0xFF, 0xF8, 0xF1,
-            0xF6, 0xE3, 0xE4, 0xED, 0xEA, 0xB7, 0xB0, 0xB9, 0xBE, 0xAB, 0xAC, 0xA5, 0xA2, 0x8F, 0x88,
-            0x81, 0x86, 0x93, 0x94, 0x9D, 0x9A, 0x27, 0x20, 0x29, 0x2E, 0x3B, 0x3C, 0x35, 0x32, 0x1F,
-            0x18, 0x11, 0x16, 0x03, 0x04, 0x0D, 0x0A, 0x57, 0x50, 0x59, 0x5E, 0x4B, 0x4C, 0x45, 0x42,
-            0x6F, 0x68, 0x61, 0x66, 0x73, 0x74, 0x7D, 0x7A, 0x89, 0x8E, 0x87, 0x80, 0x95, 0x92, 0x9B,
-            0x9C, 0xB1, 0xB6, 0xBF, 0xB8, 0xAD, 0xAA, 0xA3, 0xA4, 0xF9, 0xFE, 0xF7, 0xF0, 0xE5, 0xE2,
-            0xEB, 0xEC, 0xC1, 0xC6, 0xCF, 0xC8, 0xDD, 0xDA, 0xD3, 0xD4, 0x69, 0x6E, 0x67, 0x60, 0x75,
-            0x72, 0x7B, 0x7C, 0x51, 0x56, 0x5F, 0x58, 0x4D, 0x4A, 0x43, 0x44, 0x19, 0x1E, 0x17, 0x10,
-            0x05, 0x02, 0x0B, 0x0C, 0x21, 0x26, 0x2F, 0x28, 0x3D, 0x3A, 0x33, 0x34, 0x4E, 0x49, 0x40,
-            0x47, 0x52, 0x55, 0x5C, 0x5B, 0x76, 0x71, 0x78, 0x7F, 0x6A, 0x6D, 0x64, 0x63, 0x3E, 0x39,
-            0x30, 0x37, 0x22, 0x25, 0x2C, 0x2B, 0x06, 0x01, 0x08, 0x0F, 0x1A, 0x1D, 0x14, 0x13, 0xAE,
-            0xA9, 0xA0, 0xA7, 0xB2, 0xB5, 0xBC, 0xBB, 0x96, 0x91, 0x98, 0x9F, 0x8A, 0x8D, 0x84, 0x83,
-            0xDE, 0xD9, 0xD0, 0xD7, 0xC2, 0xC5, 0xCC, 0xCB, 0xE6, 0xE1, 0xE8, 0xEF, 0xFA, 0xFD, 0xF4,
-            0xF3
+        0x00,
+        0x07,
+        0x0E,
+        0x09,
+        0x1C,
+        0x1B,
+        0x12,
+        0x15,
+        0x38,
+        0x3F,
+        0x36,
+        0x31,
+        0x24,
+        0x23,
+        0x2A,
+        0x2D,
+        0x70,
+        0x77,
+        0x7E,
+        0x79,
+        0x6C,
+        0x6B,
+        0x62,
+        0x65,
+        0x48,
+        0x4F,
+        0x46,
+        0x41,
+        0x54,
+        0x53,
+        0x5A,
+        0x5D,
+        0xE0,
+        0xE7,
+        0xEE,
+        0xE9,
+        0xFC,
+        0xFB,
+        0xF2,
+        0xF5,
+        0xD8,
+        0xDF,
+        0xD6,
+        0xD1,
+        0xC4,
+        0xC3,
+        0xCA,
+        0xCD,
+        0x90,
+        0x97,
+        0x9E,
+        0x99,
+        0x8C,
+        0x8B,
+        0x82,
+        0x85,
+        0xA8,
+        0xAF,
+        0xA6,
+        0xA1,
+        0xB4,
+        0xB3,
+        0xBA,
+        0xBD,
+        0xC7,
+        0xC0,
+        0xC9,
+        0xCE,
+        0xDB,
+        0xDC,
+        0xD5,
+        0xD2,
+        0xFF,
+        0xF8,
+        0xF1,
+        0xF6,
+        0xE3,
+        0xE4,
+        0xED,
+        0xEA,
+        0xB7,
+        0xB0,
+        0xB9,
+        0xBE,
+        0xAB,
+        0xAC,
+        0xA5,
+        0xA2,
+        0x8F,
+        0x88,
+        0x81,
+        0x86,
+        0x93,
+        0x94,
+        0x9D,
+        0x9A,
+        0x27,
+        0x20,
+        0x29,
+        0x2E,
+        0x3B,
+        0x3C,
+        0x35,
+        0x32,
+        0x1F,
+        0x18,
+        0x11,
+        0x16,
+        0x03,
+        0x04,
+        0x0D,
+        0x0A,
+        0x57,
+        0x50,
+        0x59,
+        0x5E,
+        0x4B,
+        0x4C,
+        0x45,
+        0x42,
+        0x6F,
+        0x68,
+        0x61,
+        0x66,
+        0x73,
+        0x74,
+        0x7D,
+        0x7A,
+        0x89,
+        0x8E,
+        0x87,
+        0x80,
+        0x95,
+        0x92,
+        0x9B,
+        0x9C,
+        0xB1,
+        0xB6,
+        0xBF,
+        0xB8,
+        0xAD,
+        0xAA,
+        0xA3,
+        0xA4,
+        0xF9,
+        0xFE,
+        0xF7,
+        0xF0,
+        0xE5,
+        0xE2,
+        0xEB,
+        0xEC,
+        0xC1,
+        0xC6,
+        0xCF,
+        0xC8,
+        0xDD,
+        0xDA,
+        0xD3,
+        0xD4,
+        0x69,
+        0x6E,
+        0x67,
+        0x60,
+        0x75,
+        0x72,
+        0x7B,
+        0x7C,
+        0x51,
+        0x56,
+        0x5F,
+        0x58,
+        0x4D,
+        0x4A,
+        0x43,
+        0x44,
+        0x19,
+        0x1E,
+        0x17,
+        0x10,
+        0x05,
+        0x02,
+        0x0B,
+        0x0C,
+        0x21,
+        0x26,
+        0x2F,
+        0x28,
+        0x3D,
+        0x3A,
+        0x33,
+        0x34,
+        0x4E,
+        0x49,
+        0x40,
+        0x47,
+        0x52,
+        0x55,
+        0x5C,
+        0x5B,
+        0x76,
+        0x71,
+        0x78,
+        0x7F,
+        0x6A,
+        0x6D,
+        0x64,
+        0x63,
+        0x3E,
+        0x39,
+        0x30,
+        0x37,
+        0x22,
+        0x25,
+        0x2C,
+        0x2B,
+        0x06,
+        0x01,
+        0x08,
+        0x0F,
+        0x1A,
+        0x1D,
+        0x14,
+        0x13,
+        0xAE,
+        0xA9,
+        0xA0,
+        0xA7,
+        0xB2,
+        0xB5,
+        0xBC,
+        0xBB,
+        0x96,
+        0x91,
+        0x98,
+        0x9F,
+        0x8A,
+        0x8D,
+        0x84,
+        0x83,
+        0xDE,
+        0xD9,
+        0xD0,
+        0xD7,
+        0xC2,
+        0xC5,
+        0xCC,
+        0xCB,
+        0xE6,
+        0xE1,
+        0xE8,
+        0xEF,
+        0xFA,
+        0xFD,
+        0xF4,
+        0xF3
     )
 }

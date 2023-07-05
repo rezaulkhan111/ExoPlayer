@@ -15,9 +15,13 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.os.Bundleimport
+import android.annotation.SuppressLint
+import android.os.Bundle
+import android.os.IBinder
+import com.google.android.exoplayer2.util.Log.i
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
 
-android.os.IBinderimport java.lang.reflect.InvocationTargetExceptionimport java.lang.reflect.Method
 /** Utilities for [Bundle].  */
 object BundleUtil {
     private val TAG: String = "BundleUtil"
@@ -31,11 +35,12 @@ object BundleUtil {
      * @param key The key to use while getting the [IBinder].
      * @return The [IBinder] that was obtained.
      */
+    @SuppressLint("NewApi")
     fun getBinder(bundle: Bundle, key: String?): IBinder? {
-        if (Util.SDK_INT >= 18) {
-            return bundle.getBinder(key)
+        return if (Util.SDK_INT >= 18) {
+            bundle.getBinder(key)
         } else {
-            return getBinderByReflection(bundle, key)
+            getBinderByReflection(bundle, key)
         }
     }
 
@@ -46,6 +51,7 @@ object BundleUtil {
      * @param key The key to use while putting the [IBinder].
      * @param binder The [IBinder] to put.
      */
+    @SuppressLint("NewApi")
     fun putBinder(bundle: Bundle, key: String?, binder: IBinder?) {
         if (Util.SDK_INT >= 18) {
             bundle.putBinder(key, binder)
@@ -60,35 +66,34 @@ object BundleUtil {
         if (getIBinder == null) {
             try {
                 getIBinderMethod = Bundle::class.java.getMethod("getIBinder", String::class.java)
-                getIBinderMethod.setAccessible(true)
+                getIBinderMethod?.isAccessible = true
             } catch (e: NoSuchMethodException) {
-                Log.i(TAG, "Failed to retrieve getIBinder method", e)
+                i(TAG, "Failed to retrieve getIBinder method", e)
                 return null
             }
             getIBinder = getIBinderMethod
         }
-        try {
-            return getIBinder!!.invoke(bundle, key) as IBinder?
+        return try {
+            getIBinder!!.invoke(bundle, key) as IBinder
         } catch (e: InvocationTargetException) {
-            Log.i(TAG, "Failed to invoke getIBinder via reflection", e)
-            return null
+            i(TAG, "Failed to invoke getIBinder via reflection", e)
+            null
         } catch (e: IllegalAccessException) {
-            Log.i(TAG, "Failed to invoke getIBinder via reflection", e)
-            return null
-        } catch (e: IllegalArgumentException) {
-            Log.i(TAG, "Failed to invoke getIBinder via reflection", e)
-            return null
+            i(TAG, "Failed to invoke getIBinder via reflection", e)
+            null
+        } catch (e: java.lang.IllegalArgumentException) {
+            i(TAG, "Failed to invoke getIBinder via reflection", e)
+            null
         }
     }
 
     // Method.invoke may take null "key" and "binder".
-    private fun putBinderByReflection(
-            bundle: Bundle, key: String?, binder: IBinder?) {
+    private fun putBinderByReflection(bundle: Bundle, key: String?, binder: IBinder?) {
         var putIBinder: Method? = putIBinderMethod
         if (putIBinder == null) {
             try {
                 putIBinderMethod = Bundle::class.java.getMethod("putIBinder", String::class.java, IBinder::class.java)
-                putIBinderMethod.setAccessible(true)
+                putIBinderMethod?.isAccessible = true
             } catch (e: NoSuchMethodException) {
                 Log.i(TAG, "Failed to retrieve putIBinder method", e)
                 return

@@ -15,104 +15,105 @@
  */
 package com.google.android.exoplayer2.util
 
-android.net.Uriimport androidx.annotation .*import java.lang.annotation.Documentedimport
+import android.net.Uri
+import androidx.annotation.IntDef
+import com.google.common.annotations.VisibleForTesting
+import java.lang.annotation.Documented
 
-java.lang.annotation .Retentionimport java.lang.annotation .RetentionPolicy
 /** Defines common file type constants and helper methods.  */
 object FileTypes {
     /** Unknown file type.  */
-    val UNKNOWN: Int = -1
+    const val UNKNOWN: Int = -1
 
     /** File type for the AC-3 and E-AC-3 formats.  */
-    val AC3: Int = 0
+    const val AC3: Int = 0
 
     /** File type for the AC-4 format.  */
-    val AC4: Int = 1
+    const val AC4: Int = 1
 
     /** File type for the ADTS format.  */
-    val ADTS: Int = 2
+    const val ADTS: Int = 2
 
     /** File type for the AMR format.  */
-    val AMR: Int = 3
+    const val AMR: Int = 3
 
     /** File type for the FLAC format.  */
-    val FLAC: Int = 4
+    const val FLAC: Int = 4
 
     /** File type for the FLV format.  */
-    val FLV: Int = 5
+    const val FLV: Int = 5
 
     /** File type for the Matroska and WebM formats.  */
-    val MATROSKA: Int = 6
+    const val MATROSKA: Int = 6
 
     /** File type for the MP3 format.  */
-    val MP3: Int = 7
+    const val MP3: Int = 7
 
     /** File type for the MP4 format.  */
-    val MP4: Int = 8
+    const val MP4: Int = 8
 
     /** File type for the Ogg format.  */
-    val OGG: Int = 9
+    const val OGG: Int = 9
 
     /** File type for the MPEG-PS format.  */
-    val PS: Int = 10
+    const val PS: Int = 10
 
     /** File type for the MPEG-TS format.  */
-    val TS: Int = 11
+    const val TS: Int = 11
 
     /** File type for the WAV format.  */
-    val WAV: Int = 12
+    const val WAV: Int = 12
 
     /** File type for the WebVTT format.  */
-    val WEBVTT: Int = 13
+    const val WEBVTT: Int = 13
 
     /** File type for the JPEG format.  */
-    val JPEG: Int = 14
+    const val JPEG: Int = 14
 
     /** File type for the MIDI format.  */
-    val MIDI: Int = 15
+    const val MIDI: Int = 15
 
     /** File type for the AVI format.  */
-    val AVI: Int = 16
+    const val AVI: Int = 16
 
     @VisibleForTesting /* package */
     val HEADER_CONTENT_TYPE: String = "Content-Type"
-    private val EXTENSION_AC3: String = ".ac3"
-    private val EXTENSION_EC3: String = ".ec3"
-    private val EXTENSION_AC4: String = ".ac4"
-    private val EXTENSION_ADTS: String = ".adts"
-    private val EXTENSION_AAC: String = ".aac"
-    private val EXTENSION_AMR: String = ".amr"
-    private val EXTENSION_FLAC: String = ".flac"
-    private val EXTENSION_FLV: String = ".flv"
-    private val EXTENSION_MID: String = ".mid"
-    private val EXTENSION_MIDI: String = ".midi"
-    private val EXTENSION_SMF: String = ".smf"
-    private val EXTENSION_PREFIX_MK: String = ".mk"
-    private val EXTENSION_WEBM: String = ".webm"
-    private val EXTENSION_PREFIX_OG: String = ".og"
-    private val EXTENSION_OPUS: String = ".opus"
-    private val EXTENSION_MP3: String = ".mp3"
-    private val EXTENSION_MP4: String = ".mp4"
-    private val EXTENSION_PREFIX_M4: String = ".m4"
-    private val EXTENSION_PREFIX_MP4: String = ".mp4"
-    private val EXTENSION_PREFIX_CMF: String = ".cmf"
-    private val EXTENSION_PS: String = ".ps"
-    private val EXTENSION_MPEG: String = ".mpeg"
-    private val EXTENSION_MPG: String = ".mpg"
-    private val EXTENSION_M2P: String = ".m2p"
-    private val EXTENSION_TS: String = ".ts"
-    private val EXTENSION_PREFIX_TS: String = ".ts"
-    private val EXTENSION_WAV: String = ".wav"
-    private val EXTENSION_WAVE: String = ".wave"
-    private val EXTENSION_VTT: String = ".vtt"
-    private val EXTENSION_WEBVTT: String = ".webvtt"
-    private val EXTENSION_JPG: String = ".jpg"
-    private val EXTENSION_JPEG: String = ".jpeg"
-    private val EXTENSION_AVI: String = ".avi"
+    private const val EXTENSION_AC3: String = ".ac3"
+    private const val EXTENSION_EC3: String = ".ec3"
+    private const val EXTENSION_AC4: String = ".ac4"
+    private const val EXTENSION_ADTS: String = ".adts"
+    private const val EXTENSION_AAC: String = ".aac"
+    private const val EXTENSION_AMR: String = ".amr"
+    private const val EXTENSION_FLAC: String = ".flac"
+    private const val EXTENSION_FLV: String = ".flv"
+    private const val EXTENSION_MID: String = ".mid"
+    private const val EXTENSION_MIDI: String = ".midi"
+    private const val EXTENSION_SMF: String = ".smf"
+    private const val EXTENSION_PREFIX_MK: String = ".mk"
+    private const val EXTENSION_WEBM: String = ".webm"
+    private const val EXTENSION_PREFIX_OG: String = ".og"
+    private const val EXTENSION_OPUS: String = ".opus"
+    private const val EXTENSION_MP3: String = ".mp3"
+    private const val EXTENSION_MP4: String = ".mp4"
+    private const val EXTENSION_PREFIX_M4: String = ".m4"
+    private const val EXTENSION_PREFIX_MP4: String = ".mp4"
+    private const val EXTENSION_PREFIX_CMF: String = ".cmf"
+    private const val EXTENSION_PS: String = ".ps"
+    private const val EXTENSION_MPEG: String = ".mpeg"
+    private const val EXTENSION_MPG: String = ".mpg"
+    private const val EXTENSION_M2P: String = ".m2p"
+    private const val EXTENSION_TS: String = ".ts"
+    private const val EXTENSION_PREFIX_TS: String = ".ts"
+    private const val EXTENSION_WAV: String = ".wav"
+    private const val EXTENSION_WAVE: String = ".wave"
+    private const val EXTENSION_VTT: String = ".vtt"
+    private const val EXTENSION_WEBVTT: String = ".webvtt"
+    private const val EXTENSION_JPG: String = ".jpg"
+    private const val EXTENSION_JPEG: String = ".jpeg"
+    private const val EXTENSION_AVI: String = ".avi"
 
     /** Returns the [Type] corresponding to the response headers provided.  */
-    fun inferFileTypeFromResponseHeaders(
-            responseHeaders: Map<String?, List<String?>?>): @Type Int {
+    fun inferFileTypeFromResponseHeaders(responseHeaders: Map<String?, List<String?>?>): @FileTypes.Type Int {
         val contentTypes: List<String?>? = responseHeaders.get(HEADER_CONTENT_TYPE)
         val mimeType: String? = if (contentTypes == null || contentTypes.isEmpty()) null else contentTypes.get(0)
         return inferFileTypeFromMimeType(mimeType)
@@ -124,7 +125,7 @@ object FileTypes {
      *
      * Returns [.UNKNOWN] if the mime type is `null`.
      */
-    fun inferFileTypeFromMimeType(mimeType: String?): @Type Int {
+    fun inferFileTypeFromMimeType(mimeType: String?): @FileTypes.Type Int {
         var mimeType: String? = mimeType
         if (mimeType == null) {
             return UNKNOWN
@@ -152,7 +153,7 @@ object FileTypes {
     }
 
     /** Returns the [Type] corresponding to the [Uri] provided.  */
-    fun inferFileTypeFromUri(uri: Uri): @Type Int {
+    fun inferFileTypeFromUri(uri: Uri): @FileTypes.Type Int {
         val filename: String? = uri.getLastPathSegment()
         if (filename == null) {
             return UNKNOWN
@@ -168,41 +169,24 @@ object FileTypes {
             return FLAC
         } else if (filename.endsWith(EXTENSION_FLV)) {
             return FLV
-        } else if ((filename.endsWith(EXTENSION_MID)
-                        || filename.endsWith(EXTENSION_MIDI)
-                        || filename.endsWith(EXTENSION_SMF))) {
+        } else if ((filename.endsWith(EXTENSION_MID) || filename.endsWith(EXTENSION_MIDI) || filename.endsWith(EXTENSION_SMF))) {
             return MIDI
-        } else if ((filename.startsWith(
-                        EXTENSION_PREFIX_MK,  /* toffset= */
-                        filename.length - (EXTENSION_PREFIX_MK.length + 1))
-                        || filename.endsWith(EXTENSION_WEBM))) {
+        } else if ((filename.startsWith(EXTENSION_PREFIX_MK,  /* toffset= */
+                        filename.length - (EXTENSION_PREFIX_MK.length + 1)) || filename.endsWith(EXTENSION_WEBM))) {
             return MATROSKA
         } else if (filename.endsWith(EXTENSION_MP3)) {
             return MP3
-        } else if ((filename.endsWith(EXTENSION_MP4)
-                        || filename.startsWith(
-                        EXTENSION_PREFIX_M4,  /* toffset= */
-                        filename.length - (EXTENSION_PREFIX_M4.length + 1))
-                        || filename.startsWith(
-                        EXTENSION_PREFIX_MP4,  /* toffset= */
-                        filename.length - (EXTENSION_PREFIX_MP4.length + 1))
-                        || filename.startsWith(
-                        EXTENSION_PREFIX_CMF,  /* toffset= */
+        } else if ((filename.endsWith(EXTENSION_MP4) || filename.startsWith(EXTENSION_PREFIX_M4,  /* toffset= */
+                        filename.length - (EXTENSION_PREFIX_M4.length + 1)) || filename.startsWith(EXTENSION_PREFIX_MP4,  /* toffset= */
+                        filename.length - (EXTENSION_PREFIX_MP4.length + 1)) || filename.startsWith(EXTENSION_PREFIX_CMF,  /* toffset= */
                         filename.length - (EXTENSION_PREFIX_CMF.length + 1)))) {
             return MP4
-        } else if ((filename.startsWith(
-                        EXTENSION_PREFIX_OG,  /* toffset= */
-                        filename.length - (EXTENSION_PREFIX_OG.length + 1))
-                        || filename.endsWith(EXTENSION_OPUS))) {
+        } else if ((filename.startsWith(EXTENSION_PREFIX_OG,  /* toffset= */
+                        filename.length - (EXTENSION_PREFIX_OG.length + 1)) || filename.endsWith(EXTENSION_OPUS))) {
             return OGG
-        } else if ((filename.endsWith(EXTENSION_PS)
-                        || filename.endsWith(EXTENSION_MPEG)
-                        || filename.endsWith(EXTENSION_MPG)
-                        || filename.endsWith(EXTENSION_M2P))) {
+        } else if ((filename.endsWith(EXTENSION_PS) || filename.endsWith(EXTENSION_MPEG) || filename.endsWith(EXTENSION_MPG) || filename.endsWith(EXTENSION_M2P))) {
             return PS
-        } else if ((filename.endsWith(EXTENSION_TS)
-                        || filename.startsWith(
-                        EXTENSION_PREFIX_TS,  /* toffset= */
+        } else if ((filename.endsWith(EXTENSION_TS) || filename.startsWith(EXTENSION_PREFIX_TS,  /* toffset= */
                         filename.length - (EXTENSION_PREFIX_TS.length + 1)))) {
             return TS
         } else if (filename.endsWith(EXTENSION_WAV) || filename.endsWith(EXTENSION_WAVE)) {
@@ -224,8 +208,8 @@ object FileTypes {
      * [.PS], [.TS], [.WAV], [.WEBVTT], [.JPEG] and [.MIDI].
      */
     @Documented
-    @Retention(RetentionPolicy.SOURCE)
+    @Retention(AnnotationRetention.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([UNKNOWN, AC3, AC4, ADTS, AMR, FLAC, FLV, MATROSKA, MP3, MP4, OGG, PS, TS, WAV, WEBVTT, JPEG, MIDI, AVI])
-    annotation class Type constructor()
+    @IntDef(value = [UNKNOWN, AC3, AC4, ADTS, AMR, FLAC, FLV, MATROSKA, MP3, MP4, OGG, PS, TS, WAV, WEBVTT, JPEG, MIDI, AVI])
+    annotation class Type {}
 }

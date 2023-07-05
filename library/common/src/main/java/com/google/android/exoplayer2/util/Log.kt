@@ -15,16 +15,30 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.text.TextUtilsimport
+import android.text.TextUtils
+import androidx.annotation.*
+import androidx.annotation.Size
+import org.checkerframework.dataflow.qual.Pure
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.net.UnknownHostException
 
-org.checkerframework.dataflow.qual.Pure androidx.annotation .*import androidx.annotation.Sizeimport
-
-java.lang.annotation .Documentedimport java.lang.annotation .Retentionimport java.lang.annotation .RetentionPolicyimport java.net.UnknownHostException
 /**
  * Wrapper around [android.util.Log] which allows to set the log level and to specify a custom
  * log output.
  */
 object Log {
+    /**
+     * Log level for ExoPlayer logcat logging. One of [.LOG_LEVEL_ALL], [.LOG_LEVEL_INFO],
+     * [.LOG_LEVEL_WARNING], [.LOG_LEVEL_ERROR] or [.LOG_LEVEL_OFF].
+     */
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(TYPE_USE, AnnotationTarget.TYPE)
+    @IntDef(value = [LOG_LEVEL_ALL, LOG_LEVEL_INFO, LOG_LEVEL_WARNING, LOG_LEVEL_ERROR, LOG_LEVEL_OFF])
+    annotation class LogLevel
+
     /** Log level to log all messages.  */
     const val LOG_LEVEL_ALL = 0
 
@@ -39,6 +53,68 @@ object Log {
 
     /** Log level to disable all logging.  */
     const val LOG_LEVEL_OFF = Int.MAX_VALUE
+
+    /**
+     * Interface for a logger that can output messages with a tag.
+     *
+     *
+     * Use [.DEFAULT] to output to [android.util.Log].
+     */
+    interface Logger {
+        /**
+         * Logs a debug-level message.
+         *
+         * @param tag The tag of the message.
+         * @param message The message.
+         */
+        fun d(tag: String?, message: String?)
+
+        /**
+         * Logs an information-level message.
+         *
+         * @param tag The tag of the message.
+         * @param message The message.
+         */
+        fun i(tag: String?, message: String?)
+
+        /**
+         * Logs a warning-level message.
+         *
+         * @param tag The tag of the message.
+         * @param message The message.
+         */
+        fun w(tag: String?, message: String?)
+
+        /**
+         * Logs an error-level message.
+         *
+         * @param tag The tag of the message.
+         * @param message The message.
+         */
+        fun e(tag: String?, message: String?)
+
+        companion object {
+            /** The default instance logging to [android.util.Log].  */
+            val DEFAULT: Logger = object : Logger {
+                override fun d(tag: String?, message: String?) {
+                    android.util.Log.d(tag, message!!)
+                }
+
+                override fun i(tag: String?, message: String?) {
+                    android.util.Log.i(tag, message!!)
+                }
+
+                override fun w(tag: String?, message: String?) {
+                    android.util.Log.w(tag, message!!)
+                }
+
+                override fun e(tag: String?, message: String?) {
+                    android.util.Log.e(tag, message!!)
+                }
+            }
+        }
+    }
+
     private val lock = Any()
 
     @GuardedBy("lock")
@@ -49,6 +125,8 @@ object Log {
 
     @GuardedBy("lock")
     private var logger = Logger.DEFAULT
+
+    private fun Log() {}
 
     /** Returns current [LogLevel] for ExoPlayer logcat logging.  */
     @Pure
@@ -199,13 +277,12 @@ object Log {
     }
 
     @Pure
-    private fun appendThrowableString(message: String, throwable: Throwable?): String {
-        var message = message
+    private fun appendThrowableString(message: String, throwable: Throwable?): String? {
+        var message: String? = message
         val throwableString = getThrowableString(throwable)
         if (!TextUtils.isEmpty(throwableString)) {
             message += """
-  ${throwableString!!.replace("\n", "\n  ")}
-"""
+  ${throwableString!!.replace("\n", "\n  ")}"""
         }
         return message
     }
@@ -220,76 +297,5 @@ object Log {
             throwable = throwable.cause
         }
         return false
-    }
-
-    /**
-     * Log level for ExoPlayer logcat logging. One of [.LOG_LEVEL_ALL], [.LOG_LEVEL_INFO],
-     * [.LOG_LEVEL_WARNING], [.LOG_LEVEL_ERROR] or [.LOG_LEVEL_OFF].
-     */
-    @Documented
-    @Retention(RetentionPolicy.SOURCE)
-    @Target(TYPE_USE)
-    @IntDef([LOG_LEVEL_ALL, LOG_LEVEL_INFO, LOG_LEVEL_WARNING, LOG_LEVEL_ERROR, LOG_LEVEL_OFF])
-    annotation class LogLevel
-
-    /**
-     * Interface for a logger that can output messages with a tag.
-     *
-     *
-     * Use [.DEFAULT] to output to [android.util.Log].
-     */
-    interface Logger {
-        /**
-         * Logs a debug-level message.
-         *
-         * @param tag The tag of the message.
-         * @param message The message.
-         */
-        fun d(tag: String?, message: String?)
-
-        /**
-         * Logs an information-level message.
-         *
-         * @param tag The tag of the message.
-         * @param message The message.
-         */
-        fun i(tag: String?, message: String?)
-
-        /**
-         * Logs a warning-level message.
-         *
-         * @param tag The tag of the message.
-         * @param message The message.
-         */
-        fun w(tag: String?, message: String?)
-
-        /**
-         * Logs an error-level message.
-         *
-         * @param tag The tag of the message.
-         * @param message The message.
-         */
-        fun e(tag: String?, message: String?)
-
-        companion object {
-            /** The default instance logging to [android.util.Log].  */
-            val DEFAULT: Logger = object : Logger {
-                override fun d(tag: String?, message: String?) {
-                    android.util.Log.d(tag, message!!)
-                }
-
-                override fun i(tag: String?, message: String?) {
-                    android.util.Log.i(tag, message!!)
-                }
-
-                override fun w(tag: String?, message: String?) {
-                    android.util.Log.w(tag, message!!)
-                }
-
-                override fun e(tag: String?, message: String?) {
-                    android.util.Log.e(tag, message!!)
-                }
-            }
-        }
     }
 }

@@ -28,18 +28,25 @@ package com.google.android.exoplayer2.util
  *  * [.open] and [.close] return whether they changed the variable's state.
  *
  */
-class ConditionVariable
-/** Creates an instance using [Clock.DEFAULT].  */ @JvmOverloads constructor(private val clock: Clock = Clock.Companion.DEFAULT) {
-    /** Returns whether the condition is opened.  */
-    @get:Synchronized
-    var isOpen: Boolean = false
-        private set
+class ConditionVariable {
+    private var clock: Clock? = null
+    private var isOpen: Boolean = false
+
     /**
      * Creates an instance, which starts closed.
      *
      * @param clock The [Clock] whose [Clock.elapsedRealtime] method is used to
      * determine when [.block] should time out.
      */
+    constructor(clock: Clock?) {
+        this.clock = clock
+    }
+
+    /** Creates an instance using [Clock.DEFAULT].  */
+    constructor() {
+        ConditionVariable(Clock.DEFAULT)
+    }
+
     /**
      * Opens the condition and releases all threads that are blocked.
      *
@@ -62,7 +69,7 @@ class ConditionVariable
      */
     @Synchronized
     fun close(): Boolean {
-        val wasOpen: Boolean = isOpen
+        val wasOpen = isOpen
         isOpen = false
         return wasOpen
     }
@@ -94,15 +101,15 @@ class ConditionVariable
         if (timeoutMs <= 0) {
             return isOpen
         }
-        var nowMs: Long = clock.elapsedRealtime()
-        val endMs: Long = nowMs + timeoutMs
+        var nowMs = clock!!.elapsedRealtime()
+        val endMs = nowMs + timeoutMs
         if (endMs < nowMs) {
             // timeoutMs is large enough for (nowMs + timeoutMs) to rollover. Block indefinitely.
             block()
         } else {
             while (!isOpen && nowMs < endMs) {
                 wait(endMs - nowMs)
-                nowMs = clock.elapsedRealtime()
+                nowMs = clock!!.elapsedRealtime()
             }
         }
         return isOpen
@@ -114,7 +121,7 @@ class ConditionVariable
      */
     @Synchronized
     fun blockUninterruptible() {
-        var wasInterrupted: Boolean = false
+        var wasInterrupted = false
         while (!isOpen) {
             try {
                 wait()
@@ -126,5 +133,11 @@ class ConditionVariable
             // Restore the interrupted status.
             Thread.currentThread().interrupt()
         }
+    }
+
+    /** Returns whether the condition is opened.  */
+    @Synchronized
+    fun isOpen(): Boolean {
+        return isOpen
     }
 }

@@ -15,12 +15,14 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.annotation.SuppressLintimport
+import android.annotation.SuppressLint
+import android.media.*
+import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.C.PcmEncoding
+import com.google.android.exoplayer2.util.Util.SDK_INT
+import com.google.android.exoplayer2.video.ColorInfo
+import java.nio.ByteBuffer
 
-android.media.*import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.C.PcmEncodingimport
-
-com.google.android.exoplayer2.video.ColorInfoimport java.nio.ByteBuffer
 /** Helper class containing utility methods for managing [MediaFormat] instances.  */
 object MediaFormatUtil {
     /**
@@ -28,7 +30,7 @@ object MediaFormatUtil {
      * width and height.
      */
     // The constant value must not be changed, because it's also set by the framework MediaParser API.
-    val KEY_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT: String = "exo-pixel-width-height-ratio-float"
+    const val KEY_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT = "exo-pixel-width-height-ratio-float"
 
     /**
      * Custom [MediaFormat] key associated with an integer representing the PCM encoding.
@@ -38,7 +40,7 @@ object MediaFormatUtil {
      * defined by [C.PcmEncoding], including [C.ENCODING_PCM_16BIT_BIG_ENDIAN], [ ][C.ENCODING_PCM_24BIT], and [C.ENCODING_PCM_32BIT].
      */
     // The constant value must not be changed, because it's also set by the framework MediaParser API.
-    val KEY_PCM_ENCODING_EXTENDED: String = "exo-pcm-encoding-int"
+    const val KEY_PCM_ENCODING_EXTENDED = "exo-pcm-encoding-int"
 
     /**
      * The [MediaFormat] key for the maximum bitrate in bits per second.
@@ -52,8 +54,9 @@ object MediaFormatUtil {
      */
     // The constant value must not be changed, because it's also set by the framework MediaParser and
     // MediaExtractor APIs.
-    val KEY_MAX_BIT_RATE: String = "max-bitrate"
-    private val MAX_POWER_OF_TWO_INT: Int = 1 shl 30
+    const val KEY_MAX_BIT_RATE = "max-bitrate"
+
+    private const val MAX_POWER_OF_TWO_INT = 1 shl 30
 
     /**
      * Returns a [MediaFormat] representing the given ExoPlayer [Format].
@@ -68,7 +71,7 @@ object MediaFormatUtil {
      */
     @SuppressLint("InlinedApi") // Inlined MediaFormat keys.
     fun createMediaFormatFromFormat(format: Format): MediaFormat {
-        val result: MediaFormat = MediaFormat()
+        val result = MediaFormat()
         maybeSetInteger(result, MediaFormat.KEY_BIT_RATE, format.bitrate)
         maybeSetInteger(result, KEY_MAX_BIT_RATE, format.peakBitrate)
         maybeSetInteger(result, MediaFormat.KEY_CHANNEL_COUNT, format.channelCount)
@@ -85,7 +88,7 @@ object MediaFormatUtil {
         maybeSetInteger(result, MediaFormat.KEY_SAMPLE_RATE, format.sampleRate)
         maybeSetInteger(result, MediaFormat.KEY_CAPTION_SERVICE_NUMBER, format.accessibilityChannel)
         result.setInteger(MediaFormat.KEY_ROTATION, format.rotationDegrees)
-        val selectionFlags: Int = format.selectionFlags
+        val selectionFlags = format.selectionFlags
         setBooleanAsInt(
                 result, MediaFormat.KEY_IS_AUTOSELECT, selectionFlags and C.SELECTION_FLAG_AUTOSELECT)
         setBooleanAsInt(result, MediaFormat.KEY_IS_DEFAULT, selectionFlags and C.SELECTION_FLAG_DEFAULT)
@@ -106,7 +109,7 @@ object MediaFormatUtil {
      */
     fun maybeSetString(format: MediaFormat, key: String?, value: String?) {
         if (value != null) {
-            format.setString((key)!!, value)
+            format.setString(key!!, value)
         }
     }
 
@@ -116,9 +119,9 @@ object MediaFormatUtil {
      * @param format The [MediaFormat] being configured.
      * @param csdBuffers The csd buffers to set.
      */
-    fun setCsdBuffers(format: MediaFormat, csdBuffers: List<ByteArray?>?) {
-        for (i in csdBuffers!!.indices) {
-            format.setByteBuffer("csd-" + i, ByteBuffer.wrap(csdBuffers.get(i)))
+    fun setCsdBuffers(format: MediaFormat, csdBuffers: List<ByteArray?>) {
+        for (i in csdBuffers.indices) {
+            format.setByteBuffer("csd-$i", ByteBuffer.wrap(csdBuffers[i]))
         }
     }
 
@@ -130,8 +133,8 @@ object MediaFormatUtil {
      * @param value The value to set.
      */
     fun maybeSetInteger(format: MediaFormat, key: String?, value: Int) {
-        if (value != Format.Companion.NO_VALUE) {
-            format.setInteger((key)!!, value)
+        if (value != Format.NO_VALUE) {
+            format.setInteger(key!!, value)
         }
     }
 
@@ -143,8 +146,8 @@ object MediaFormatUtil {
      * @param value The value to set.
      */
     fun maybeSetFloat(format: MediaFormat, key: String?, value: Float) {
-        if (value != Format.Companion.NO_VALUE.toFloat()) {
-            format.setFloat((key)!!, value)
+        if (value != Format.NO_VALUE.toFloat()) {
+            format.setFloat(key!!, value)
         }
     }
 
@@ -157,7 +160,7 @@ object MediaFormatUtil {
      */
     fun maybeSetByteBuffer(format: MediaFormat, key: String?, value: ByteArray?) {
         if (value != null) {
-            format.setByteBuffer((key)!!, ByteBuffer.wrap(value))
+            format.setByteBuffer(key!!, ByteBuffer.wrap(value))
         }
     }
 
@@ -179,40 +182,39 @@ object MediaFormatUtil {
     /**
      * Creates and returns a `ColorInfo`, if a valid instance is described in the [ ].
      */
+    @SuppressLint("NewApi")
     fun getColorInfo(mediaFormat: MediaFormat): ColorInfo? {
-        if (Util.SDK_INT < 29) {
+        if (SDK_INT < 29) {
             return null
         }
-        var colorSpace: Int = mediaFormat.getInteger(MediaFormat.KEY_COLOR_STANDARD,  /* defaultValue= */Format.Companion.NO_VALUE)
-        var colorRange: Int = mediaFormat.getInteger(MediaFormat.KEY_COLOR_RANGE,  /* defaultValue= */Format.Companion.NO_VALUE)
-        var colorTransfer: Int = mediaFormat.getInteger(MediaFormat.KEY_COLOR_TRANSFER,  /* defaultValue= */Format.Companion.NO_VALUE)
-        val hdrStaticInfoByteBuffer: ByteBuffer? = mediaFormat.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO)
-        val hdrStaticInfo: ByteArray? = if (hdrStaticInfoByteBuffer != null) getArray(hdrStaticInfoByteBuffer) else null
+        var colorSpace = mediaFormat.getInteger(MediaFormat.KEY_COLOR_STANDARD,  /* defaultValue= */Format.NO_VALUE)
+        var colorRange = mediaFormat.getInteger(MediaFormat.KEY_COLOR_RANGE,  /* defaultValue= */Format.NO_VALUE)
+        var colorTransfer = mediaFormat.getInteger(MediaFormat.KEY_COLOR_TRANSFER,  /* defaultValue= */Format.NO_VALUE)
+        val hdrStaticInfoByteBuffer = mediaFormat.getByteBuffer(MediaFormat.KEY_HDR_STATIC_INFO)
+        val hdrStaticInfo = hdrStaticInfoByteBuffer?.let { getArray(it) }
         // Some devices may produce invalid values from MediaFormat#getInteger.
         // See b/239435670 for more information.
         if (!isValidColorSpace(colorSpace)) {
-            colorSpace = Format.Companion.NO_VALUE
+            colorSpace = Format.NO_VALUE
         }
         if (!isValidColorRange(colorRange)) {
-            colorRange = Format.Companion.NO_VALUE
+            colorRange = Format.NO_VALUE
         }
         if (!isValidColorTransfer(colorTransfer)) {
-            colorTransfer = Format.Companion.NO_VALUE
+            colorTransfer = Format.NO_VALUE
         }
-        if ((colorSpace != Format.Companion.NO_VALUE
-                        ) || (colorRange != Format.Companion.NO_VALUE
-                        ) || (colorTransfer != Format.Companion.NO_VALUE
-                        ) || (hdrStaticInfo != null)) {
-            return ColorInfo(colorSpace, colorRange, colorTransfer, hdrStaticInfo)
-        }
-        return null
+        return if (colorSpace != Format.NO_VALUE || colorRange != Format.NO_VALUE || colorTransfer != Format.NO_VALUE || hdrStaticInfo != null) {
+            ColorInfo(colorSpace, colorRange, colorTransfer, hdrStaticInfo)
+        } else null
     }
 
-    fun getArray(byteBuffer: ByteBuffer): ByteArray {
-        val array: ByteArray = ByteArray(byteBuffer.remaining())
-        byteBuffer.get(array)
+    fun getArray(byteBuffer: ByteBuffer): ByteArray? {
+        val array = ByteArray(byteBuffer.remaining())
+        byteBuffer[array]
         return array
     }
+
+    // Internal methods.
 
     // Internal methods.
     private fun setBooleanAsInt(format: MediaFormat, key: String, value: Int) {
@@ -224,8 +226,8 @@ object MediaFormatUtil {
     private fun maybeSetPixelAspectRatio(
             mediaFormat: MediaFormat, pixelWidthHeightRatio: Float) {
         mediaFormat.setFloat(KEY_PIXEL_WIDTH_HEIGHT_RATIO_FLOAT, pixelWidthHeightRatio)
-        var pixelAspectRatioWidth: Int = 1
-        var pixelAspectRatioHeight: Int = 1
+        var pixelAspectRatioWidth = 1
+        var pixelAspectRatioHeight = 1
         // ExoPlayer extractors output the pixel aspect ratio as a float. Do our best to recreate the
         // pixel aspect ratio width and height by using a large power of two factor.
         if (pixelWidthHeightRatio < 1.0f) {
@@ -241,21 +243,22 @@ object MediaFormatUtil {
 
     @SuppressLint("InlinedApi") // Inlined KEY_PCM_ENCODING.
     private fun maybeSetPcmEncoding(
-            mediaFormat: MediaFormat, exoPcmEncoding: @PcmEncoding Int) {
-        if (exoPcmEncoding == Format.Companion.NO_VALUE) {
+            mediaFormat: MediaFormat, @PcmEncoding exoPcmEncoding: Int) {
+        if (exoPcmEncoding == Format.NO_VALUE) {
             return
         }
         val mediaFormatPcmEncoding: Int
         maybeSetInteger(mediaFormat, KEY_PCM_ENCODING_EXTENDED, exoPcmEncoding)
-        when (exoPcmEncoding) {
-            C.ENCODING_PCM_8BIT -> mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_8BIT
-            C.ENCODING_PCM_16BIT -> mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_16BIT
-            C.ENCODING_PCM_FLOAT -> mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_FLOAT
-            C.ENCODING_PCM_24BIT -> mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_24BIT_PACKED
-            C.ENCODING_PCM_32BIT -> mediaFormatPcmEncoding = AudioFormat.ENCODING_PCM_32BIT
-            C.ENCODING_INVALID -> mediaFormatPcmEncoding = AudioFormat.ENCODING_INVALID
-            Format.Companion.NO_VALUE, C.ENCODING_PCM_16BIT_BIG_ENDIAN ->         // No matching value. Do nothing.
+        mediaFormatPcmEncoding = when (exoPcmEncoding) {
+            C.ENCODING_PCM_8BIT -> AudioFormat.ENCODING_PCM_8BIT
+            C.ENCODING_PCM_16BIT -> AudioFormat.ENCODING_PCM_16BIT
+            C.ENCODING_PCM_FLOAT -> AudioFormat.ENCODING_PCM_FLOAT
+            C.ENCODING_PCM_24BIT -> AudioFormat.ENCODING_PCM_24BIT_PACKED
+            C.ENCODING_PCM_32BIT -> AudioFormat.ENCODING_PCM_32BIT
+            C.ENCODING_INVALID -> AudioFormat.ENCODING_INVALID
+            Format.NO_VALUE, C.ENCODING_PCM_16BIT_BIG_ENDIAN ->         // No matching value. Do nothing.
                 return
+
             else -> return
         }
         mediaFormat.setInteger(MediaFormat.KEY_PCM_ENCODING, mediaFormatPcmEncoding)
@@ -264,26 +267,18 @@ object MediaFormatUtil {
     /** Whether this is a valid [C.ColorSpace] instance.  */
     private fun isValidColorSpace(colorSpace: Int): Boolean {
         // LINT.IfChange(color_space)
-        return (colorSpace == C.COLOR_SPACE_BT601
-                ) || (colorSpace == C.COLOR_SPACE_BT709
-                ) || (colorSpace == C.COLOR_SPACE_BT2020
-                ) || (colorSpace == Format.Companion.NO_VALUE)
+        return colorSpace == C.COLOR_SPACE_BT601 || colorSpace == C.COLOR_SPACE_BT709 || colorSpace == C.COLOR_SPACE_BT2020 || colorSpace == Format.NO_VALUE
     }
 
     /** Whether this is a valid [C.ColorRange] instance.  */
     private fun isValidColorRange(colorRange: Int): Boolean {
         // LINT.IfChange(color_range)
-        return (colorRange == C.COLOR_RANGE_LIMITED
-                ) || (colorRange == C.COLOR_RANGE_FULL
-                ) || (colorRange == Format.Companion.NO_VALUE)
+        return colorRange == C.COLOR_RANGE_LIMITED || colorRange == C.COLOR_RANGE_FULL || colorRange == Format.NO_VALUE
     }
 
     /** Whether this is a valid [C.ColorTransfer] instance.  */
     private fun isValidColorTransfer(colorTransfer: Int): Boolean {
         // LINT.IfChange(color_transfer)
-        return (colorTransfer == C.COLOR_TRANSFER_SDR
-                ) || (colorTransfer == C.COLOR_TRANSFER_ST2084
-                ) || (colorTransfer == C.COLOR_TRANSFER_HLG
-                ) || (colorTransfer == Format.Companion.NO_VALUE)
+        return colorTransfer == C.COLOR_TRANSFER_SDR || colorTransfer == C.COLOR_TRANSFER_ST2084 || colorTransfer == C.COLOR_TRANSFER_HLG || colorTransfer == Format.NO_VALUE
     }
 }

@@ -221,11 +221,11 @@ object CodecSpecificDataUtil {
         } while (nalUnitIndex != C.INDEX_UNSET)
         val split: Array<ByteArray?> = arrayOfNulls(starts.size)
         for (i in starts.indices) {
-            val startIndex: Int = starts.get(i)
-            val endIndex: Int = if (i < starts.size - 1) starts.get(i + 1) else data.size
-            val nal: ByteArray = ByteArray(endIndex - startIndex)
+            val startIndex: Int = starts[i]
+            val endIndex: Int = if (i < starts.size - 1) starts[i + 1] else data.size
+            val nal = ByteArray(endIndex - startIndex)
             System.arraycopy(data, startIndex, nal, 0, nal.size)
-            split.get(i) = nal
+            split[i] = nal
         }
         return split
     }

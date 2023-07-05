@@ -15,9 +15,13 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.os.Handlerimport
-
-android.os.Looperimport android.os.Messageimport androidx.annotation .CheckResultimport com.google.android.exoplayer2.Cimport java.util.*import java.util.concurrent.CopyOnWriteArraySet
+import android.os.Handler
+import android.os.Looper
+import android.os.Message
+import androidx.annotation.CheckResult
+import com.google.android.exoplayer2.C
+import java.util.*
+import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * A set of listeners.
@@ -32,17 +36,13 @@ android.os.Looperimport android.os.Messageimport androidx.annotation .CheckResul
  *
  * @param <T> The listener type.
 </T> */
-class ListenerSet<T : Any?> private constructor(
-        private val listeners: CopyOnWriteArraySet<ListenerHolder<T>>,
-        looper: Looper,
-        private val clock: Clock,
-        private val iterationFinishedEvent: IterationFinishedEvent<T>) {
+class ListenerSet<T : Any?> private constructor(private val listeners: CopyOnWriteArraySet<ListenerHolder<T>>, looper: Looper, private val clock: Clock, private val iterationFinishedEvent: IterationFinishedEvent<T>) {
     /**
      * An event sent to a listener.
      *
      * @param <T> The listener type.
     </T> */
-    open interface Event<T> {
+    interface Event<T> {
         /** Invokes the event notification on the given listener.  */
         operator fun invoke(listener: T)
     }
@@ -53,7 +53,7 @@ class ListenerSet<T : Any?> private constructor(
      *
      * @param <T> The listener type.
     </T> */
-    open interface IterationFinishedEvent<T> {
+    interface IterationFinishedEvent<T> {
         /**
          * Invokes the iteration finished event.
          *
@@ -111,8 +111,7 @@ class ListenerSet<T : Any?> private constructor(
      * @return The copied listener set.
      */
     @CheckResult
-    fun copy(
-            looper: Looper, clock: Clock, iterationFinishedEvent: IterationFinishedEvent<T>): ListenerSet<T> {
+    fun copy(looper: Looper, clock: Clock, iterationFinishedEvent: IterationFinishedEvent<T>): ListenerSet<T> {
         return ListenerSet(listeners, looper, clock, iterationFinishedEvent)
     }
 
@@ -168,12 +167,11 @@ class ListenerSet<T : Any?> private constructor(
      */
     fun queueEvent(eventFlag: Int, event: Event<T>?) {
         val listenerSnapshot: CopyOnWriteArraySet<ListenerHolder<T>> = CopyOnWriteArraySet(listeners)
-        queuedEvents.add(
-                Runnable({
-                    for (holder: ListenerHolder<T> in listenerSnapshot) {
-                        holder.invoke(eventFlag, (event)!!)
-                    }
-                }))
+        queuedEvents.add(Runnable({
+            for (holder: ListenerHolder<T> in listenerSnapshot) {
+                holder.invoke(eventFlag, (event)!!)
+            }
+        }))
     }
 
     /** Notifies listeners of events previously enqueued with [.queueEvent].  */

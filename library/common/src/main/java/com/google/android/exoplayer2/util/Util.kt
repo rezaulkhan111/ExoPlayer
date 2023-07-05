@@ -604,11 +604,10 @@ object Util {
      * Returns the [Looper] associated with the current thread, or the [Looper] of the
      * application's main thread if the current thread doesn't have a [Looper].
      */
-    val currentOrMainLooper: Looper
-        get() {
-            val myLooper = Looper.myLooper()
-            return myLooper ?: Looper.getMainLooper()
-        }
+    open fun getCurrentOrMainLooper(): Looper? {
+        val myLooper = Looper.myLooper()
+        return myLooper ?: Looper.getMainLooper()
+    }
 
     /**
      * Instantiates a new single threaded executor whose thread has the specified name.

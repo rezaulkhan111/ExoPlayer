@@ -15,13 +15,28 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.content.Contextimport
-
-android.content.pm.PackageManagerimport android.opengl.*import androidx.annotation.*
-import com.google.android.exoplayer2.*
-import java.nio.ByteBufferimport
-
-java.nio.ByteOrderimport java.nio.FloatBufferimport java.util.*import javax.microedition.khronos.egl.EGL10
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
+import android.opengl.EGL14
+import android.opengl.EGLConfig
+import android.opengl.EGLContext
+import android.opengl.EGLDisplay
+import android.opengl.EGLSurface
+import android.opengl.GLES11Ext
+import android.opengl.GLES20
+import android.opengl.GLES30
+import android.opengl.GLU
+import android.opengl.Matrix
+import androidx.annotation.DoNotInline
+import androidx.annotation.RequiresApi
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.util.Util.areEqual
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.FloatBuffer
+import java.util.Arrays
+import javax.microedition.khronos.egl.EGL10
 
 /** OpenGL ES utilities.  */
 // GLES constants are used safely based on the API version.
@@ -31,26 +46,8 @@ object GlUtil {
 
     /** Length of the normalized device coordinate (NDC) space, which spans from -1 to 1.  */
     val LENGTH_NDC: Float = 2f
-    val EGL_CONFIG_ATTRIBUTES_RGBA_8888: IntArray = intArrayOf(
-            EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
-            EGL14.EGL_RED_SIZE,  /* redSize= */8,
-            EGL14.EGL_GREEN_SIZE,  /* greenSize= */8,
-            EGL14.EGL_BLUE_SIZE,  /* blueSize= */8,
-            EGL14.EGL_ALPHA_SIZE,  /* alphaSize= */8,
-            EGL14.EGL_DEPTH_SIZE,  /* depthSize= */0,
-            EGL14.EGL_STENCIL_SIZE,  /* stencilSize= */0,
-            EGL14.EGL_NONE
-    )
-    val EGL_CONFIG_ATTRIBUTES_RGBA_1010102: IntArray = intArrayOf(
-            EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
-            EGL14.EGL_RED_SIZE,  /* redSize= */10,
-            EGL14.EGL_GREEN_SIZE,  /* greenSize= */10,
-            EGL14.EGL_BLUE_SIZE,  /* blueSize= */10,
-            EGL14.EGL_ALPHA_SIZE,  /* alphaSize= */2,
-            EGL14.EGL_DEPTH_SIZE,  /* depthSize= */0,
-            EGL14.EGL_STENCIL_SIZE,  /* stencilSize= */0,
-            EGL14.EGL_NONE
-    )
+    val EGL_CONFIG_ATTRIBUTES_RGBA_8888: IntArray = intArrayOf(EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT, EGL14.EGL_RED_SIZE,  /* redSize= */8, EGL14.EGL_GREEN_SIZE,  /* greenSize= */8, EGL14.EGL_BLUE_SIZE,  /* blueSize= */8, EGL14.EGL_ALPHA_SIZE,  /* alphaSize= */8, EGL14.EGL_DEPTH_SIZE,  /* depthSize= */0, EGL14.EGL_STENCIL_SIZE,  /* stencilSize= */0, EGL14.EGL_NONE)
+    val EGL_CONFIG_ATTRIBUTES_RGBA_1010102: IntArray = intArrayOf(EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT, EGL14.EGL_RED_SIZE,  /* redSize= */10, EGL14.EGL_GREEN_SIZE,  /* greenSize= */10, EGL14.EGL_BLUE_SIZE,  /* blueSize= */10, EGL14.EGL_ALPHA_SIZE,  /* alphaSize= */2, EGL14.EGL_DEPTH_SIZE,  /* depthSize= */0, EGL14.EGL_STENCIL_SIZE,  /* stencilSize= */0, EGL14.EGL_NONE)
 
     // https://www.khronos.org/registry/EGL/extensions/EXT/EGL_EXT_protected_content.txt
     private val EXTENSION_PROTECTED_CONTENT: String = "EGL_EXT_protected_content"
@@ -63,30 +60,18 @@ object GlUtil {
     private val EGL_WINDOW_SURFACE_ATTRIBUTES_NONE: IntArray = intArrayOf(EGL14.EGL_NONE)
 
     /** Bounds of normalized device coordinates, commonly used for defining viewport boundaries.  */
-    val normalizedCoordinateBounds: FloatArray
-        get() {
-            return floatArrayOf(
-                    -1f, -1f, 0f, 1f,
-                    1f, -1f, 0f, 1f,
-                    -1f, 1f, 0f, 1f,
-                    1f, 1f, 0f, 1f
-            )
-        }
+    fun getNormalizedCoordinateBounds(): FloatArray? {
+        return floatArrayOf(-1f, -1f, 0f, 1f, 1f, -1f, 0f, 1f, -1f, 1f, 0f, 1f, 1f, 1f, 0f, 1f)
+    }
 
     /** Typical bounds used for sampling from textures.  */
-    val textureCoordinateBounds: FloatArray
-        get() {
-            return floatArrayOf(
-                    0f, 0f, 0f, 1f,
-                    1f, 0f, 0f, 1f,
-                    0f, 1f, 0f, 1f,
-                    1f, 1f, 0f, 1f
-            )
-        }
+    fun getTextureCoordinateBounds(): FloatArray? {
+        return floatArrayOf(0f, 0f, 0f, 1f, 1f, 0f, 0f, 1f, 0f, 1f, 0f, 1f, 1f, 1f, 0f, 1f)
+    }
 
     /** Creates a 4x4 identity matrix.  */
-    fun create4x4IdentityMatrix(): FloatArray {
-        val matrix: FloatArray = FloatArray(16)
+    fun create4x4IdentityMatrix(): FloatArray? {
+        val matrix = FloatArray(16)
         setToIdentity(matrix)
         return matrix
     }
@@ -116,6 +101,7 @@ object GlUtil {
      *
      * If `true`, the device supports a protected output path for DRM content when using GL.
      */
+    @SuppressLint("NewApi")
     fun isProtectedContentExtensionSupported(context: Context): Boolean {
         if (Util.SDK_INT < 24) {
             return false
@@ -127,10 +113,7 @@ object GlUtil {
             // https://github.com/google/ExoPlayer/issues/3215.
             return false
         }
-        if ((Util.SDK_INT < 26
-                        && !context
-                        .getPackageManager()
-                        .hasSystemFeature(PackageManager.FEATURE_VR_MODE_HIGH_PERFORMANCE))) {
+        if ((Util.SDK_INT < 26 && !context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_VR_MODE_HIGH_PERFORMANCE))) {
             // Pre API level 26 devices were not well tested unless they supported VR mode.
             return false
         }
@@ -146,15 +129,15 @@ object GlUtil {
      * This extension allows passing [EGL14.EGL_NO_SURFACE] for both the write and read
      * surfaces in a call to [EGL14.eglMakeCurrent].
      */
-    val isSurfacelessContextExtensionSupported: Boolean
-        get() {
-            if (Util.SDK_INT < 17) {
-                return false
-            }
-            val display: EGLDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
-            val eglExtensions: String? = EGL14.eglQueryString(display, EGL10.EGL_EXTENSIONS)
-            return eglExtensions != null && eglExtensions.contains(EXTENSION_SURFACELESS_CONTEXT)
-        }// Create a placeholder context and make it current to allow calling GLES20.glGetString().
+    @SuppressLint("NewApi")
+    fun isSurfacelessContextExtensionSupported(): Boolean {
+        if (Util.SDK_INT < 17) {
+            return false
+        }
+        val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
+        val eglExtensions = EGL14.eglQueryString(display, EGL10.EGL_EXTENSIONS)
+        return eglExtensions != null && eglExtensions.contains(EXTENSION_SURFACELESS_CONTEXT)
+    }
 
     /**
      * Returns whether the {@value #EXTENSION_YUV_TARGET} extension is supported.
@@ -163,28 +146,28 @@ object GlUtil {
      * This extension allows sampling raw YUV values from an external texture, which is required
      * for HDR.
      */
-    val isYuvTargetExtensionSupported: Boolean
-        get() {
-            if (Util.SDK_INT < 17) {
+    @SuppressLint("NewApi")
+    fun isYuvTargetExtensionSupported(): Boolean {
+        if (Util.SDK_INT < 17) {
+            return false
+        }
+        val glExtensions: String?
+        if (areEqual(EGL14.eglGetCurrentContext(), EGL14.EGL_NO_CONTEXT)) {
+            // Create a placeholder context and make it current to allow calling GLES20.glGetString().
+            try {
+                val eglDisplay = createEglDisplay()
+                val eglContext = createEglContext(eglDisplay)
+                focusPlaceholderEglSurface(eglContext, eglDisplay)
+                glExtensions = GLES20.glGetString(GLES20.GL_EXTENSIONS)
+                destroyEglContext(eglDisplay, eglContext)
+            } catch (e: GlException) {
                 return false
             }
-            val glExtensions: String?
-            if (Util.areEqual(EGL14.eglGetCurrentContext(), EGL14.EGL_NO_CONTEXT)) {
-                // Create a placeholder context and make it current to allow calling GLES20.glGetString().
-                try {
-                    val eglDisplay: EGLDisplay = createEglDisplay()
-                    val eglContext: EGLContext = createEglContext(eglDisplay)
-                    focusPlaceholderEglSurface(eglContext, eglDisplay)
-                    glExtensions = GLES20.glGetString(GLES20.GL_EXTENSIONS)
-                    destroyEglContext(eglDisplay, eglContext)
-                } catch (e: GlException) {
-                    return false
-                }
-            } else {
-                glExtensions = GLES20.glGetString(GLES20.GL_EXTENSIONS)
-            }
-            return glExtensions != null && glExtensions.contains(EXTENSION_YUV_TARGET)
+        } else {
+            glExtensions = GLES20.glGetString(GLES20.GL_EXTENSIONS)
         }
+        return glExtensions != null && glExtensions.contains(EXTENSION_YUV_TARGET)
+    }
 
     /** Returns an initialized default [EGLDisplay].  */
     @RequiresApi(17)
@@ -217,13 +200,9 @@ object GlUtil {
     @RequiresApi(17)
     @Throws(GlException::class)
     fun createEglContext(eglDisplay: EGLDisplay?, configAttributes: IntArray?): EGLContext {
-        Assertions.checkArgument((
-                Arrays.equals(configAttributes, EGL_CONFIG_ATTRIBUTES_RGBA_8888)
-                        || Arrays.equals(configAttributes, EGL_CONFIG_ATTRIBUTES_RGBA_1010102)))
-        return Api17.createEglContext(
-                eglDisplay,  /* version= */
-                if (Arrays.equals(configAttributes, EGL_CONFIG_ATTRIBUTES_RGBA_1010102)) 3 else 2,
-                configAttributes)
+        Assertions.checkArgument((Arrays.equals(configAttributes, EGL_CONFIG_ATTRIBUTES_RGBA_8888) || Arrays.equals(configAttributes, EGL_CONFIG_ATTRIBUTES_RGBA_1010102)))
+        return Api17.createEglContext(eglDisplay,  /* version= */
+                if (Arrays.equals(configAttributes, EGL_CONFIG_ATTRIBUTES_RGBA_1010102)) 3 else 2, configAttributes)
     }
 
     /**
@@ -239,8 +218,7 @@ object GlUtil {
     @RequiresApi(17)
     @Throws(GlException::class)
     fun getEglSurface(eglDisplay: EGLDisplay?, surface: Any?): EGLSurface {
-        return Api17.getEglSurface(
-                eglDisplay, surface, EGL_CONFIG_ATTRIBUTES_RGBA_8888, EGL_WINDOW_SURFACE_ATTRIBUTES_NONE)
+        return Api17.getEglSurface(eglDisplay, surface, EGL_CONFIG_ATTRIBUTES_RGBA_8888, EGL_WINDOW_SURFACE_ATTRIBUTES_NONE)
     }
 
     /**
@@ -252,10 +230,8 @@ object GlUtil {
      */
     @RequiresApi(17)
     @Throws(GlException::class)
-    fun getEglSurface(
-            eglDisplay: EGLDisplay?, surface: Any?, configAttributes: IntArray?): EGLSurface {
-        return Api17.getEglSurface(
-                eglDisplay, surface, configAttributes, EGL_WINDOW_SURFACE_ATTRIBUTES_NONE)
+    fun getEglSurface(eglDisplay: EGLDisplay?, surface: Any?, configAttributes: IntArray?): EGLSurface {
+        return Api17.getEglSurface(eglDisplay, surface, configAttributes, EGL_WINDOW_SURFACE_ATTRIBUTES_NONE)
     }
 
     /**
@@ -268,13 +244,8 @@ object GlUtil {
      */
     @RequiresApi(17)
     @Throws(GlException::class)
-    private fun createPbufferSurface(
-            eglDisplay: EGLDisplay?, width: Int, height: Int, configAttributes: IntArray): EGLSurface {
-        val pbufferAttributes: IntArray = intArrayOf(
-                EGL14.EGL_WIDTH, width,
-                EGL14.EGL_HEIGHT, height,
-                EGL14.EGL_NONE
-        )
+    private fun createPbufferSurface(eglDisplay: EGLDisplay?, width: Int, height: Int, configAttributes: IntArray): EGLSurface {
+        val pbufferAttributes: IntArray = intArrayOf(EGL14.EGL_WIDTH, width, EGL14.EGL_HEIGHT, height, EGL14.EGL_NONE)
         return Api17.createEglPbufferSurface(eglDisplay, configAttributes, pbufferAttributes)
     }
 
@@ -292,8 +263,7 @@ object GlUtil {
     @RequiresApi(17)
     @Throws(GlException::class)
     fun focusPlaceholderEglSurface(eglContext: EGLContext?, eglDisplay: EGLDisplay?): EGLSurface {
-        return createFocusedPlaceholderEglSurface(
-                eglContext, eglDisplay, EGL_CONFIG_ATTRIBUTES_RGBA_8888)
+        return createFocusedPlaceholderEglSurface(eglContext, eglDisplay, EGL_CONFIG_ATTRIBUTES_RGBA_8888)
     }
 
     /**
@@ -312,9 +282,8 @@ object GlUtil {
      */
     @RequiresApi(17)
     @Throws(GlException::class)
-    fun createFocusedPlaceholderEglSurface(
-            eglContext: EGLContext?, eglDisplay: EGLDisplay?, configAttributes: IntArray): EGLSurface {
-        val eglSurface: EGLSurface = if (isSurfacelessContextExtensionSupported) EGL14.EGL_NO_SURFACE else createPbufferSurface(eglDisplay,  /* width= */1,  /* height= */1, configAttributes)
+    fun createFocusedPlaceholderEglSurface(eglContext: EGLContext?, eglDisplay: EGLDisplay?, configAttributes: IntArray): EGLSurface {
+        val eglSurface: EGLSurface = if (isSurfacelessContextExtensionSupported()) EGL14.EGL_NO_SURFACE else createPbufferSurface(eglDisplay,  /* width= */1,  /* height= */1, configAttributes)
         focusEglSurface(eglDisplay, eglContext, eglSurface,  /* width= */1,  /* height= */1)
         return eglSurface
     }
@@ -356,15 +325,12 @@ object GlUtil {
         val maxTextureSizeBuffer: IntArray = IntArray(1)
         GLES20.glGetIntegerv(GLES20.GL_MAX_TEXTURE_SIZE, maxTextureSizeBuffer, 0)
         val maxTextureSize: Int = maxTextureSizeBuffer.get(0)
-        Assertions.checkState(
-                maxTextureSize > 0,
-                "Create a OpenGL context first or run the GL methods on an OpenGL thread.")
+        Assertions.checkState(maxTextureSize > 0, "Create a OpenGL context first or run the GL methods on an OpenGL thread.")
         if (width < 0 || height < 0) {
             throw GlException("width or height is less than 0")
         }
         if (width > maxTextureSize || height > maxTextureSize) {
-            throw GlException(
-                    "width or height is greater than GL_MAX_TEXTURE_SIZE " + maxTextureSize)
+            throw GlException("width or height is greater than GL_MAX_TEXTURE_SIZE " + maxTextureSize)
         }
     }
 
@@ -382,10 +348,8 @@ object GlUtil {
      */
     @RequiresApi(17)
     @Throws(GlException::class)
-    fun focusEglSurface(
-            eglDisplay: EGLDisplay?, eglContext: EGLContext?, eglSurface: EGLSurface?, width: Int, height: Int) {
-        Api17.focusRenderTarget(
-                eglDisplay, eglContext, eglSurface,  /* framebuffer= */0, width, height)
+    fun focusEglSurface(eglDisplay: EGLDisplay?, eglContext: EGLContext?, eglSurface: EGLSurface?, width: Int, height: Int) {
+        Api17.focusRenderTarget(eglDisplay, eglContext, eglSurface,  /* framebuffer= */0, width, height)
     }
 
     /**
@@ -394,13 +358,7 @@ object GlUtil {
      */
     @RequiresApi(17)
     @Throws(GlException::class)
-    fun focusFramebuffer(
-            eglDisplay: EGLDisplay?,
-            eglContext: EGLContext?,
-            eglSurface: EGLSurface?,
-            framebuffer: Int,
-            width: Int,
-            height: Int) {
+    fun focusFramebuffer(eglDisplay: EGLDisplay?, eglContext: EGLContext?, eglSurface: EGLSurface?, framebuffer: Int, width: Int, height: Int) {
         Api17.focusRenderTarget(eglDisplay, eglContext, eglSurface, framebuffer, width, height)
     }
 
@@ -438,8 +396,7 @@ object GlUtil {
      */
     @RequiresApi(17)
     @Throws(GlException::class)
-    fun destroyEglContext(
-            eglDisplay: EGLDisplay?, eglContext: EGLContext?) {
+    fun destroyEglContext(eglDisplay: EGLDisplay?, eglContext: EGLContext?) {
         Api17.destroyEglContext(eglDisplay, eglContext)
     }
 
@@ -508,25 +465,18 @@ object GlUtil {
         val texId: Int = generateTexture()
         bindTexture(GLES20.GL_TEXTURE_2D, texId)
         val byteBuffer: ByteBuffer = ByteBuffer.allocateDirect(width * height * 4)
-        GLES20.glTexImage2D(
-                GLES20.GL_TEXTURE_2D,  /* level= */
-                0,
-                internalFormat,
-                width,
-                height,  /* border= */
-                0,
-                GLES20.GL_RGBA,
-                type,
-                byteBuffer)
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D,  /* level= */
+                0, internalFormat, width, height,  /* border= */
+                0, GLES20.GL_RGBA, type, byteBuffer)
         checkGlError()
         return texId
     }
 
     /** Returns a new GL texture identifier.  */
+    @SuppressLint("NewApi")
     @Throws(GlException::class)
     private fun generateTexture(): Int {
-        checkGlException(
-                !Util.areEqual(EGL14.eglGetCurrentContext(), EGL14.EGL_NO_CONTEXT), "No current context")
+        checkGlException(!Util.areEqual(EGL14.eglGetCurrentContext(), EGL14.EGL_NO_CONTEXT), "No current context")
         val texId: IntArray = IntArray(1)
         GLES20.glGenTextures( /* n= */1, texId,  /* offset= */0)
         checkGlError()
@@ -559,17 +509,16 @@ object GlUtil {
      *
      * @param texId The identifier of the texture to attach to the framebuffer.
      */
+    @SuppressLint("NewApi")
     @Throws(GlException::class)
     fun createFboForTexture(texId: Int): Int {
-        checkGlException(
-                !Util.areEqual(EGL14.eglGetCurrentContext(), EGL14.EGL_NO_CONTEXT), "No current context")
+        checkGlException(!Util.areEqual(EGL14.eglGetCurrentContext(), EGL14.EGL_NO_CONTEXT), "No current context")
         val fboId: IntArray = IntArray(1)
         GLES20.glGenFramebuffers( /* n= */1, fboId,  /* offset= */0)
         checkGlError()
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, fboId.get(0))
         checkGlError()
-        GLES20.glFramebufferTexture2D(
-                GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, texId, 0)
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_COLOR_ATTACHMENT0, GLES20.GL_TEXTURE_2D, texId, 0)
         checkGlError()
         return fboId.get(0)
     }
@@ -584,6 +533,7 @@ object GlUtil {
         }
     }
 
+    @SuppressLint("NewApi")
     @Throws(GlException::class)
     private fun checkEglException(errorMessage: String) {
         val error: Int = EGL14.eglGetError()
@@ -602,33 +552,22 @@ object GlUtil {
         fun createEglDisplay(): EGLDisplay {
             val eglDisplay: EGLDisplay = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
             checkGlException(!(eglDisplay == EGL14.EGL_NO_DISPLAY), "No EGL display.")
-            checkGlException(
-                    EGL14.eglInitialize(
-                            eglDisplay, IntArray(1),  /* majorOffset= */
-                            0, IntArray(1),  /* minorOffset= */
-                            0),
-                    "Error in eglInitialize.")
+            checkGlException(EGL14.eglInitialize(eglDisplay, IntArray(1),  /* majorOffset= */
+                    0, IntArray(1),  /* minorOffset= */
+                    0), "Error in eglInitialize.")
             checkGlError()
             return eglDisplay
         }
 
         @DoNotInline
         @Throws(GlException::class)
-        fun createEglContext(
-                eglDisplay: EGLDisplay?, version: Int, configAttributes: IntArray?): EGLContext {
+        fun createEglContext(eglDisplay: EGLDisplay?, version: Int, configAttributes: IntArray?): EGLContext {
             val contextAttributes: IntArray = intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, version, EGL14.EGL_NONE)
-            val eglContext: EGLContext? = EGL14.eglCreateContext(
-                    eglDisplay,
-                    getEglConfig(eglDisplay, configAttributes),
-                    EGL14.EGL_NO_CONTEXT,
-                    contextAttributes,  /* offset= */
+            val eglContext: EGLContext? = EGL14.eglCreateContext(eglDisplay, getEglConfig(eglDisplay, configAttributes), EGL14.EGL_NO_CONTEXT, contextAttributes,  /* offset= */
                     0)
             if (eglContext == null) {
                 EGL14.eglTerminate(eglDisplay)
-                throw GlException(
-                        ("eglCreateContext() failed to create a valid context. The device may not support EGL"
-                                + " version "
-                                + version))
+                throw GlException(("eglCreateContext() failed to create a valid context. The device may not support EGL" + " version " + version))
             }
             checkGlError()
             return eglContext
@@ -636,16 +575,8 @@ object GlUtil {
 
         @DoNotInline
         @Throws(GlException::class)
-        fun getEglSurface(
-                eglDisplay: EGLDisplay?,
-                surface: Any?,
-                configAttributes: IntArray?,
-                windowSurfaceAttributes: IntArray?): EGLSurface {
-            val eglSurface: EGLSurface = EGL14.eglCreateWindowSurface(
-                    eglDisplay,
-                    getEglConfig(eglDisplay, configAttributes),
-                    surface,
-                    windowSurfaceAttributes,  /* offset= */
+        fun getEglSurface(eglDisplay: EGLDisplay?, surface: Any?, configAttributes: IntArray?, windowSurfaceAttributes: IntArray?): EGLSurface {
+            val eglSurface: EGLSurface = EGL14.eglCreateWindowSurface(eglDisplay, getEglConfig(eglDisplay, configAttributes), surface, windowSurfaceAttributes,  /* offset= */
                     0)
             checkEglException("Error creating surface")
             return eglSurface
@@ -653,12 +584,8 @@ object GlUtil {
 
         @DoNotInline
         @Throws(GlException::class)
-        fun createEglPbufferSurface(
-                eglDisplay: EGLDisplay?, configAttributes: IntArray?, pbufferAttributes: IntArray?): EGLSurface {
-            val eglSurface: EGLSurface = EGL14.eglCreatePbufferSurface(
-                    eglDisplay,
-                    getEglConfig(eglDisplay, configAttributes),
-                    pbufferAttributes,  /* offset= */
+        fun createEglPbufferSurface(eglDisplay: EGLDisplay?, configAttributes: IntArray?, pbufferAttributes: IntArray?): EGLSurface {
+            val eglSurface: EGLSurface = EGL14.eglCreatePbufferSurface(eglDisplay, getEglConfig(eglDisplay, configAttributes), pbufferAttributes,  /* offset= */
                     0)
             checkEglException("Error creating surface")
             return eglSurface
@@ -666,13 +593,7 @@ object GlUtil {
 
         @DoNotInline
         @Throws(GlException::class)
-        fun focusRenderTarget(
-                eglDisplay: EGLDisplay?,
-                eglContext: EGLContext?,
-                eglSurface: EGLSurface?,
-                framebuffer: Int,
-                width: Int,
-                height: Int) {
+        fun focusRenderTarget(eglDisplay: EGLDisplay?, eglContext: EGLContext?, eglSurface: EGLSurface?, framebuffer: Int, width: Int, height: Int) {
             EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)
             checkEglException("Error making context current")
             focusFramebufferUsingCurrentContext(framebuffer, width, height)
@@ -681,8 +602,7 @@ object GlUtil {
         @DoNotInline
         @Throws(GlException::class)
         fun focusFramebufferUsingCurrentContext(framebuffer: Int, width: Int, height: Int) {
-            checkGlException(
-                    !Util.areEqual(EGL14.eglGetCurrentContext(), EGL14.EGL_NO_CONTEXT), "No current context")
+            checkGlException(!Util.areEqual(EGL14.eglGetCurrentContext(), EGL14.EGL_NO_CONTEXT), "No current context")
             val boundFramebuffer: IntArray = IntArray(1)
             GLES20.glGetIntegerv(GLES20.GL_FRAMEBUFFER_BINDING, boundFramebuffer,  /* offset= */0)
             if (boundFramebuffer.get(0) != framebuffer) {
@@ -695,13 +615,11 @@ object GlUtil {
 
         @DoNotInline
         @Throws(GlException::class)
-        fun destroyEglContext(
-                eglDisplay: EGLDisplay?, eglContext: EGLContext?) {
+        fun destroyEglContext(eglDisplay: EGLDisplay?, eglContext: EGLContext?) {
             if (eglDisplay == null) {
                 return
             }
-            EGL14.eglMakeCurrent(
-                    eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
+            EGL14.eglMakeCurrent(eglDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT)
             checkEglException("Error releasing context")
             if (eglContext != null) {
                 EGL14.eglDestroyContext(eglDisplay, eglContext)
@@ -717,11 +635,8 @@ object GlUtil {
         @Throws(GlException::class)
         private fun getEglConfig(eglDisplay: EGLDisplay?, attributes: IntArray?): EGLConfig? {
             val eglConfigs: Array<EGLConfig?> = arrayOfNulls(1)
-            if (!EGL14.eglChooseConfig(
-                            eglDisplay,
-                            attributes,  /* attrib_listOffset= */
-                            0,
-                            eglConfigs,  /* configsOffset= */
+            if (!EGL14.eglChooseConfig(eglDisplay, attributes,  /* attrib_listOffset= */
+                            0, eglConfigs,  /* configsOffset= */
                             0,  /* config_size= */
                             1, IntArray(1),  /* num_configOffset= */
                             0)) {

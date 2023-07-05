@@ -15,16 +15,19 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.os.Bundleimport
+import android.os.Bundle
+import android.util.SparseArray
+import com.google.android.exoplayer2.Bundleable
+import com.google.common.collect.ImmutableList
 
-android.util.SparseArrayimport com.google.android.exoplayer2.Bundleableimport com.google.common.collect.ImmutableList
 /** Utilities for [Bundleable].  */
 object BundleableUtil {
+
     /** Converts a list of [Bundleable] to a list [Bundle].  */
-    fun <T : Bundleable?> toBundleList(bundleableList: List<T>): ImmutableList<Bundle> {
-        val builder: ImmutableList.Builder<Bundle> = ImmutableList.builder()
+    fun <T : Bundleable?> toBundleList(bundleableList: List<T>): ImmutableList<Bundle>? {
+        val builder = ImmutableList.builder<Bundle>()
         for (i in bundleableList.indices) {
-            val bundleable: Bundleable = bundleableList.get(i)
+            val bundleable: Bundleable = bundleableList[i] as Bundleable
             builder.add(bundleable.toBundle())
         }
         return builder.build()
@@ -32,11 +35,11 @@ object BundleableUtil {
 
     /** Converts a list of [Bundle] to a list of [Bundleable].  */
     fun <T : Bundleable?> fromBundleList(
-            creator: Bundleable.Creator<T>, bundleList: List<Bundle>): ImmutableList<T> {
-        val builder: ImmutableList.Builder<T> = ImmutableList.builder()
+            creator: Bundleable.Creator<T>, bundleList: List<Bundle?>): ImmutableList<T>? {
+        val builder = ImmutableList.builder<T>()
         for (i in bundleList.indices) {
-            val bundle: Bundle? = Assertions.checkNotNull(bundleList.get(i)) // Fail fast during parsing.
-            val bundleable: T = creator.fromBundle((bundle)!!)
+            val bundle = checkNotNull(bundleList[i]) // Fail fast during parsing.
+            val bundleable = creator.fromBundle(bundle)
             builder.add(bundleable)
         }
         return builder.build()
@@ -48,9 +51,9 @@ object BundleableUtil {
      * conveniently.
      */
     fun <T : Bundleable?> toBundleArrayList(
-            bundleables: Collection<T>): ArrayList<Bundle> {
-        val arrayList: ArrayList<Bundle> = ArrayList(bundleables.size)
-        for (element: T in bundleables) {
+            bundleables: Collection<T>): ArrayList<Bundle>? {
+        val arrayList = ArrayList<Bundle>(bundleables.size)
+        for (element in bundleables) {
             arrayList.add(element!!.toBundle())
         }
         return arrayList
@@ -60,10 +63,10 @@ object BundleableUtil {
      * Converts a [SparseArray] of [Bundle] to a [SparseArray] of [ ].
      */
     fun <T : Bundleable?> fromBundleSparseArray(
-            creator: Bundleable.Creator<T>, bundleSparseArray: SparseArray<Bundle?>): SparseArray<T> {
-        val result: SparseArray<T> = SparseArray(bundleSparseArray.size())
+            creator: Bundleable.Creator<T>, bundleSparseArray: SparseArray<Bundle?>): SparseArray<T>? {
+        val result = SparseArray<T>(bundleSparseArray.size())
         for (i in 0 until bundleSparseArray.size()) {
-            result.put(bundleSparseArray.keyAt(i), creator.fromBundle((bundleSparseArray.valueAt(i))!!))
+            result.put(bundleSparseArray.keyAt(i), creator.fromBundle(bundleSparseArray.valueAt(i)))
         }
         return result
     }
@@ -72,8 +75,8 @@ object BundleableUtil {
      * Converts a [SparseArray] of [Bundleable] to an [SparseArray] of [ ] so that the returned [SparseArray] can be put to [Bundle] using [ ][Bundle.putSparseParcelableArray] conveniently.
      */
     fun <T : Bundleable?> toBundleSparseArray(
-            bundleableSparseArray: SparseArray<T>): SparseArray<Bundle> {
-        val sparseArray: SparseArray<Bundle> = SparseArray(bundleableSparseArray.size())
+            bundleableSparseArray: SparseArray<T>): SparseArray<Bundle>? {
+        val sparseArray = SparseArray<Bundle>(bundleableSparseArray.size())
         for (i in 0 until bundleableSparseArray.size()) {
             sparseArray.put(bundleableSparseArray.keyAt(i), bundleableSparseArray.valueAt(i)!!.toBundle())
         }
@@ -89,7 +92,7 @@ object BundleableUtil {
      */
     fun ensureClassLoader(bundle: Bundle?) {
         if (bundle != null) {
-            bundle.setClassLoader(Util.castNonNull(BundleableUtil::class.java.getClassLoader()))
+            bundle.classLoader = castNonNull(BundleableUtil::class.java.classLoader)
         }
     }
 }

@@ -51,6 +51,7 @@ dependencies {
     implementation 'androidx.core:core-ktx:+'
     implementation 'androidx.core:core-ktx:+'
     implementation 'androidx.core:core-ktx:+'
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
 }
 

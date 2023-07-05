@@ -19,6 +19,7 @@ dependencies {
     implementation 'io.antmedia:rtmp-client:3.2.0'
     implementation 'androidx.annotation:annotation:' + androidxAnnotationVersion
     implementation 'androidx.core:core-ktx:+'
+    implementation 'androidx.core:core-ktx:+'
     compileOnly 'com.google.errorprone:error_prone_annotations:' + errorProneVersion
     compileOnly 'org.jetbrains.kotlin:kotlin-annotations-jvm:' + kotlinAnnotationsVersion
     testImplementation project(modulePrefix + 'library-core')

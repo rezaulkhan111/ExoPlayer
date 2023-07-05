@@ -1,4 +1,6 @@
 dependencies {
+    implementation 'androidx.core:core-ktx:+'
+
 //    implementation 'androidx.core:core-ktx:+'
 }// Copyright 2020 The Android Open Source Project
 //

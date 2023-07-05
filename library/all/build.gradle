@@ -26,6 +26,7 @@ dependencies {
     api project(modulePrefix + 'library-smoothstreaming')
     api project(modulePrefix + 'library-ui')
     implementation 'androidx.core:core-ktx:+'
+    implementation 'androidx.core:core-ktx:+'
 }
 
 ext {

@@ -15,29 +15,24 @@
  */
 package com.google.android.exoplayer2.util
 
-import com.google.common.base.Charsetsimport
+import com.google.android.exoplayer2.util.Assertions.checkArgument
+import com.google.android.exoplayer2.util.Util.fromUtf8Bytes
+import com.google.android.exoplayer2.util.Util.isLinebreak
+import com.google.common.base.Charsets
+import java.nio.ByteBuffer
+import java.nio.charset.Charset
+import java.util.Arrays
 
-java.nio.ByteBufferimport java.nio.charset.Charsetimport java.util.*
 /**
  * Wraps a byte array, providing a set of methods for parsing data from it. Numerical values are
  * parsed with the assumption that their constituent bytes are in big endian order.
  */
 class ParsableByteArray {
-    /**
-     * Returns the underlying array.
-     *
-     *
-     * Changes to this array are reflected in the results of the `read...()` methods.
-     *
-     *
-     * This reference must be assumed to become invalid when [.reset] or [ ][.ensureCapacity] are called (because the array might get reallocated).
-     */
-    var data: ByteArray?
-        private set
-    private var position: Int = 0
+    private var data: ByteArray
+    private var position = 0
 
     // TODO(internal b/147657250): Enforce this limit on all read methods.
-    private var limit: Int = 0
+    private var limit = 0
 
     /** Creates a new instance that initially has no backing data.  */
     constructor() {
@@ -70,7 +65,7 @@ class ParsableByteArray {
      * @param data The data to wrap.
      * @param limit The limit to set.
      */
-    constructor(data: ByteArray?, limit: Int) {
+    constructor(data: ByteArray, limit: Int) {
         this.data = data
         this.limit = limit
     }
@@ -82,22 +77,26 @@ class ParsableByteArray {
      * @param limit The limit to set.
      */
     fun reset(limit: Int) {
-        reset((if (capacity() < limit) ByteArray(limit) else data)!!, limit)
+        reset(if (capacity() < limit) ByteArray(limit) else data, limit)
     }
-    /**
-     * Updates the instance to wrap `data`, and resets the position to zero.
-     *
-     * @param data The array to wrap.
-     * @param limit The limit to set.
-     */
+
     /**
      * Updates the instance to wrap `data`, and resets the position to zero and the limit to
      * `data.length`.
      *
      * @param data The array to wrap.
      */
-    @JvmOverloads
-    fun reset(data: ByteArray, limit: Int = data.length) {
+    fun reset(data: ByteArray) {
+        reset(data, data.size)
+    }
+
+    /**
+     * Updates the instance to wrap `data`, and resets the position to zero.
+     *
+     * @param data The array to wrap.
+     * @param limit The limit to set.
+     */
+    fun reset(data: ByteArray, limit: Int) {
         this.data = data
         this.limit = limit
         position = 0
@@ -116,7 +115,7 @@ class ParsableByteArray {
      */
     fun ensureCapacity(requiredCapacity: Int) {
         if (requiredCapacity > capacity()) {
-            data = Arrays.copyOf(data, requiredCapacity)
+            data = data.copyOf(requiredCapacity)
         }
     }
 
@@ -136,7 +135,7 @@ class ParsableByteArray {
      * @param limit The limit to set.
      */
     fun setLimit(limit: Int) {
-        Assertions.checkArgument(limit >= 0 && limit <= data!!.size)
+        checkArgument(limit >= 0 && limit <= data.size)
         this.limit = limit
     }
 
@@ -154,13 +153,26 @@ class ParsableByteArray {
      */
     fun setPosition(position: Int) {
         // It is fine for position to be at the end of the array.
-        Assertions.checkArgument(position >= 0 && position <= limit)
+        checkArgument(position >= 0 && position <= limit)
         this.position = position
+    }
+
+    /**
+     * Returns the underlying array.
+     *
+     *
+     * Changes to this array are reflected in the results of the `read...()` methods.
+     *
+     *
+     * This reference must be assumed to become invalid when [.reset] or [ ][.ensureCapacity] are called (because the array might get reallocated).
+     */
+    fun getData(): ByteArray? {
+        return data
     }
 
     /** Returns the capacity of the array, which may be larger than the limit.  */
     fun capacity(): Int {
-        return data!!.size
+        return data.size
     }
 
     /**
@@ -212,126 +224,92 @@ class ParsableByteArray {
 
     /** Peeks at the next byte as an unsigned value.  */
     fun peekUnsignedByte(): Int {
-        return (data!!.get(position).toInt() and 0xFF)
+        return data[position].toInt() and 0xFF
     }
 
     /** Peeks at the next char.  */
     fun peekChar(): Char {
-        return (((data!!.get(position).toInt() and 0xFF) shl 8) or (data!!.get(position + 1).toInt() and 0xFF)).toChar()
+        return (data[position].toInt() and 0xFF shl 8 or (data[position + 1].toInt() and 0xFF)).toChar()
     }
 
     /** Reads the next byte as an unsigned value.  */
     fun readUnsignedByte(): Int {
-        return (data!!.get(position++).toInt() and 0xFF)
+        return data[position++].toInt() and 0xFF
     }
 
     /** Reads the next two bytes as an unsigned value.  */
     fun readUnsignedShort(): Int {
-        return ((data!!.get(position++).toInt() and 0xFF) shl 8) or (data!!.get(position++).toInt() and 0xFF)
+        return data[position++].toInt() and 0xFF shl 8 or (data[position++].toInt() and 0xFF)
     }
 
     /** Reads the next two bytes as an unsigned value.  */
     fun readLittleEndianUnsignedShort(): Int {
-        return (data!!.get(position++).toInt() and 0xFF) or ((data!!.get(position++).toInt() and 0xFF) shl 8)
+        return data[position++].toInt() and 0xFF or (data[position++].toInt() and 0xFF shl 8)
     }
 
     /** Reads the next two bytes as a signed value.  */
     fun readShort(): Short {
-        return (((data!!.get(position++).toInt() and 0xFF) shl 8) or (data!!.get(position++).toInt() and 0xFF)).toShort()
+        return (data[position++].toInt() and 0xFF shl 8 or (data[position++].toInt() and 0xFF)).toShort()
     }
 
     /** Reads the next two bytes as a signed value.  */
     fun readLittleEndianShort(): Short {
-        return ((data!!.get(position++).toInt() and 0xFF) or ((data!!.get(position++).toInt() and 0xFF) shl 8)).toShort()
+        return (data[position++].toInt() and 0xFF or (data[position++].toInt() and 0xFF shl 8)).toShort()
     }
 
     /** Reads the next three bytes as an unsigned value.  */
     fun readUnsignedInt24(): Int {
-        return ((data!!.get(position++).toInt() and 0xFF) shl 16
-                ) or ((data!!.get(position++).toInt() and 0xFF) shl 8
-                ) or (data!!.get(position++).toInt() and 0xFF)
+        return data[position++].toInt() and 0xFF shl 16 or (data[position++].toInt() and 0xFF shl 8) or (data[position++].toInt() and 0xFF)
     }
 
     /** Reads the next three bytes as a signed value.  */
     fun readInt24(): Int {
-        return (((data!!.get(position++).toInt() and 0xFF) shl 24) shr 8
-                ) or ((data!!.get(position++).toInt() and 0xFF) shl 8
-                ) or (data!!.get(position++).toInt() and 0xFF)
+        return data[position++].toInt() and 0xFF shl 24 shr 8 or (data[position++].toInt() and 0xFF shl 8) or (data[position++].toInt() and 0xFF)
     }
 
     /** Reads the next three bytes as a signed value in little endian order.  */
     fun readLittleEndianInt24(): Int {
-        return ((data!!.get(position++).toInt() and 0xFF)
-                or ((data!!.get(position++).toInt() and 0xFF) shl 8
-                ) or ((data!!.get(position++).toInt() and 0xFF) shl 16))
+        return (data[position++].toInt() and 0xFF or (data[position++].toInt() and 0xFF shl 8) or (data[position++].toInt() and 0xFF shl 16))
     }
 
     /** Reads the next three bytes as an unsigned value in little endian order.  */
     fun readLittleEndianUnsignedInt24(): Int {
-        return ((data!!.get(position++).toInt() and 0xFF)
-                or ((data!!.get(position++).toInt() and 0xFF) shl 8
-                ) or ((data!!.get(position++).toInt() and 0xFF) shl 16))
+        return (data[position++].toInt() and 0xFF or (data[position++].toInt() and 0xFF shl 8) or (data[position++].toInt() and 0xFF shl 16))
     }
 
     /** Reads the next four bytes as an unsigned value.  */
     fun readUnsignedInt(): Long {
-        return ((data!!.get(position++).toLong() and 0xFFL) shl 24
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 16
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 8
-                ) or (data!!.get(position++).toLong() and 0xFFL)
+        return data[position++].toLong() and 0xFFL shl 24 or (data[position++].toLong() and 0xFFL shl 16) or (data[position++].toLong() and 0xFFL shl 8) or (data[position++].toLong() and 0xFFL)
     }
 
     /** Reads the next four bytes as an unsigned value in little endian order.  */
     fun readLittleEndianUnsignedInt(): Long {
-        return ((data!!.get(position++).toLong() and 0xFFL)
-                or ((data!!.get(position++).toLong() and 0xFFL) shl 8
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 16
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 24))
+        return (data[position++].toLong() and 0xFFL or (data[position++].toLong() and 0xFFL shl 8) or (data[position++].toLong() and 0xFFL shl 16) or (data[position++].toLong() and 0xFFL shl 24))
     }
 
     /** Reads the next four bytes as a signed value  */
     fun readInt(): Int {
-        return ((data!!.get(position++).toInt() and 0xFF) shl 24
-                ) or ((data!!.get(position++).toInt() and 0xFF) shl 16
-                ) or ((data!!.get(position++).toInt() and 0xFF) shl 8
-                ) or (data!!.get(position++).toInt() and 0xFF)
+        return data[position++].toInt() and 0xFF shl 24 or (data[position++].toInt() and 0xFF shl 16) or (data[position++].toInt() and 0xFF shl 8) or (data[position++].toInt() and 0xFF)
     }
 
     /** Reads the next four bytes as a signed value in little endian order.  */
     fun readLittleEndianInt(): Int {
-        return ((data!!.get(position++).toInt() and 0xFF)
-                or ((data!!.get(position++).toInt() and 0xFF) shl 8
-                ) or ((data!!.get(position++).toInt() and 0xFF) shl 16
-                ) or ((data!!.get(position++).toInt() and 0xFF) shl 24))
+        return (data[position++].toInt() and 0xFF or (data[position++].toInt() and 0xFF shl 8) or (data[position++].toInt() and 0xFF shl 16) or (data[position++].toInt() and 0xFF shl 24))
     }
 
     /** Reads the next eight bytes as a signed value.  */
     fun readLong(): Long {
-        return ((data!!.get(position++).toLong() and 0xFFL) shl 56
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 48
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 40
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 32
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 24
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 16
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 8
-                ) or (data!!.get(position++).toLong() and 0xFFL)
+        return data[position++].toLong() and 0xFFL shl 56 or (data[position++].toLong() and 0xFFL shl 48) or (data[position++].toLong() and 0xFFL shl 40) or (data[position++].toLong() and 0xFFL shl 32) or (data[position++].toLong() and 0xFFL shl 24) or (data[position++].toLong() and 0xFFL shl 16) or (data[position++].toLong() and 0xFFL shl 8) or (data[position++].toLong() and 0xFFL)
     }
 
     /** Reads the next eight bytes as a signed value in little endian order.  */
     fun readLittleEndianLong(): Long {
-        return ((data!!.get(position++).toLong() and 0xFFL)
-                or ((data!!.get(position++).toLong() and 0xFFL) shl 8
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 16
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 24
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 32
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 40
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 48
-                ) or ((data!!.get(position++).toLong() and 0xFFL) shl 56))
+        return (data[position++].toLong() and 0xFFL or (data[position++].toLong() and 0xFFL shl 8) or (data[position++].toLong() and 0xFFL shl 16) or (data[position++].toLong() and 0xFFL shl 24) or (data[position++].toLong() and 0xFFL shl 32) or (data[position++].toLong() and 0xFFL shl 40) or (data[position++].toLong() and 0xFFL shl 48) or (data[position++].toLong() and 0xFFL shl 56))
     }
 
     /** Reads the next four bytes, returning the integer portion of the fixed point 16.16 integer.  */
     fun readUnsignedFixedPoint1616(): Int {
-        val result: Int = ((data!!.get(position++).toInt() and 0xFF) shl 8) or (data!!.get(position++).toInt() and 0xFF)
+        val result = data[position++].toInt() and 0xFF shl 8 or (data[position++].toInt() and 0xFF)
         position += 2 // Skip the non-integer portion.
         return result
     }
@@ -346,11 +324,11 @@ class ParsableByteArray {
      * @return The parsed value.
      */
     fun readSynchSafeInt(): Int {
-        val b1: Int = readUnsignedByte()
-        val b2: Int = readUnsignedByte()
-        val b3: Int = readUnsignedByte()
-        val b4: Int = readUnsignedByte()
-        return (b1 shl 21) or (b2 shl 14) or (b3 shl 7) or b4
+        val b1 = readUnsignedByte()
+        val b2 = readUnsignedByte()
+        val b3 = readUnsignedByte()
+        val b4 = readUnsignedByte()
+        return b1 shl 21 or (b2 shl 14) or (b3 shl 7) or b4
     }
 
     /**
@@ -359,10 +337,8 @@ class ParsableByteArray {
      * @throws IllegalStateException Thrown if the top bit of the input data is set.
      */
     fun readUnsignedIntToInt(): Int {
-        val result: Int = readInt()
-        if (result < 0) {
-            throw IllegalStateException("Top bit not zero: " + result)
-        }
+        val result = readInt()
+        check(result >= 0) { "Top bit not zero: $result" }
         return result
     }
 
@@ -373,10 +349,8 @@ class ParsableByteArray {
      * @throws IllegalStateException Thrown if the top bit of the input data is set.
      */
     fun readLittleEndianUnsignedIntToInt(): Int {
-        val result: Int = readLittleEndianInt()
-        if (result < 0) {
-            throw IllegalStateException("Top bit not zero: " + result)
-        }
+        val result = readLittleEndianInt()
+        check(result >= 0) { "Top bit not zero: $result" }
         return result
     }
 
@@ -386,10 +360,8 @@ class ParsableByteArray {
      * @throws IllegalStateException Thrown if the top bit of the input data is set.
      */
     fun readUnsignedLongToLong(): Long {
-        val result: Long = readLong()
-        if (result < 0) {
-            throw IllegalStateException("Top bit not zero: " + result)
-        }
+        val result = readLong()
+        check(result >= 0) { "Top bit not zero: $result" }
         return result
     }
 
@@ -402,6 +374,17 @@ class ParsableByteArray {
     fun readDouble(): Double {
         return java.lang.Double.longBitsToDouble(readLong())
     }
+
+    /**
+     * Reads the next `length` bytes as UTF-8 characters.
+     *
+     * @param length The number of bytes to read.
+     * @return The string encoded by the bytes.
+     */
+    fun readString(length: Int): String? {
+        return readString(length, Charsets.UTF_8)
+    }
+
     /**
      * Reads the next `length` bytes as characters in the specified [Charset].
      *
@@ -409,15 +392,8 @@ class ParsableByteArray {
      * @param charset The character set of the encoded characters.
      * @return The string encoded by the bytes in the specified character set.
      */
-    /**
-     * Reads the next `length` bytes as UTF-8 characters.
-     *
-     * @param length The number of bytes to read.
-     * @return The string encoded by the bytes.
-     */
-    @JvmOverloads
-    fun readString(length: Int, charset: Charset? = Charsets.UTF_8): String {
-        val result: String = String((data)!!, position, length, (charset)!!)
+    fun readString(length: Int, charset: Charset?): String? {
+        val result = String(data, position, length, charset!!)
         position += length
         return result
     }
@@ -433,12 +409,12 @@ class ParsableByteArray {
         if (length == 0) {
             return ""
         }
-        var stringLength: Int = length
-        val lastIndex: Int = position + length - 1
-        if (lastIndex < limit && data!!.get(lastIndex).toInt() == 0) {
+        var stringLength = length
+        val lastIndex = position + length - 1
+        if (lastIndex < limit && data[lastIndex].toInt() == 0) {
             stringLength--
         }
-        val result: String? = Util.fromUtf8Bytes(data, position, stringLength)
+        val result = fromUtf8Bytes(data, position, stringLength)
         position += length
         return result
     }
@@ -463,11 +439,11 @@ class ParsableByteArray {
         if (bytesLeft() == 0) {
             return null
         }
-        var stringLimit: Int = position
-        while (stringLimit < limit && data!!.get(stringLimit) != delimiter.code.toByte()) {
+        var stringLimit = position
+        while (stringLimit < limit && data[stringLimit] != delimiter.code.toByte()) {
             stringLimit++
         }
-        val string: String? = Util.fromUtf8Bytes(data, position, stringLimit - position)
+        val string = fromUtf8Bytes(data, position, stringLimit - position)
         position = stringLimit
         if (position < limit) {
             position++
@@ -490,29 +466,26 @@ class ParsableByteArray {
         if (bytesLeft() == 0) {
             return null
         }
-        var lineLimit: Int = position
-        while (lineLimit < limit && !Util.isLinebreak(data!!.get(lineLimit).toInt())) {
+        var lineLimit = position
+        while (lineLimit < limit && !isLinebreak(data[lineLimit].toInt())) {
             lineLimit++
         }
-        if ((lineLimit - position >= 3
-                        ) && (data!!.get(position) == 0xEF.toByte()
-                        ) && (data!!.get(position + 1) == 0xBB.toByte()
-                        ) && (data!!.get(position + 2) == 0xBF.toByte())) {
+        if (lineLimit - position >= 3 && data[position] == 0xEF.toByte() && data[position + 1] == 0xBB.toByte() && data[position + 2] == 0xBF.toByte()) {
             // There's a UTF-8 byte order mark at the start of the line. Discard it.
             position += 3
         }
-        val line: String? = Util.fromUtf8Bytes(data, position, lineLimit - position)
+        val line = fromUtf8Bytes(data, position, lineLimit - position)
         position = lineLimit
         if (position == limit) {
             return line
         }
-        if (data!!.get(position) == '\r'.code.toByte()) {
+        if (data[position] == '\r'.code.toByte()) {
             position++
             if (position == limit) {
                 return line
             }
         }
-        if (data!!.get(position) == '\n'.code.toByte()) {
+        if (data[position] == '\n'.code.toByte()) {
             position++
         }
         return line
@@ -525,11 +498,11 @@ class ParsableByteArray {
      * @return Decoded long value
      */
     fun readUtf8EncodedLong(): Long {
-        var length: Int = 0
-        var value: Long = data!!.get(position).toLong()
+        var length = 0
+        var value = data[position].toLong()
         // find the high most 0 bit
         for (j in 7 downTo 0) {
-            if ((value and (1 shl j).toLong()) == 0L) {
+            if (value and (1 shl j).toLong() == 0L) {
                 if (j < 6) {
                     value = value and ((1 shl j) - 1).toLong()
                     length = 7 - j
@@ -540,14 +513,14 @@ class ParsableByteArray {
             }
         }
         if (length == 0) {
-            throw NumberFormatException("Invalid UTF-8 sequence first byte: " + value)
+            throw NumberFormatException("Invalid UTF-8 sequence first byte: $value")
         }
         for (i in 1 until length) {
-            val x: Int = data!!.get(position + i).toInt()
-            if ((x and 0xC0) != 0x80) { // if the high most 0 bit not 7th
-                throw NumberFormatException("Invalid UTF-8 sequence continuation byte: " + value)
+            val x = data[position + i].toInt()
+            if (x and 0xC0 != 0x80) { // if the high most 0 bit not 7th
+                throw NumberFormatException("Invalid UTF-8 sequence continuation byte: $value")
             }
-            value = (value shl 6) or (x and 0x3F).toLong()
+            value = value shl 6 or (x and 0x3F).toLong()
         }
         position += length
         return value

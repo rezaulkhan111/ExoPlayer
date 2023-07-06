@@ -21,6 +21,10 @@ import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.C.RoleFlags
 import com.google.android.exoplayer2.C.TrackType
 import com.google.android.exoplayer2.util.*
+import com.google.android.exoplayer2.util.Assertions.checkArgument
+import com.google.android.exoplayer2.util.BundleableUtil.fromBundleList
+import com.google.android.exoplayer2.util.Log.e
+import com.google.android.exoplayer2.util.MimeTypes.getTrackType
 import com.google.common.collect.ImmutableList
 import java.lang.annotation.Documented
 import java.lang.annotation.Retention
@@ -49,26 +53,68 @@ import java.util.*
  * [Tracks.Group], it does not include runtime information such as the extent to which
  * playback of each track is supported by the device, or which tracks are currently selected.
  */
-class TrackGroup constructor(id: String, vararg formats: Format) : Bundleable {
+class TrackGroup : Bundleable {
+
+    private val TAG = "TrackGroup"
+
     /** The number of tracks in the group.  */
-    val length: Int
+    var length = 0
 
     /** An identifier for the track group.  */
-    val id: String
+    var id: String? = null
 
     /** The type of tracks in the group.  */
-    val type: @TrackType Int
-    private val formats: Array<Format>
+    var type: @TrackType Int = 0
+
+    private var formats: Array<Format>? = null
 
     // Lazily initialized hashcode.
-    private var hashCode: Int = 0
+    private var hashCode = 0
+
+    companion object {
+        private const val FIELD_FORMATS = 0
+        private const val FIELD_ID = 1
+
+        /** Object that can restore `TrackGroup` from a [Bundle].  */
+        val CREATOR: Bundleable.Creator<TrackGroup> = Bundleable.Creator<TrackGroup> { bundle: Bundle ->
+            val formatBundles: List<Bundle?>? = bundle.getParcelableArrayList(keyForField(FIELD_FORMATS))
+            val formats: List<Format> = if (formatBundles == null) ImmutableList.of() else (fromBundleList(Format.CREATOR, formatBundles))!!
+            val id: String = bundle.getString(keyForField(FIELD_ID),  /* defaultValue= */"")
+            TrackGroup(id, *formats.toTypedArray())
+        }
+
+        private fun keyForField(@FieldNumber field: Int): String? {
+            return Integer.toString(field, Character.MAX_RADIX)
+        }
+    }
 
     /**
      * Constructs a track group containing the provided `formats`.
      *
      * @param formats The list of [Formats][Format]. Must not be empty.
      */
-    constructor(vararg formats: Format?) : this( /* id= */"", *formats) {}
+    constructor(vararg formats: Format?) {
+        TrackGroup( /* id= */"", *formats)
+    }
+
+    /**
+     * Constructs a track group with the provided `id` and `formats`.
+     *
+     * @param id The identifier of the track group. May be an empty string.
+     * @param formats The list of [Formats][Format]. Must not be empty.
+     */
+    constructor(id: String?, vararg formats: Format?) {
+        checkArgument(formats.size > 0)
+        this.id = id
+        this.formats = formats
+        length = formats.size
+        var type: @TrackType Int = getTrackType(formats[0]?.sampleMimeType)
+        if (type == C.TRACK_TYPE_UNKNOWN) {
+            type = getTrackType(formats[0]?.containerMimeType)
+        }
+        this.type = type
+        verifyCorrectness()
+    }
 
     /**
      * Returns a copy of this track group with the specified `id`.
@@ -77,7 +123,7 @@ class TrackGroup constructor(id: String, vararg formats: Format) : Bundleable {
      * @return The copied track group.
      */
     @CheckResult
-    fun copyWithId(id: String): TrackGroup {
+    fun copyWithId(id: String?): TrackGroup? {
         return TrackGroup(id, *formats)
     }
 
@@ -87,8 +133,8 @@ class TrackGroup constructor(id: String, vararg formats: Format) : Bundleable {
      * @param index The index of the track.
      * @return The track's format.
      */
-    fun getFormat(index: Int): Format {
-        return formats.get(index)
+    fun getFormat(index: Int): Format? {
+        return formats!![index]
     }
 
     /**
@@ -100,17 +146,17 @@ class TrackGroup constructor(id: String, vararg formats: Format) : Bundleable {
      * @return The index of the track, or [C.INDEX_UNSET] if no such track exists.
      */
     fun indexOf(format: Format): Int {
-        for (i in formats.indices) {
-            if (format === formats.get(i)) {
+        for (i in formats!!.indices) {
+            if (format === formats!![i]) {
                 return i
             }
         }
         return C.INDEX_UNSET
     }
 
-    public override fun hashCode(): Int {
+    override fun hashCode(): Int {
         if (hashCode == 0) {
-            var result: Int = 17
+            var result = 17
             result = 31 * result + id.hashCode()
             result = 31 * result + Arrays.hashCode(formats)
             hashCode = result
@@ -118,28 +164,30 @@ class TrackGroup constructor(id: String, vararg formats: Format) : Bundleable {
         return hashCode
     }
 
-    public override fun equals(obj: Any?): Boolean {
-        if (this === obj) {
+    override fun equals(anyObj: Any?): Boolean {
+        if (this === anyObj) {
             return true
         }
-        if (obj == null || javaClass != obj.javaClass) {
+        if (anyObj == null || javaClass != anyObj.javaClass) {
             return false
         }
-        val other: TrackGroup = obj as TrackGroup
-        return (id == other.id) && Arrays.equals(formats, other.formats)
+        val other = anyObj as TrackGroup
+        return id == other.id && Arrays.equals(formats, other.formats)
     }
+
+    // Bundleable implementation.
 
     // Bundleable implementation.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([FIELD_FORMATS, FIELD_ID])
-    private annotation class FieldNumber constructor()
+    @IntDef(value = [FIELD_FORMATS, FIELD_ID])
+    private annotation class FieldNumber {}
 
-    public override fun toBundle(): Bundle {
-        val bundle: Bundle = Bundle()
-        val arrayList: ArrayList<Bundle?> = ArrayList(formats.size)
-        for (format: Format in formats) {
+    override fun toBundle(): Bundle {
+        val bundle = Bundle()
+        val arrayList = ArrayList<Bundle>(formats!!.size)
+        for (format: Format in formats!!) {
             arrayList.add(format.toBundle( /* excludeMetadata= */true))
         }
         bundle.putParcelableArrayList(keyForField(FIELD_FORMATS), arrayList)
@@ -147,97 +195,45 @@ class TrackGroup constructor(id: String, vararg formats: Format) : Bundleable {
         return bundle
     }
 
-    /**
-     * Constructs a track group with the provided `id` and `formats`.
-     *
-     * @param id The identifier of the track group. May be an empty string.
-     * @param formats The list of [Formats][Format]. Must not be empty.
-     */
-    init {
-        Assertions.checkArgument(formats.size > 0)
-        this.id = id
-        this.formats = formats
-        length = formats.size
-        var type: @TrackType Int = MimeTypes.getTrackType(formats.get(0).sampleMimeType)
-        if (type == C.TRACK_TYPE_UNKNOWN) {
-            type = MimeTypes.getTrackType(formats.get(0).containerMimeType)
-        }
-        this.type = type
-        verifyCorrectness()
-    }
-
     private fun verifyCorrectness() {
         // TrackGroups should only contain tracks with exactly the same content (but in different
         // qualities). We only log an error instead of throwing to not break backwards-compatibility for
         // cases where malformed TrackGroups happen to work by chance (e.g. because adaptive selections
         // are always disabled).
-        val language: String = normalizeLanguage(formats.get(0).language)
-        val roleFlags: @RoleFlags Int = normalizeRoleFlags(formats.get(0).roleFlags)
-        for (i in 1 until formats.size) {
-            if (!(language == normalizeLanguage(formats.get(i).language))) {
+        val language = normalizeLanguage(formats!![0].language)
+        @RoleFlags val roleFlags = normalizeRoleFlags(formats!![0].roleFlags)
+        for (i in 1 until formats!!.size) {
+            if (language != normalizeLanguage(formats!![i].language)) {
                 logErrorMessage( /* mismatchField= */
                         "languages",  /* valueIndex0= */
-                        formats.get(0).language,  /* otherValue=* */
-                        formats.get(i).language,  /* otherIndex= */
+                        formats!![0].language,  /* otherValue=* */
+                        formats!![i].language,  /* otherIndex= */
                         i)
                 return
             }
-            if (roleFlags != normalizeRoleFlags(formats.get(i).roleFlags)) {
+            if (roleFlags != normalizeRoleFlags(formats!![i].roleFlags)) {
                 logErrorMessage( /* mismatchField= */
                         "role flags",  /* valueIndex0= */
-                        Integer.toBinaryString(formats.get(0).roleFlags),  /* otherValue=* */
-                        Integer.toBinaryString(formats.get(i).roleFlags),  /* otherIndex= */
+                        Integer.toBinaryString(formats!![0].roleFlags),  /* otherValue=* */
+                        Integer.toBinaryString(formats!![i].roleFlags),  /* otherIndex= */
                         i)
                 return
             }
         }
     }
 
-    companion object {
-        private val TAG: String = "TrackGroup"
-        private val FIELD_FORMATS: Int = 0
-        private val FIELD_ID: Int = 1
+    private fun normalizeLanguage(language: String?): String? {
+        // Treat all variants of undetermined or unknown languages as compatible.
+        return if ((language == null) || language == C.LANGUAGE_UNDETERMINED) "" else language
+    }
 
-        /** Object that can restore `TrackGroup` from a [Bundle].  */
-        val CREATOR: Bundleable.Creator<TrackGroup> = Bundleable.Creator({ bundle: Bundle ->
-            val formatBundles: List<Bundle>? = bundle.getParcelableArrayList(keyForField(FIELD_FORMATS))
-            val formats: List<Format> = if (formatBundles == null) ImmutableList.of() else BundleableUtil.fromBundleList(Format.Companion.CREATOR, formatBundles)
-            val id: String = bundle.getString(keyForField(FIELD_ID),  /* defaultValue= */"")
-            TrackGroup(id, *formats.toTypedArray())
-        })
+    @RoleFlags
+    private fun normalizeRoleFlags(@RoleFlags roleFlags: Int): Int {
+        // Treat trick-play and non-trick-play formats as compatible.
+        return roleFlags or C.ROLE_FLAG_TRICK_PLAY
+    }
 
-        private fun keyForField(field: @FieldNumber Int): String {
-            return Integer.toString(field, Character.MAX_RADIX)
-        }
-
-        private fun normalizeLanguage(language: String?): String {
-            // Treat all variants of undetermined or unknown languages as compatible.
-            return if (language == null || (language == C.LANGUAGE_UNDETERMINED)) "" else language
-        }
-
-        private fun normalizeRoleFlags(roleFlags: @RoleFlags Int): @RoleFlags Int {
-            // Treat trick-play and non-trick-play formats as compatible.
-            return roleFlags or C.ROLE_FLAG_TRICK_PLAY
-        }
-
-        private fun logErrorMessage(
-                mismatchField: String,
-                valueIndex0: String?,
-                otherValue: String?,
-                otherIndex: Int) {
-            Log.e(
-                    TAG,
-                    "",
-                    IllegalStateException(
-                            ("Different "
-                                    + mismatchField
-                                    + " combined in one TrackGroup: '"
-                                    + valueIndex0
-                                    + "' (track 0) and '"
-                                    + otherValue
-                                    + "' (track "
-                                    + otherIndex
-                                    + ")")))
-        }
+    private fun logErrorMessage(mismatchField: String, valueIndex0: String?, otherValue: String?, otherIndex: Int) {
+        e(TAG, "", IllegalStateException("Different $mismatchField combined in one TrackGroup: '$valueIndex0' (track 0) and '$otherValue' (track $otherIndex)"))
     }
 }

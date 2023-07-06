@@ -23,28 +23,26 @@ import com.google.android.exoplayer2.MediaMetadata
 import com.google.android.exoplayer2.Timeline
 import com.google.android.exoplayer2.util.Util
 import com.google.common.primitives.Longs
-import java.util.*
+import java.util.Arrays
 
 /** A collection of metadata entries.  */
 class Metadata : Parcelable {
     /** A metadata entry.  */
-    open interface Entry : Parcelable {
+    interface Entry : Parcelable {
         /**
          * Returns the [Format] that can be used to decode the wrapped metadata in [ ][.getWrappedMetadataBytes], or null if this Entry doesn't contain wrapped metadata.
          */
-        val wrappedMetadataFormat: Format?
-            get() {
-                return null
-            }
+        fun getWrappedMetadataFormat(): Format? {
+            return null
+        }
 
         /**
          * Returns the bytes of the wrapped metadata in this Entry, or null if it doesn't contain
          * wrapped metadata.
          */
-        val wrappedMetadataBytes: ByteArray?
-            get() {
-                return null
-            }
+        fun getWrappedMetadataBytes(): ByteArray? {
+            return null
+        }
 
         /**
          * Updates the [MediaMetadata.Builder] with the type specific values stored in this Entry.
@@ -97,12 +95,12 @@ class Metadata : Parcelable {
     constructor(presentationTimeUs: Long, entries: List<Entry>) : this(presentationTimeUs, *entries.toTypedArray<Entry>()) {}
 
     /* package */
-    internal constructor(`in`: Parcel) {
-        entries = arrayOfNulls(`in`.readInt())
+    internal constructor(parcel: Parcel) {
+        entries = arrayOfNulls(parcel.readInt())
         for (i in entries.indices) {
-            entries.get(i) = `in`.readParcelable(Entry::class.java.getClassLoader())
+            entries[i] = parcel.readParcelable(Entry::class.java.getClassLoader())
         }
-        presentationTimeUs = `in`.readLong()
+        presentationTimeUs = parcel.readLong()
     }
 
     /** Returns the number of metadata entries.  */
@@ -117,7 +115,7 @@ class Metadata : Parcelable {
      * @return The entry at the specified index.
      */
     operator fun get(index: Int): Entry? {
-        return entries.get(index)
+        return entries[index]
     }
 
     /**
@@ -145,8 +143,7 @@ class Metadata : Parcelable {
         if (entriesToAppend.size == 0) {
             return this
         }
-        return Metadata(
-                presentationTimeUs, *Util.nullSafeArrayConcatenation(entries, entriesToAppend))
+        return Metadata(presentationTimeUs, *Util.nullSafeArrayConcatenation(entries, entriesToAppend))
     }
 
     /**
@@ -180,9 +177,7 @@ class Metadata : Parcelable {
     }
 
     public override fun toString(): String {
-        return ("entries="
-                + Arrays.toString(entries)
-                + (if (presentationTimeUs == C.TIME_UNSET) "" else ", presentationTimeUs=" + presentationTimeUs))
+        return ("entries=" + Arrays.toString(entries) + (if (presentationTimeUs == C.TIME_UNSET) "" else ", presentationTimeUs=" + presentationTimeUs))
     }
 
     // Parcelable implementation.
@@ -199,8 +194,9 @@ class Metadata : Parcelable {
     }
 
     companion object {
-        val CREATOR: Parcelable.Creator<Metadata> = object : Parcelable.Creator<Metadata?> {
-            public override fun createFromParcel(`in`: Parcel): Metadata? {
+        @JvmField
+        val CREATOR: Parcelable.Creator<Metadata> = object : Parcelable.Creator<Metadata> {
+            public override fun createFromParcel(`in`: Parcel): Metadata {
                 return Metadata(`in`)
             }
 

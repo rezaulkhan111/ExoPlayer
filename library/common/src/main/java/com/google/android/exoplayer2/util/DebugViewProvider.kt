@@ -22,7 +22,7 @@ interface DebugViewProvider {
 
     companion object {
         /** Debug view provider that doesn't show any debug info.  */
-        val NONE: DebugViewProvider = DebugViewProvider { width: Int, height: Int -> null }
+        val NONE: DebugViewProvider = DebugViewProvider { _: Int, _: Int -> null }
     }
 
     /**

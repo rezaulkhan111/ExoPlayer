@@ -37,16 +37,16 @@ interface HandlerWrapper {
     fun hasMessages(what: Int): Boolean
 
     /** See [Handler.obtainMessage].  */
-    fun obtainMessage(what: Int): Message
+    fun obtainMessage(what: Int): Message?
 
     /** See [Handler.obtainMessage].  */
-    fun obtainMessage(what: Int, obj: Any?): Message
+    fun obtainMessage(what: Int, obj: Any?): Message?
 
     /** See [Handler.obtainMessage].  */
-    fun obtainMessage(what: Int, arg1: Int, arg2: Int): Message
+    fun obtainMessage(what: Int, arg1: Int, arg2: Int): Message?
 
     /** See [Handler.obtainMessage].  */
-    fun obtainMessage(what: Int, arg1: Int, arg2: Int, obj: Any?): Message
+    fun obtainMessage(what: Int, arg1: Int, arg2: Int, obj: Any?): Message?
 
     /** See [Handler.sendMessageAtFrontOfQueue].  */
     fun sendMessageAtFrontOfQueue(message: Message?): Boolean

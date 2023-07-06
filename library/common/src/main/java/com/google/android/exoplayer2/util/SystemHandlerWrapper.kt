@@ -15,102 +15,105 @@
  */
 package com.google.android.exoplayer2.util
 
+import android.os.*
 import androidx.annotation.*
+import com.google.errorprone.annotations.CanIgnoreReturnValue
 
-android.os.*import androidx.annotation.*
-import com.google.errorprone.annotations.CanIgnoreReturnValueimport
-
-java.util.ArrayList
 /** The standard implementation of [HandlerWrapper].  */ /* package */
-internal class SystemHandlerWrapper constructor(private val handler: Handler) : HandlerWrapper {
-    override val looper: Looper
-        get() {
-            return handler.getLooper()
-        }
+internal class SystemHandlerWrapper : HandlerWrapper {
 
-    public override fun hasMessages(what: Int): Boolean {
-        return handler.hasMessages(what)
+    private var handler: Handler? = null
+
+    constructor(handler: Handler?) {
+        this.handler = handler
     }
 
-    public override fun obtainMessage(what: Int): HandlerWrapper.Message {
-        return obtainSystemMessage().setMessage(handler.obtainMessage(what),  /* handler= */this)
+    override fun getLooper(): Looper {
+        return handler!!.looper
     }
 
-    public override fun obtainMessage(what: Int, obj: Any?): HandlerWrapper.Message {
-        return obtainSystemMessage().setMessage(handler.obtainMessage(what, obj),  /* handler= */this)
+    override fun hasMessages(what: Int): Boolean {
+        return handler!!.hasMessages(what)
     }
 
-    public override fun obtainMessage(what: Int, arg1: Int, arg2: Int): HandlerWrapper.Message {
-        return obtainSystemMessage()
-                .setMessage(handler.obtainMessage(what, arg1, arg2),  /* handler= */this)
+    override fun obtainMessage(what: Int): HandlerWrapper.Message? {
+        return obtainSystemMessage().setMessage(handler!!.obtainMessage(what),  /* handler= */this)
     }
 
-    public override fun obtainMessage(what: Int, arg1: Int, arg2: Int, obj: Any?): HandlerWrapper.Message {
-        return obtainSystemMessage()
-                .setMessage(handler.obtainMessage(what, arg1, arg2, obj),  /* handler= */this)
+    override fun obtainMessage(what: Int, obj: Any?): HandlerWrapper.Message? {
+        return obtainSystemMessage().setMessage(handler!!.obtainMessage(what, obj),  /* handler= */this)
     }
 
-    public override fun sendMessageAtFrontOfQueue(message: HandlerWrapper.Message?): Boolean {
-        return (message as SystemMessage?)!!.sendAtFrontOfQueue(handler)
+    override fun obtainMessage(what: Int, arg1: Int, arg2: Int): HandlerWrapper.Message? {
+        return obtainSystemMessage().setMessage(handler!!.obtainMessage(what, arg1, arg2),  /* handler= */this)
     }
 
-    public override fun sendEmptyMessage(what: Int): Boolean {
-        return handler.sendEmptyMessage(what)
+    override fun obtainMessage(what: Int, arg1: Int, arg2: Int, obj: Any?): HandlerWrapper.Message? {
+        return obtainSystemMessage().setMessage(handler!!.obtainMessage(what, arg1, arg2, obj),  /* handler= */this)
     }
 
-    public override fun sendEmptyMessageDelayed(what: Int, delayMs: Int): Boolean {
-        return handler.sendEmptyMessageDelayed(what, delayMs.toLong())
+    override fun sendMessageAtFrontOfQueue(message: HandlerWrapper.Message?): Boolean {
+        return (message as SystemMessage).sendAtFrontOfQueue(handler!!)
     }
 
-    public override fun sendEmptyMessageAtTime(what: Int, uptimeMs: Long): Boolean {
-        return handler.sendEmptyMessageAtTime(what, uptimeMs)
+    override fun sendEmptyMessage(what: Int): Boolean {
+        return handler!!.sendEmptyMessage(what)
     }
 
-    public override fun removeMessages(what: Int) {
-        handler.removeMessages(what)
+    override fun sendEmptyMessageDelayed(what: Int, delayMs: Int): Boolean {
+        return handler!!.sendEmptyMessageDelayed(what, delayMs.toLong())
     }
 
-    public override fun removeCallbacksAndMessages(token: Any?) {
-        handler.removeCallbacksAndMessages(token)
+    override fun sendEmptyMessageAtTime(what: Int, uptimeMs: Long): Boolean {
+        return handler!!.sendEmptyMessageAtTime(what, uptimeMs)
     }
 
-    public override fun post(runnable: Runnable?): Boolean {
-        return handler.post((runnable)!!)
+    override fun removeMessages(what: Int) {
+        handler!!.removeMessages(what)
     }
 
-    public override fun postDelayed(runnable: Runnable?, delayMs: Long): Boolean {
-        return handler.postDelayed((runnable)!!, delayMs)
+    override fun removeCallbacksAndMessages(token: Any?) {
+        handler!!.removeCallbacksAndMessages(token)
     }
 
-    public override fun postAtFrontOfQueue(runnable: Runnable?): Boolean {
-        return handler.postAtFrontOfQueue((runnable)!!)
+    override fun post(runnable: Runnable?): Boolean {
+        return handler!!.post(runnable!!)
     }
 
-    private class SystemMessage constructor() : HandlerWrapper.Message {
+    override fun postDelayed(runnable: Runnable?, delayMs: Long): Boolean {
+        return handler!!.postDelayed(runnable!!, delayMs)
+    }
+
+    override fun postAtFrontOfQueue(runnable: Runnable?): Boolean {
+        return handler!!.postAtFrontOfQueue(runnable!!)
+    }
+
+    private class SystemMessage : HandlerWrapper.Message {
+
         private var message: Message? = null
         private var handler: SystemHandlerWrapper? = null
+
         @CanIgnoreReturnValue
-        fun setMessage(message: Message?, handler: SystemHandlerWrapper?): SystemMessage {
+        fun setMessage(message: Message?, handler: SystemHandlerWrapper?): SystemMessage? {
             this.message = message
             this.handler = handler
             return this
         }
 
         fun sendAtFrontOfQueue(handler: Handler): Boolean {
-            val success: Boolean = handler.sendMessageAtFrontOfQueue((Assertions.checkNotNull(message))!!)
+            val success = handler.sendMessageAtFrontOfQueue(checkNotNull(message))
             recycle()
             return success
         }
 
-        public override fun sendToTarget() {
-            Assertions.checkNotNull(message)!!.sendToTarget()
+        override fun sendToTarget() {
+            checkNotNull(message).sendToTarget()
             recycle()
         }
 
-        override val target: HandlerWrapper?
-            get() {
-                return Assertions.checkNotNull(handler)
-            }
+        override fun getTarget(): HandlerWrapper? {
+            return checkNotNull(handler)
+        }
 
         private fun recycle() {
             message = null
@@ -120,20 +123,20 @@ internal class SystemHandlerWrapper constructor(private val handler: Handler) : 
     }
 
     companion object {
-        private val MAX_POOL_SIZE: Int = 50
+        private const val MAX_POOL_SIZE: Int = 50
 
         @GuardedBy("messagePool")
         private val messagePool: MutableList<SystemMessage> = ArrayList(MAX_POOL_SIZE)
         private fun obtainSystemMessage(): SystemMessage {
-            synchronized(messagePool, { return if (messagePool.isEmpty()) SystemMessage() else messagePool.removeAt(messagePool.size - 1) })
+            synchronized(messagePool) { return if (messagePool.isEmpty()) SystemMessage() else messagePool.removeAt(messagePool.size - 1) }
         }
 
         private fun recycleMessage(message: SystemMessage) {
-            synchronized(messagePool, {
+            synchronized(messagePool) {
                 if (messagePool.size < MAX_POOL_SIZE) {
                     messagePool.add(message)
                 }
-            })
+            }
         }
     }
 }

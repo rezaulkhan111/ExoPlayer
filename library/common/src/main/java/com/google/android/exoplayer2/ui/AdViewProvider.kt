@@ -16,7 +16,6 @@
 package com.google.android.exoplayer2.ui
 
 import android.view.ViewGroup
-import com.google.android.exoplayer2.uiimport.AdOverlayInfo
 import com.google.common.collect.ImmutableList
 
 /** Provides information about views for the ad playback UI.  */

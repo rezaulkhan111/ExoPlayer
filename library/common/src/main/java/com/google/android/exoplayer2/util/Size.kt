@@ -15,13 +15,14 @@
  */
 package com.google.android.exoplayer2.util
 
-com.google.android.exoplayer2.*
+
+import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.util.Assertions.checkArgument
+
 /** Immutable class for describing width and height dimensions in pixels.  */
-class Size(width: Int, height: Int) {
-    /** Returns the width of the size (in pixels), or [C.LENGTH_UNSET] if unknown.  */
-    val width: Int
-    /** Returns the height of the size (in pixels), or [C.LENGTH_UNSET] if unknown.  */
-    val height: Int
+class Size {
+    private var width = 0
+    private var height = 0
 
     /**
      * Creates a new immutable Size instance.
@@ -30,11 +31,20 @@ class Size(width: Int, height: Int) {
      * @param height The height of the size, in pixels, or [C.LENGTH_UNSET] if unknown.
      * @throws IllegalArgumentException if an invalid `width` or `height` is specified.
      */
-    init {
-        Assertions.checkArgument(
-                (width == C.LENGTH_UNSET || width >= 0) && (height == C.LENGTH_UNSET || height >= 0))
+    constructor(width: Int, height: Int) {
+        checkArgument((width == C.LENGTH_UNSET || width >= 0) && (height == C.LENGTH_UNSET || height >= 0))
         this.width = width
         this.height = height
+    }
+
+    /** Returns the width of the size (in pixels), or [C.LENGTH_UNSET] if unknown.  */
+    fun getWidth(): Int {
+        return width
+    }
+
+    /** Returns the height of the size (in pixels), or [C.LENGTH_UNSET] if unknown.  */
+    fun getHeight(): Int {
+        return height
     }
 
     override fun equals(obj: Any?): Boolean {

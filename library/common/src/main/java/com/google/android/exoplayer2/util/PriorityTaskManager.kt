@@ -15,9 +15,11 @@
  */
 package com.google.android.exoplayer2.util
 
-import java.io.IOExceptionimport
+import com.google.android.exoplayer2.util.Util.castNonNull
+import java.io.IOException
+import java.util.*
+import kotlin.math.max
 
-java.util.*
 /**
  * Allows tasks with associated priorities to control how they proceed relative to one another.
  *
@@ -27,17 +29,17 @@ java.util.*
  * call [.proceed], [.proceedNonBlocking] or [.proceedOrThrow] each
  * time it wishes to check whether it is itself allowed to proceed.
  */
-class PriorityTaskManager constructor() {
+class PriorityTaskManager {
     /** Thrown when task attempts to proceed when another registered task has a higher priority.  */
-    class PriorityTooLowException constructor(priority: Int, highestPriority: Int) : IOException("Priority too low [priority=" + priority + ", highest=" + highestPriority + "]")
+    class PriorityTooLowException(priority: Int, highestPriority: Int) : IOException("Priority too low [priority=$priority, highest=$highestPriority]")
 
-    private val lock: Any = Any()
+    private val lock = Any()
 
     // Guarded by lock.
-    private val queue: PriorityQueue<Int>
-    private var highestPriority: Int
+    private var queue: PriorityQueue<Int>? = null
+    private var highestPriority = 0
 
-    init {
+    constructor() {
         queue = PriorityQueue(10, Collections.reverseOrder())
         highestPriority = Int.MIN_VALUE
     }
@@ -48,10 +50,10 @@ class PriorityTaskManager constructor() {
      * @param priority The priority of the task. Larger values indicate higher priorities.
      */
     fun add(priority: Int) {
-        synchronized(lock, {
-            queue.add(priority)
-            highestPriority = Math.max(highestPriority, priority)
-        })
+        synchronized(lock) {
+            queue!!.add(priority)
+            highestPriority = max(highestPriority, priority)
+        }
     }
 
     /**
@@ -62,11 +64,11 @@ class PriorityTaskManager constructor() {
      */
     @Throws(InterruptedException::class)
     fun proceed(priority: Int) {
-        synchronized(lock, {
+        synchronized(lock) {
             while (highestPriority != priority) {
                 lock.wait()
             }
-        })
+        }
     }
 
     /**
@@ -76,7 +78,7 @@ class PriorityTaskManager constructor() {
      * @return Whether the task is allowed to proceed.
      */
     fun proceedNonBlocking(priority: Int): Boolean {
-        synchronized(lock, { return highestPriority == priority })
+        synchronized(lock) { return highestPriority == priority }
     }
 
     /**
@@ -87,11 +89,11 @@ class PriorityTaskManager constructor() {
      */
     @Throws(PriorityTooLowException::class)
     fun proceedOrThrow(priority: Int) {
-        synchronized(lock, {
+        synchronized(lock) {
             if (highestPriority != priority) {
                 throw PriorityTooLowException(priority, highestPriority)
             }
-        })
+        }
     }
 
     /**
@@ -100,10 +102,10 @@ class PriorityTaskManager constructor() {
      * @param priority The priority of the task.
      */
     fun remove(priority: Int) {
-        synchronized(lock, {
-            queue.remove(priority)
-            highestPriority = if (queue.isEmpty()) Int.MIN_VALUE else (Util.castNonNull(queue.peek()))!!
+        synchronized(lock) {
+            queue!!.remove(priority)
+            highestPriority = if (queue!!.isEmpty()) Int.MIN_VALUE else castNonNull(queue!!.peek())!!
             lock.notifyAll()
-        })
+        }
     }
 }

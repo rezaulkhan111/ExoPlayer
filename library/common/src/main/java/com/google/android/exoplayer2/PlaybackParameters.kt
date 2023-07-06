@@ -23,9 +23,7 @@ import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 
 /** Parameters that apply to playback, including speed setting.  */
-class PlaybackParameters @JvmOverloads constructor(
-        @FloatRange(from = 0, fromInclusive = false) speed: Float,
-        @FloatRange(from = 0, fromInclusive = false) pitch: Float =  /* pitch= */1f) : Bundleable {
+class PlaybackParameters @JvmOverloads constructor(@FloatRange(from = 0.0, fromInclusive = false) speed: Float, @FloatRange(from = 0.0, fromInclusive = false) pitch: Float =  /* pitch= */1f) : Bundleable {
     /** The factor by which playback will be sped up.  */
     val speed: Float
 

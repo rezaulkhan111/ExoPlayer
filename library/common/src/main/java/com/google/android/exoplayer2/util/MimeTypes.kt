@@ -138,7 +138,7 @@ object MimeTypes {
     val CODEC_E_AC3_JOC: String = "ec+3"
     private val customMimeTypes: ArrayList<CustomMimeType> = ArrayList()
     private val MP4A_RFC_6381_CODEC_PATTERN: Pattern =
-        Pattern.compile("^mp4a\\.([a-zA-Z0-9]{2})(?:\\.([0-9]{1,2}))?$")
+            Pattern.compile("^mp4a\\.([a-zA-Z0-9]{2})(?:\\.([0-9]{1,2}))?$")
 
     /**
      * Registers a custom MIME type. Most applications do not need to call this method, as handling of
@@ -151,7 +151,7 @@ object MimeTypes {
      * is ignored if the top-level type of `mimeType` is audio, video or text.
      */
     fun registerCustomMimeType(
-        mimeType: String, codecPrefix: String?, @C.TrackType trackType: Int
+            mimeType: String, codecPrefix: String?, @C.TrackType trackType: Int
     ) {
         val customMimeType: CustomMimeType = CustomMimeType(mimeType, codecPrefix, trackType)
         val customMimeTypeCount: Int = customMimeTypes.size
@@ -197,7 +197,7 @@ object MimeTypes {
      * @return Whether it is known that all samples in the stream are guaranteed to be sync samples.
      */
     fun allSamplesAreSyncSamples(
-        mimeType: String?, codec: String?
+            mimeType: String?, codec: String?
     ): Boolean {
         if (mimeType == null) {
             return false
@@ -219,6 +219,7 @@ object MimeTypes {
                 // encoding from the codec string.
                 return encoding != C.ENCODING_INVALID && encoding != C.ENCODING_AAC_XHE
             }
+
             else -> return false
         }
     }
@@ -253,7 +254,7 @@ object MimeTypes {
      * `mimeType`.
      */
     fun containsCodecsCorrespondingToMimeType(
-        codecs: String?, mimeType: String?
+            codecs: String?, mimeType: String?
     ): Boolean {
         return getCodecsCorrespondingToMimeType(codecs, mimeType) != null
     }
@@ -270,7 +271,7 @@ object MimeTypes {
      * or `codecs` does not contain a codec that corresponds to `mimeType`.
      */
     fun getCodecsCorrespondingToMimeType(
-        codecs: String?, mimeType: String?
+            codecs: String?, mimeType: String?
     ): String? {
         if (codecs == null || mimeType == null) {
             return null
@@ -346,8 +347,8 @@ object MimeTypes {
         } else if (codec.startsWith("hev1") || codec.startsWith("hvc1")) {
             return VIDEO_H265
         } else if ((codec.startsWith("dvav") || codec.startsWith("dva1") || codec.startsWith("dvhe") || codec.startsWith(
-                "dvh1"
-            ))
+                        "dvh1"
+                ))
         ) {
             return VIDEO_DOLBY_VISION
         } else if (codec.startsWith("av01")) {
@@ -481,8 +482,9 @@ object MimeTypes {
                 if (objectType == null) {
                     return C.ENCODING_INVALID
                 }
-                return objectType.encoding
+                return objectType.getEncoding()
             }
+
             AUDIO_AC3 -> return C.ENCODING_AC3
             AUDIO_E_AC3 -> return C.ENCODING_E_AC3
             AUDIO_E_AC3_JOC -> return C.ENCODING_E_AC3_JOC
@@ -526,9 +528,9 @@ object MimeTypes {
             return false
         }
         return (mimeType.startsWith(VIDEO_WEBM) || mimeType.startsWith(AUDIO_WEBM) || mimeType.startsWith(
-            APPLICATION_WEBM
+                APPLICATION_WEBM
         ) || mimeType.startsWith(VIDEO_MATROSKA) || mimeType.startsWith(AUDIO_MATROSKA) || mimeType.startsWith(
-            APPLICATION_MATROSKA
+                APPLICATION_MATROSKA
         ))
     }
 

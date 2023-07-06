@@ -17,23 +17,19 @@ package com.google.android.exoplayer2.util
 
 import androidx.annotation.*
 import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.util.Assertions.checkNotNull
+import com.google.android.exoplayer2.util.Assertions.checkState
 
 /**
  * Adjusts and offsets sample timestamps. MPEG-2 TS timestamps scaling and adjustment is supported,
  * taking into account timestamp rollover.
  */
-class TimestampAdjuster constructor(firstSampleTimestampUs: Long) {
+class TimestampAdjuster {
     @GuardedBy("this")
     private var firstSampleTimestampUs: Long = 0
 
-    /**
-     * Returns the offset between the input of [.adjustSampleTimestamp] and its output, or
-     * [C.TIME_UNSET] if the offset has not yet been determined.
-     */
-    @get:Synchronized
     @GuardedBy("this")
-    var timestampOffsetUs: Long = 0
-        private set
+    private var timestampOffsetUs: Long = 0
 
     @GuardedBy("this")
     private var lastUnadjustedTimestampUs: Long = 0
@@ -43,14 +39,14 @@ class TimestampAdjuster constructor(firstSampleTimestampUs: Long) {
      * not yet been set.
      */
     // incompatible type argument for type parameter T of ThreadLocal.
-    private val nextSampleTimestampUs: ThreadLocal<Long>
+    private var nextSampleTimestampUs: ThreadLocal<Long>? = null
 
     /**
      * @param firstSampleTimestampUs The desired value of the first adjusted sample timestamp in
      * microseconds, or [.MODE_NO_OFFSET] if timestamps should not be offset, or [     ][.MODE_SHARED] if the adjuster will be used in shared mode.
      */
     // incompatible types in assignment.
-    init {
+    constructor(firstSampleTimestampUs: Long) {
         nextSampleTimestampUs = ThreadLocal()
         reset(firstSampleTimestampUs)
     }
@@ -79,12 +75,12 @@ class TimestampAdjuster constructor(firstSampleTimestampUs: Long) {
     @Synchronized
     @Throws(InterruptedException::class)
     fun sharedInitializeOrWait(canInitialize: Boolean, nextSampleTimestampUs: Long) {
-        Assertions.checkState(firstSampleTimestampUs == MODE_SHARED)
+        checkState(firstSampleTimestampUs == MODE_SHARED)
         if (timestampOffsetUs != C.TIME_UNSET) {
             // Already initialized.
             return
         } else if (canInitialize) {
-            this.nextSampleTimestampUs.set(nextSampleTimestampUs)
+            this.nextSampleTimestampUs!!.set(nextSampleTimestampUs)
         } else {
             // Wait for another calling thread to complete initialization.
             while (timestampOffsetUs == C.TIME_UNSET) {
@@ -105,11 +101,19 @@ class TimestampAdjuster constructor(firstSampleTimestampUs: Long) {
      * Returns the last adjusted timestamp, in microseconds. If no timestamps have been adjusted yet
      * then the result of [.getFirstSampleTimestampUs] is returned.
      */
-    @get:Synchronized
-    val lastAdjustedTimestampUs: Long
-        get() {
-            return if (lastUnadjustedTimestampUs != C.TIME_UNSET) lastUnadjustedTimestampUs + timestampOffsetUs else getFirstSampleTimestampUs()
-        }
+    @Synchronized
+    fun getLastAdjustedTimestampUs(): Long {
+        return if (lastUnadjustedTimestampUs != C.TIME_UNSET) lastUnadjustedTimestampUs + timestampOffsetUs else getFirstSampleTimestampUs()
+    }
+
+    /**
+     * Returns the offset between the input of [.adjustSampleTimestamp] and its output, or
+     * [C.TIME_UNSET] if the offset has not yet been determined.
+     */
+    @Synchronized
+    fun getTimestampOffsetUs(): Long {
+        return timestampOffsetUs
+    }
 
     /**
      * Resets the instance.
@@ -133,17 +137,17 @@ class TimestampAdjuster constructor(firstSampleTimestampUs: Long) {
      */
     @Synchronized
     fun adjustTsTimestamp(pts90Khz: Long): Long {
-        var pts90Khz: Long = pts90Khz
+        var pts90Khz = pts90Khz
         if (pts90Khz == C.TIME_UNSET) {
             return C.TIME_UNSET
         }
         if (lastUnadjustedTimestampUs != C.TIME_UNSET) {
             // The wrap count for the current PTS may be closestWrapCount or (closestWrapCount - 1),
             // and we need to snap to the one closest to lastSampleTimestampUs.
-            val lastPts: Long = usToNonWrappedPts(lastUnadjustedTimestampUs)
-            val closestWrapCount: Long = (lastPts + (MAX_PTS_PLUS_ONE / 2)) / MAX_PTS_PLUS_ONE
-            val ptsWrapBelow: Long = pts90Khz + (MAX_PTS_PLUS_ONE * (closestWrapCount - 1))
-            val ptsWrapAbove: Long = pts90Khz + (MAX_PTS_PLUS_ONE * closestWrapCount)
+            val lastPts = usToNonWrappedPts(lastUnadjustedTimestampUs)
+            val closestWrapCount = lastPts + MAX_PTS_PLUS_ONE / 2 / MAX_PTS_PLUS_ONE
+            val ptsWrapBelow = pts90Khz + MAX_PTS_PLUS_ONE * (closestWrapCount - 1)
+            val ptsWrapAbove = pts90Khz + MAX_PTS_PLUS_ONE * closestWrapCount
             pts90Khz = if (Math.abs(ptsWrapBelow - lastPts) < Math.abs(ptsWrapAbove - lastPts)) ptsWrapBelow else ptsWrapAbove
         }
         return adjustSampleTimestamp(ptsToUs(pts90Khz))
@@ -161,7 +165,7 @@ class TimestampAdjuster constructor(firstSampleTimestampUs: Long) {
             return C.TIME_UNSET
         }
         if (timestampOffsetUs == C.TIME_UNSET) {
-            val desiredSampleTimestampUs: Long = if (firstSampleTimestampUs == MODE_SHARED) (Assertions.checkNotNull(nextSampleTimestampUs.get()))!! else firstSampleTimestampUs
+            val desiredSampleTimestampUs = if (firstSampleTimestampUs == MODE_SHARED) checkNotNull(nextSampleTimestampUs!!.get())!! else firstSampleTimestampUs
             timestampOffsetUs = desiredSampleTimestampUs - timeUs
             // Notify threads waiting for the timestamp offset to be determined.
             notifyAll()
@@ -180,7 +184,7 @@ class TimestampAdjuster constructor(firstSampleTimestampUs: Long) {
          *  * The only timestamp adjustment performed is to account for MPEG-2 TS timestamp rollover.
          *
          */
-        val MODE_NO_OFFSET: Long = Long.MAX_VALUE
+        const val MODE_NO_OFFSET: Long = Long.MAX_VALUE
 
         /**
          * A special `firstSampleTimestampUs` value indicating that the adjuster will be shared by

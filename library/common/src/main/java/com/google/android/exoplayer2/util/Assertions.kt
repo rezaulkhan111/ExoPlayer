@@ -17,7 +17,7 @@ package com.google.android.exoplayer2.util
 
 import android.os.Looper
 import android.text.TextUtils
-import com.google.android.exoplayer2import.ExoPlayerLibraryInfo
+import com.google.android.exoplayer2.ExoPlayerLibraryInfo
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull
 import org.checkerframework.dataflow.qual.Pure
 

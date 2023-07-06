@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.text.spanimport
+package com.google.android.exoplayer2.text.span
 
-com.google.android.exoplayer2.text.span.TextAnnotationimport com.google.android.exoplayer2.text.span.TextEmphasisSpanimport com.google.android.exoplayer2.text.span.TextEmphasisSpan.MarkFill java.lang.annotation .Retentionimport java.lang.annotation .RetentionPolicy androidx.annotation .IntDef
-import com.google.android.exoplayer2.text.span.LanguageFeatureSpan
+import androidx.annotation.IntDef
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 
 /**
  * A styling span for text emphasis marks.
@@ -29,13 +31,17 @@ import com.google.android.exoplayer2.text.span.LanguageFeatureSpan
 // NOTE: There's no Android layout support for text emphasis, so this span currently doesn't extend
 // any styling superclasses (e.g. MetricAffectingSpan). The only way to render this emphasis is to
 // extract the spans and do the layout manually.
-class TextEmphasisSpan(
-        /** The mark shape used for text emphasis.  */
-        var markShape: @TextEmphasisSpan.MarkShape Int,
-        /** The mark fill for the text emphasis mark.  */
-        var markFill: @MarkFill Int,
-        /** The position of the text emphasis relative to the base text.  */
-        val position: @TextAnnotation.Position Int) : LanguageFeatureSpan {
+class TextEmphasisSpan : LanguageFeatureSpan {
+    companion object {
+        const val MARK_SHAPE_NONE = 0
+        const val MARK_SHAPE_CIRCLE = 1
+        const val MARK_SHAPE_DOT = 2
+        const val MARK_SHAPE_SESAME = 3
+        const val MARK_FILL_UNKNOWN = 0
+        const val MARK_FILL_FILLED = 1
+        const val MARK_FILL_OPEN = 2
+    }
+
     /**
      * The possible mark shapes that can be used.
      *
@@ -52,8 +58,8 @@ class TextEmphasisSpan(
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([TextEmphasisSpan.Companion.MARK_SHAPE_NONE, TextEmphasisSpan.Companion.MARK_SHAPE_CIRCLE, TextEmphasisSpan.Companion.MARK_SHAPE_DOT, TextEmphasisSpan.Companion.MARK_SHAPE_SESAME])
-    annotation class MarkShape
+    @IntDef(value = [MARK_SHAPE_NONE, MARK_SHAPE_CIRCLE, MARK_SHAPE_DOT, MARK_SHAPE_SESAME])
+    annotation class MarkShape {}
 
     /**
      * The possible mark fills that can be used.
@@ -70,15 +76,6 @@ class TextEmphasisSpan(
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([TextEmphasisSpan.Companion.MARK_FILL_UNKNOWN, TextEmphasisSpan.Companion.MARK_FILL_FILLED, TextEmphasisSpan.Companion.MARK_FILL_OPEN])
-    annotation class MarkFill
-    companion object {
-        const val MARK_SHAPE_NONE = 0
-        const val MARK_SHAPE_CIRCLE = 1
-        const val MARK_SHAPE_DOT = 2
-        const val MARK_SHAPE_SESAME = 3
-        const val MARK_FILL_UNKNOWN = 0
-        const val MARK_FILL_FILLED = 1
-        const val MARK_FILL_OPEN = 2
-    }
+    @IntDef(value = [MARK_FILL_UNKNOWN, MARK_FILL_FILLED, MARK_FILL_OPEN])
+    annotation class MarkFill {}
 }

@@ -15,19 +15,22 @@
  */
 package com.google.android.exoplayer2.util
 
-import androidx.annotation.IntDefimport
+import androidx.annotation.IntDef
+import com.google.android.exoplayer2.Player
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 
-com.google.android.exoplayer2.Player java.lang.annotation .Documentedimport java.lang.annotation .Retentionimport java.lang.annotation .RetentionPolicy
 /** Util class for repeat mode handling.  */
 object RepeatModeUtil {
     /** All repeat mode buttons disabled.  */
-    val REPEAT_TOGGLE_MODE_NONE: Int = 0
+    const val REPEAT_TOGGLE_MODE_NONE: Int = 0
 
     /** "Repeat One" button enabled.  */
-    val REPEAT_TOGGLE_MODE_ONE: Int = 1
+    const val REPEAT_TOGGLE_MODE_ONE: Int = 1
 
     /** "Repeat All" button enabled.  */
-    val REPEAT_TOGGLE_MODE_ALL: Int = 1 shl 1 // 2
+    const val REPEAT_TOGGLE_MODE_ALL: Int = 1 shl 1 // 2
 
     /**
      * Gets the next repeat mode out of `enabledModes` starting from `currentMode`.
@@ -36,10 +39,10 @@ object RepeatModeUtil {
      * @param enabledModes Bitmask of enabled modes.
      * @return The next repeat mode.
      */
-    fun getNextRepeatMode(
-            currentMode: @Player.RepeatMode Int, enabledModes: Int): @Player.RepeatMode Int {
+    @Player.RepeatMode
+    fun getNextRepeatMode(@Player.RepeatMode currentMode: Int, enabledModes: Int): Int {
         for (offset in 1..2) {
-            val proposedMode: @Player.RepeatMode Int = (currentMode + offset) % 3
+            @Player.RepeatMode val proposedMode: Int = (currentMode + offset) % 3
             if (isRepeatModeEnabled(proposedMode, enabledModes)) {
                 return proposedMode
             }
@@ -54,12 +57,12 @@ object RepeatModeUtil {
      * @param enabledModes The bitmask representing the enabled modes.
      * @return `true` if enabled.
      */
-    fun isRepeatModeEnabled(repeatMode: @Player.RepeatMode Int, enabledModes: Int): Boolean {
-        when (repeatMode) {
-            Player.Companion.REPEAT_MODE_OFF -> return true
-            Player.Companion.REPEAT_MODE_ONE -> return (enabledModes and REPEAT_TOGGLE_MODE_ONE) != 0
-            Player.Companion.REPEAT_MODE_ALL -> return (enabledModes and REPEAT_TOGGLE_MODE_ALL) != 0
-            else -> return false
+    fun isRepeatModeEnabled(@Player.RepeatMode repeatMode: Int, enabledModes: Int): Boolean {
+        return when (repeatMode) {
+            Player.REPEAT_MODE_OFF -> true
+            Player.REPEAT_MODE_ONE -> (enabledModes and REPEAT_TOGGLE_MODE_ONE) != 0
+            Player.REPEAT_MODE_ALL -> (enabledModes and REPEAT_TOGGLE_MODE_ALL) != 0
+            else -> false
         }
     }
 

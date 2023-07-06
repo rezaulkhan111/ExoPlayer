@@ -18,7 +18,6 @@ package com.google.android.exoplayer2.util
 import android.annotation.SuppressLint
 import android.media.*
 import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.C.PcmEncoding
 import com.google.android.exoplayer2.util.Util.SDK_INT
 import com.google.android.exoplayer2.video.ColorInfo
 import java.nio.ByteBuffer
@@ -242,14 +241,13 @@ object MediaFormatUtil {
     }
 
     @SuppressLint("InlinedApi") // Inlined KEY_PCM_ENCODING.
-    private fun maybeSetPcmEncoding(
-            mediaFormat: MediaFormat, @PcmEncoding exoPcmEncoding: Int) {
+    private fun maybeSetPcmEncoding(mediaFormat: MediaFormat, @C.PcmEncoding exoPcmEncoding: Int) {
+
         if (exoPcmEncoding == Format.NO_VALUE) {
             return
         }
-        val mediaFormatPcmEncoding: Int
         maybeSetInteger(mediaFormat, KEY_PCM_ENCODING_EXTENDED, exoPcmEncoding)
-        mediaFormatPcmEncoding = when (exoPcmEncoding) {
+        val mediaFormatPcmEncoding: Int = when (exoPcmEncoding) {
             C.ENCODING_PCM_8BIT -> AudioFormat.ENCODING_PCM_8BIT
             C.ENCODING_PCM_16BIT -> AudioFormat.ENCODING_PCM_16BIT
             C.ENCODING_PCM_FLOAT -> AudioFormat.ENCODING_PCM_FLOAT

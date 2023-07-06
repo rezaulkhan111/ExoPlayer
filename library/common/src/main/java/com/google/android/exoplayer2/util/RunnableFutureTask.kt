@@ -24,16 +24,19 @@ import java.util.concurrent.*
  * @param <R> The type of the result.
  * @param <E> The type of any [ExecutionException] cause.
 </E></R> */
-abstract class RunnableFutureTask<R, E : Exception?> protected constructor() : RunnableFuture<R?> {
-    private val started: ConditionVariable
-    private val finished: ConditionVariable
-    private val cancelLock: Any
-    private var exception: Exception? = null
-    private var result: R? = null
-    private var workThread: Thread? = null
-    private var canceled: Boolean = false
+abstract class RunnableFutureTask<R, E : Exception?> : RunnableFuture<R?> {
 
-    init {
+    private var started: ConditionVariable? = null
+    private var finished: ConditionVariable? = null
+    private var cancelLock: Any? = null
+
+    private var exception: java.lang.Exception? = null
+    private var result: R? = null
+
+    private var workThread: Thread? = null
+    private var canceled = false
+
+    protected constructor() {
         started = ConditionVariable()
         finished = ConditionVariable()
         cancelLock = Any()
@@ -41,84 +44,91 @@ abstract class RunnableFutureTask<R, E : Exception?> protected constructor() : R
 
     /** Blocks until the task has started, or has been canceled without having been started.  */
     fun blockUntilStarted() {
-        started.blockUninterruptible()
+        started!!.blockUninterruptible()
     }
 
     /** Blocks until the task has finished, or has been canceled without having been started.  */
     fun blockUntilFinished() {
-        finished.blockUninterruptible()
+        finished!!.blockUninterruptible()
     }
+
+    // Future implementation.
 
     // Future implementation.
     @UnknownNull
     @Throws(ExecutionException::class, InterruptedException::class)
-    public override fun get(): R? {
-        finished.block()
+    override fun get(): R? {
+        finished!!.block()
         return getResult()
     }
 
     @UnknownNull
     @Throws(ExecutionException::class, InterruptedException::class, TimeoutException::class)
-    public override fun get(timeout: Long, unit: TimeUnit): R? {
-        val timeoutMs: Long = TimeUnit.MILLISECONDS.convert(timeout, unit)
-        if (!finished.block(timeoutMs)) {
+    override fun get(timeout: Long, unit: TimeUnit?): R? {
+        val timeoutMs = TimeUnit.MILLISECONDS.convert(timeout, unit)
+        if (!finished!!.block(timeoutMs)) {
             throw TimeoutException()
         }
         return getResult()
     }
 
-    public override fun cancel(interruptIfRunning: Boolean): Boolean {
-        synchronized(cancelLock, {
-            if (canceled || finished.isOpen()) {
+    override fun cancel(interruptIfRunning: Boolean): Boolean {
+        synchronized(cancelLock!!) {
+            if (canceled || finished!!.isOpen()) {
                 return false
             }
             canceled = true
             cancelWork()
-            val workThread: Thread? = workThread
+            val workThread = workThread
             if (workThread != null) {
                 if (interruptIfRunning) {
                     workThread.interrupt()
                 }
             } else {
-                started.open()
-                finished.open()
+                started!!.open()
+                finished!!.open()
             }
             return true
-        })
+        }
     }
 
-    public override fun isDone(): Boolean {
-        return finished.isOpen()
+    override fun isDone(): Boolean {
+        return finished!!.isOpen()
     }
 
-    public override fun isCancelled(): Boolean {
+    override fun isCancelled(): Boolean {
         return canceled
     }
 
     // Runnable implementation.
-    public override fun run() {
-        synchronized(cancelLock, {
+
+    // Runnable implementation.
+    override fun run() {
+        synchronized(cancelLock!!) {
             if (canceled) {
                 return
             }
             workThread = Thread.currentThread()
-        })
-        started.open()
+        }
+        started!!.open()
         try {
             result = doWork()
-        } catch (e: Exception) {
+        } catch (e: java.lang.Exception) {
             // Must be an instance of E or RuntimeException.
             exception = e
         } finally {
-            synchronized(cancelLock, {
-                finished.open()
+            synchronized(cancelLock!!) {
+                finished!!.open()
                 workThread = null
                 // Clear the interrupted flag if set, to avoid it leaking into any subsequent tasks executed
                 // using the calling thread.
                 Thread.interrupted()
-            })
+            }
         }
     }
+
+    // Internal methods.
+
     // Internal methods.
     /**
      * Performs the work or computation.
@@ -127,7 +137,7 @@ abstract class RunnableFutureTask<R, E : Exception?> protected constructor() : R
      * @throws E If an error occurred.
      */
     @UnknownNull
-    @Throws(E::class)
+    @Throws(E::class.java)
     protected abstract fun doWork(): R
 
     /**

@@ -15,21 +15,28 @@
  */
 package com.google.android.exoplayer2.util
 
+import com.google.android.exoplayer2.util.Assertions.checkState
+import org.checkerframework.checker.nullness.compatqual.NullableType
 import java.util.*
 import kotlin.LongArray
 
 /** A utility class to keep a queue of values with timestamps. This class is thread safe.  */
-class TimedValueQueue<V> @JvmOverloads constructor(initialBufferSize: Int = INITIAL_BUFFER_SIZE) {
+class TimedValueQueue<V> {
+
     // Looping buffer for timestamps and values
-    private var timestamps: LongArray
-    private var values: Array<V?>
-    private var first: Int = 0
-    private var size: Int = 0
+    private var timestamps: LongArray? = null
+    private var values: Array<V?>? = null
+    private var first = 0
+    private var size = 0
+
+    constructor() {
+        TimedValueQueue<V>(INITIAL_BUFFER_SIZE)
+    }
 
     /** Creates a TimedValueBuffer with the given initial buffer size.  */
-    init {
+    constructor(initialBufferSize: Int) {
         timestamps = LongArray(initialBufferSize)
-        values = newArray<V?>(initialBufferSize)
+        values = newArray<@NullableType V?>(initialBufferSize)
     }
 
     /**
@@ -103,9 +110,9 @@ class TimedValueQueue<V> @JvmOverloads constructor(initialBufferSize: Int = INIT
      */
     private fun poll(timestamp: Long, onlyOlder: Boolean): V? {
         var value: V? = null
-        var previousTimeDiff: Long = Long.MAX_VALUE
+        var previousTimeDiff = Long.MAX_VALUE
         while (size > 0) {
-            val timeDiff: Long = timestamp - timestamps.get(first)
+            val timeDiff = timestamp - timestamps!![first]
             if (timeDiff < 0 && (onlyOlder || -timeDiff >= previousTimeDiff)) {
                 break
             }
@@ -116,34 +123,34 @@ class TimedValueQueue<V> @JvmOverloads constructor(initialBufferSize: Int = INIT
     }
 
     private fun popFirst(): V? {
-        Assertions.checkState(size > 0)
-        val value: V? = values.get(first)
-        values.get(first) = null
-        first = (first + 1) % values.size
+        checkState(size > 0)
+        val value = values!![first]
+        values!![first] = null
+        first = (first + 1) % values!!.size
         size--
         return value
     }
 
     private fun clearBufferOnTimeDiscontinuity(timestamp: Long) {
         if (size > 0) {
-            val last: Int = (first + size - 1) % values.size
-            if (timestamp <= timestamps.get(last)) {
+            val last = (first + size - 1) % values!!.size
+            if (timestamp <= timestamps!![last]) {
                 clear()
             }
         }
     }
 
     private fun doubleCapacityIfFull() {
-        val capacity: Int = values.size
+        val capacity = values!!.size
         if (size < capacity) {
             return
         }
-        val newCapacity: Int = capacity * 2
-        val newTimestamps: LongArray = LongArray(newCapacity)
-        val newValues: Array<V?> = newArray<V?>(newCapacity)
+        val newCapacity = capacity * 2
+        val newTimestamps = LongArray(newCapacity)
+        val newValues = newArray<@NullableType V?>(newCapacity)
         // Reset the loop starting index to 0 while coping to the new buffer.
         // First copy the values from 'first' index to the end of original array.
-        val length: Int = capacity - first
+        val length = capacity - first
         System.arraycopy(timestamps, first, newTimestamps, 0, length)
         System.arraycopy(values, first, newValues, 0, length)
         // Then the values from index 0 to 'first' index.
@@ -157,14 +164,14 @@ class TimedValueQueue<V> @JvmOverloads constructor(initialBufferSize: Int = INIT
     }
 
     private fun addUnchecked(timestamp: Long, value: V) {
-        val next: Int = (first + size) % values.size
-        timestamps.get(next) = timestamp
-        values.get(next) = value
+        val next = (first + size) % values!!.size
+        timestamps!![next] = timestamp
+        values!![next] = value
         size++
     }
 
     companion object {
-        private val INITIAL_BUFFER_SIZE: Int = 10
+        private const val INITIAL_BUFFER_SIZE: Int = 10
         private fun <V> newArray(length: Int): Array<V?> {
             return arrayOfNulls<Any>(length) as Array<V?>
         }

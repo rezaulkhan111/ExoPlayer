@@ -15,49 +15,67 @@
  */
 package com.google.android.exoplayer2.drm
 
-import android.os.Parcelimport
+import android.os.Parcel
+import android.os.Parcelable
+import android.text.TextUtils
+import androidx.annotation.CheckResult
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.drm.DrmInitData.SchemeData
+import com.google.android.exoplayer2.util.Assertions.checkNotNull
+import com.google.android.exoplayer2.util.Assertions.checkState
+import com.google.android.exoplayer2.util.Util.areEqual
+import com.google.android.exoplayer2.util.Util.castNonNull
+import com.google.android.exoplayer2.util.Util.nullSafeArrayConcatenation
+import java.util.*
 
-android.os.Parcelableimport android.text.TextUtilsimport androidx.annotation .CheckResultimport com.google.android.exoplayer2.Cimport com.google.android.exoplayer2.drm.DrmInitData.SchemeDataimport com.google.android.exoplayer2.util.Assertionsimport com.google.android.exoplayer2.util.Utilimport java.util.*
 /** Initialization data for one or more DRM schemes.  */
 class DrmInitData : Comparator<SchemeData>, Parcelable {
-    private val schemeDatas: Array<SchemeData>?
+
+    private var schemeDatas: Array<SchemeData?>? = null
 
     // Lazily initialized hashcode.
     private var hashCode = 0
 
     /** The protection scheme type, or null if not applicable or unknown.  */
-    val schemeType: String?
+    var schemeType: String? = null
 
     /** Number of [SchemeData]s.  */
-    val schemeDataCount: Int
+    var schemeDataCount = 0
 
     /**
      * @param schemeDatas Scheme initialization data for possibly multiple DRM schemes.
      */
-    constructor(schemeDatas: List<SchemeData>) : this(null, false, *schemeDatas.toTypedArray<SchemeData>()) {}
-
-    /**
-     * @param schemeType See [.schemeType].
-     * @param schemeDatas Scheme initialization data for possibly multiple DRM schemes.
-     */
-    constructor(schemeType: String?, schemeDatas: List<SchemeData>) : this(schemeType, false, *schemeDatas.toTypedArray<SchemeData>()) {}
-
-    /**
-     * @param schemeDatas Scheme initialization data for possibly multiple DRM schemes.
-     */
-    constructor(vararg schemeDatas: SchemeData?) : this(null, *schemeDatas) {}
+    constructor(schemeDatas: List<SchemeData?>) {
+        DrmInitData(null, false, *schemeDatas.toTypedArray())
+    }
 
     /**
      * @param schemeType See [.schemeType].
      * @param schemeDatas Scheme initialization data for possibly multiple DRM schemes.
      */
-    constructor(schemeType: String?, vararg schemeDatas: SchemeData?) : this(schemeType, true, *schemeDatas) {}
-    private constructor(
-            schemeType: String?, cloneSchemeDatas: Boolean, vararg schemeDatas: SchemeData) {
-        var schemeDatas = schemeDatas
+    constructor(schemeType: String?, schemeDatas: List<SchemeData?>) {
+        DrmInitData(schemeType, false, *schemeDatas.toTypedArray())
+    }
+
+    /**
+     * @param schemeDatas Scheme initialization data for possibly multiple DRM schemes.
+     */
+    constructor(vararg schemeDatas: SchemeData?) {
+        DrmInitData(null, *schemeDatas)
+    }
+
+    /**
+     * @param schemeType See [.schemeType].
+     * @param schemeDatas Scheme initialization data for possibly multiple DRM schemes.
+     */
+    constructor(schemeType: String?, vararg schemeDatas: SchemeData?) {
+        DrmInitData(schemeType, true, *schemeDatas)
+    }
+
+    private constructor(schemeType: String?, cloneSchemeDatas: Boolean, vararg schemeDatas: SchemeData?) {
         this.schemeType = schemeType
         if (cloneSchemeDatas) {
-            schemeDatas = schemeDatas.clone()
+            this.schemeDatas = schemeDatas.clone()
         }
         this.schemeDatas = schemeDatas
         schemeDataCount = schemeDatas.size
@@ -67,9 +85,9 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
     }
 
     /* package */
-    internal constructor(`in`: Parcel) {
-        schemeType = `in`.readString()
-        schemeDatas = Util.castNonNull(`in`.createTypedArray(SchemeData.CREATOR))
+    constructor(parcel: Parcel) {
+        schemeType = parcel.readString()
+        schemeDatas = castNonNull(parcel.createTypedArray(SchemeData.CREATOR))
         schemeDataCount = schemeDatas!!.size
     }
 
@@ -79,7 +97,7 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
      * @param index The index of the scheme to return. Must not exceed [.schemeDataCount].
      * @return The [SchemeData] at the specified index.
      */
-    operator fun get(index: Int): SchemeData {
+    operator fun get(index: Int): SchemeData? {
         return schemeDatas!![index]
     }
 
@@ -91,9 +109,9 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
      */
     @CheckResult
     fun copyWithSchemeType(schemeType: String?): DrmInitData {
-        return if (Util.areEqual(this.schemeType, schemeType)) {
+        return if (areEqual(this.schemeType, schemeType)) {
             this
-        } else DrmInitData(schemeType, false, *schemeDatas!!)
+        } else DrmInitData(schemeType, false, *schemeDatas)
     }
 
     /**
@@ -105,16 +123,15 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
      * @return The merged result.
      */
     fun merge(drmInitData: DrmInitData): DrmInitData {
-        Assertions.checkState(
-                schemeType == null || drmInitData.schemeType == null || TextUtils.equals(schemeType, drmInitData.schemeType))
+        checkState(schemeType == null || drmInitData.schemeType == null || TextUtils.equals(schemeType, drmInitData.schemeType))
         val mergedSchemeType = if (schemeType != null) schemeType else drmInitData.schemeType
-        val mergedSchemeDatas: Array<SchemeData?> = Util.nullSafeArrayConcatenation<SchemeData>(schemeDatas, drmInitData.schemeDatas)
+        val mergedSchemeDatas = nullSafeArrayConcatenation(schemeDatas, drmInitData.schemeDatas)
         return DrmInitData(mergedSchemeType, *mergedSchemeDatas)
     }
 
     override fun hashCode(): Int {
         if (hashCode == 0) {
-            var result = schemeType?.hashCode() ?: 0
+            var result = if (schemeType == null) 0 else schemeType.hashCode()
             result = 31 * result + Arrays.hashCode(schemeDatas)
             hashCode = result
         }
@@ -129,13 +146,14 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
             return false
         }
         val other = obj as DrmInitData
-        return (Util.areEqual(schemeType, other.schemeType)
-                && Arrays.equals(schemeDatas, other.schemeDatas))
+        return (areEqual(schemeType, other.schemeType) && Arrays.equals(schemeDatas, other.schemeDatas))
     }
 
     override fun compare(first: SchemeData, second: SchemeData): Int {
         return if (C.UUID_NIL == first.uuid) (if (C.UUID_NIL == second.uuid) 0 else 1) else first.uuid!!.compareTo(second.uuid)
     }
+
+    // Parcelable implementation.
 
     // Parcelable implementation.
     override fun describeContents(): Int {
@@ -146,6 +164,19 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
         dest.writeString(schemeType)
         dest.writeTypedArray(schemeDatas, 0)
     }
+
+    @JvmField
+    val CREATOR: Parcelable.Creator<DrmInitData> = object : Parcelable.Creator<DrmInitData> {
+        override fun createFromParcel(`in`: Parcel): DrmInitData? {
+            return DrmInitData(`in`)
+        }
+
+        override fun newArray(size: Int): Array<DrmInitData?> {
+            return arrayOfNulls(size)
+        }
+    }
+
+    // Internal methods.
 
     /** Scheme initialization data.  */
     class SchemeData : Parcelable {
@@ -159,13 +190,13 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
         val uuid: UUID?
 
         /** The URL of the server to which license requests should be made. May be null if unknown.  */
-        val licenseServerUrl: String?
+        var licenseServerUrl: String? = null
 
         /** The mimeType of [.data].  */
-        val mimeType: String?
+        var mimeType: String? = null
 
         /** The initialization data. May be null for scheme support checks only.  */
-        val data: ByteArray?
+        var data: ByteArray? = null
 
         /**
          * @param uuid The [UUID] of the DRM scheme, or [C.UUID_NIL] if the data is
@@ -182,20 +213,19 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
          * @param mimeType See [.mimeType].
          * @param data See [.data].
          */
-        constructor(
-                uuid: UUID?, licenseServerUrl: String?, mimeType: String?, data: ByteArray?) {
-            this.uuid = Assertions.checkNotNull(uuid)
+        constructor(uuid: UUID?, licenseServerUrl: String?, mimeType: String?, data: ByteArray?) {
+            this.uuid = checkNotNull(uuid)
             this.licenseServerUrl = licenseServerUrl
-            this.mimeType = Assertions.checkNotNull(mimeType)
+            this.mimeType = checkNotNull(mimeType)
             this.data = data
         }
 
         /* package */
-        internal constructor(`in`: Parcel) {
-            uuid = UUID(`in`.readLong(), `in`.readLong())
-            licenseServerUrl = `in`.readString()
-            mimeType = Util.castNonNull(`in`.readString())
-            data = `in`.createByteArray()
+        internal constructor(parcel: Parcel) {
+            uuid = UUID(parcel.readLong(), parcel.readLong())
+            licenseServerUrl = parcel.readString()
+            mimeType = castNonNull(parcel.readString())
+            data = parcel.createByteArray()
         }
 
         /**
@@ -242,10 +272,7 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
                 return true
             }
             val other = obj
-            return (Util.areEqual(licenseServerUrl, other.licenseServerUrl)
-                    && Util.areEqual(mimeType, other.mimeType)
-                    && Util.areEqual(uuid, other.uuid)
-                    && Arrays.equals(data, other.data))
+            return (areEqual(licenseServerUrl, other.licenseServerUrl) && areEqual(mimeType, other.mimeType) && areEqual(uuid, other.uuid) && Arrays.equals(data, other.data))
         }
 
         override fun hashCode(): Int {
@@ -272,15 +299,14 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
             dest.writeByteArray(data)
         }
 
-        companion object {
-            val CREATOR: Parcelable.Creator<SchemeData> = object : Parcelable.Creator<SchemeData?> {
-                override fun createFromParcel(`in`: Parcel): SchemeData? {
-                    return SchemeData(`in`)
-                }
+        @JvmField
+        val CREATOR: Parcelable.Creator<SchemeData> = object : Parcelable.Creator<SchemeData> {
+            override fun createFromParcel(parcel: Parcel): SchemeData {
+                return SchemeData(parcel)
+            }
 
-                override fun newArray(size: Int): Array<SchemeData?> {
-                    return arrayOfNulls(size)
-                }
+            override fun newArray(size: Int): Array<SchemeData?> {
+                return arrayOfNulls(size)
             }
         }
     }
@@ -305,14 +331,13 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
          * @param mediaData DRM session acquisition data obtained from the media.
          * @return A [DrmInitData] obtained from merging a media manifest and a media stream.
          */
-        fun createSessionCreationData(
-                manifestData: DrmInitData?, mediaData: DrmInitData?): DrmInitData? {
+        fun createSessionCreationData(manifestData: DrmInitData?, mediaData: DrmInitData?): DrmInitData? {
             val result = ArrayList<SchemeData>()
             var schemeType: String? = null
             if (manifestData != null) {
                 schemeType = manifestData.schemeType
                 for (data in manifestData.schemeDatas!!) {
-                    if (data.hasData()) {
+                    if (data!!.hasData()) {
                         result.add(data)
                     }
                 }
@@ -323,7 +348,7 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
                 }
                 val manifestDatasCount = result.size
                 for (data in mediaData.schemeDatas!!) {
-                    if (data.hasData() && !containsSchemeDataWithUuid(result, manifestDatasCount, data.uuid)) {
+                    if (data!!.hasData() && !containsSchemeDataWithUuid(result, manifestDatasCount, data.uuid)) {
                         result.add(data)
                     }
                 }
@@ -331,19 +356,7 @@ class DrmInitData : Comparator<SchemeData>, Parcelable {
             return if (result.isEmpty()) null else DrmInitData(schemeType, result)
         }
 
-        val CREATOR: Parcelable.Creator<DrmInitData> = object : Parcelable.Creator<DrmInitData?> {
-            override fun createFromParcel(`in`: Parcel): DrmInitData? {
-                return DrmInitData(`in`)
-            }
-
-            override fun newArray(size: Int): Array<DrmInitData?> {
-                return arrayOfNulls(size)
-            }
-        }
-
-        // Internal methods.
-        private fun containsSchemeDataWithUuid(
-                datas: ArrayList<SchemeData>, limit: Int, uuid: UUID?): Boolean {
+        private fun containsSchemeDataWithUuid(datas: ArrayList<SchemeData>, limit: Int, uuid: UUID?): Boolean {
             for (i in 0 until limit) {
                 if (datas[i].uuid == uuid) {
                     return true

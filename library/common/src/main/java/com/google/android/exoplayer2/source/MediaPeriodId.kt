@@ -151,7 +151,7 @@ open class MediaPeriodId {
             return adGroupIndex != C.INDEX_UNSET
         }
 
-    public override fun equals(obj: Any?): Boolean {
+    override fun equals(obj: Any?): Boolean {
         if (this === obj) {
             return true
         }
@@ -165,7 +165,7 @@ open class MediaPeriodId {
                 ) && (nextAdGroupIndex == periodId.nextAdGroupIndex))
     }
 
-    public override fun hashCode(): Int {
+    override fun hashCode(): Int {
         var result: Int = 17
         result = 31 * result + periodUid.hashCode()
         result = 31 * result + adGroupIndex

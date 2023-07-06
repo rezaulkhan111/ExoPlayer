@@ -21,24 +21,26 @@ import android.os.SystemClock
 /**
  * The standard implementation of [Clock], an instance of which is available via [ ][SystemClock.DEFAULT].
  */
-open class SystemClock constructor() : Clock {
-    public override fun currentTimeMillis(): Long {
+open class SystemClock : Clock {
+    internal constructor() {}
+
+    override fun currentTimeMillis(): Long {
         return System.currentTimeMillis()
     }
 
-    public override fun elapsedRealtime(): Long {
+    override fun elapsedRealtime(): Long {
         return SystemClock.elapsedRealtime()
     }
 
-    public override fun uptimeMillis(): Long {
+    override fun uptimeMillis(): Long {
         return SystemClock.uptimeMillis()
     }
 
-    public override fun createHandler(looper: Looper?, callback: Handler.Callback?): HandlerWrapper {
+    override fun createHandler(looper: Looper?, callback: Handler.Callback?): HandlerWrapper {
         return SystemHandlerWrapper(Handler((looper)!!, callback))
     }
 
-    public override fun onThreadBlocked() {
+    override fun onThreadBlocked() {
         // Do nothing.
     }
 }

@@ -36,8 +36,7 @@ object SpanUtil {
      * @param end The end index to add the new span at.
      * @param spanFlags The flags to pass to [Spannable.setSpan].
      */
-    fun addOrReplaceSpan(
-            spannable: Spannable, span: Any, start: Int, end: Int, spanFlags: Int) {
+    fun addOrReplaceSpan(spannable: Spannable, span: Any, start: Int, end: Int, spanFlags: Int) {
         val existingSpans = spannable.getSpans(start, end, span.javaClass)
         for (existingSpan in existingSpans) {
             if (spannable.getSpanStart(existingSpan) == start && spannable.getSpanEnd(existingSpan) == end && spannable.getSpanFlags(existingSpan) == spanFlags) {

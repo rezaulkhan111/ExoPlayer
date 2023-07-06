@@ -15,9 +15,9 @@
  */
 package com.google.android.exoplayer2.util
 
-import org.xmlpull.v1.XmlPullParserimport
+import org.xmlpull.v1.XmlPullParser
+import org.xmlpull.v1.XmlPullParserException
 
-org.xmlpull.v1.XmlPullParserException
 /** [XmlPullParser] utility methods.  */
 object XmlPullParserUtil {
     /**
@@ -93,7 +93,7 @@ object XmlPullParserUtil {
      * such attribute was found.
      */
     fun getAttributeValue(xpp: XmlPullParser, attributeName: String): String? {
-        val attributeCount: Int = xpp.getAttributeCount()
+        val attributeCount: Int = xpp.attributeCount
         for (i in 0 until attributeCount) {
             if ((xpp.getAttributeName(i) == attributeName)) {
                 return xpp.getAttributeValue(i)
@@ -112,7 +112,7 @@ object XmlPullParserUtil {
      * such attribute was found.
      */
     fun getAttributeValueIgnorePrefix(xpp: XmlPullParser, attributeName: String): String? {
-        val attributeCount: Int = xpp.getAttributeCount()
+        val attributeCount: Int = xpp.attributeCount
         for (i in 0 until attributeCount) {
             if ((stripPrefix(xpp.getAttributeName(i)) == attributeName)) {
                 return xpp.getAttributeValue(i)

@@ -171,41 +171,41 @@ interface Player {
 
 
         @Deprecated(
-            """Use {@link #PositionInfo(Object, int, MediaItem, Object, int, long, long, int,
+                """Use {@link #PositionInfo(Object, int, MediaItem, Object, int, long, long, int,
      *     int)} instead."""
         )
         constructor(
-            windowUid: Any?,
-            mediaItemIndex: Int,
-            periodUid: Any?,
-            periodIndex: Int,
-            positionMs: Long,
-            contentPositionMs: Long,
-            adGroupIndex: Int,
-            adIndexInAdGroup: Int
+                windowUid: Any?,
+                mediaItemIndex: Int,
+                periodUid: Any?,
+                periodIndex: Int,
+                positionMs: Long,
+                contentPositionMs: Long,
+                adGroupIndex: Int,
+                adIndexInAdGroup: Int
         ) : this(
-            windowUid,
-            mediaItemIndex,
-            MediaItem.EMPTY,
-            periodUid,
-            periodIndex,
-            positionMs,
-            contentPositionMs,
-            adGroupIndex,
-            adIndexInAdGroup
+                windowUid,
+                mediaItemIndex,
+                MediaItem.EMPTY,
+                periodUid,
+                periodIndex,
+                positionMs,
+                contentPositionMs,
+                adGroupIndex,
+                adIndexInAdGroup
         )
 
         /** Creates an instance.  */
         constructor(
-            windowUid: Any?,
-            mediaItemIndex: Int,
-            mediaItem: MediaItem?,
-            periodUid: Any?,
-            periodIndex: Int,
-            positionMs: Long,
-            contentPositionMs: Long,
-            adGroupIndex: Int,
-            adIndexInAdGroup: Int
+                windowUid: Any?,
+                mediaItemIndex: Int,
+                mediaItem: MediaItem?,
+                periodUid: Any?,
+                periodIndex: Int,
+                positionMs: Long,
+                contentPositionMs: Long,
+                adGroupIndex: Int,
+                adIndexInAdGroup: Int
         ) {
 
             this.windowUid = windowUid
@@ -229,23 +229,23 @@ interface Player {
             }
             val that = o as PositionInfo
             return (mediaItemIndex == that.mediaItemIndex && periodIndex == that.periodIndex && positionMs == that.positionMs && contentPositionMs == that.contentPositionMs && adGroupIndex == that.adGroupIndex && adIndexInAdGroup == that.adIndexInAdGroup && Objects.equal(
-                windowUid, that.windowUid
+                    windowUid, that.windowUid
             ) && Objects.equal(periodUid, that.periodUid) && Objects.equal(
-                mediaItem, that.mediaItem
+                    mediaItem, that.mediaItem
             ))
         }
 
         override fun hashCode(): Int {
             return Objects.hashCode(
-                windowUid,
-                mediaItemIndex,
-                mediaItem,
-                periodUid,
-                periodIndex,
-                positionMs,
-                contentPositionMs,
-                adGroupIndex,
-                adIndexInAdGroup
+                    windowUid,
+                    mediaItemIndex,
+                    mediaItem,
+                    periodUid,
+                    periodIndex,
+                    positionMs,
+                    contentPositionMs,
+                    adGroupIndex,
+                    adIndexInAdGroup
             )
         }
 
@@ -254,7 +254,7 @@ interface Player {
         @Retention(AnnotationRetention.SOURCE)
         @Target(TYPE_USE)
         @IntDef(
-            value = [FIELD_MEDIA_ITEM_INDEX, FIELD_MEDIA_ITEM, FIELD_PERIOD_INDEX, FIELD_POSITION_MS, FIELD_CONTENT_POSITION_MS, FIELD_AD_GROUP_INDEX, FIELD_AD_INDEX_IN_AD_GROUP]
+                value = [FIELD_MEDIA_ITEM_INDEX, FIELD_MEDIA_ITEM, FIELD_PERIOD_INDEX, FIELD_POSITION_MS, FIELD_CONTENT_POSITION_MS, FIELD_AD_GROUP_INDEX, FIELD_AD_INDEX_IN_AD_GROUP]
         )
         private annotation class FieldNumber
 
@@ -291,35 +291,35 @@ interface Player {
 
         /** Object that can restore [PositionInfo] from a [Bundle].  */
         val CREATOR: Bundleable.Creator<PositionInfo> =
-            Bundleable.Creator<PositionInfo> { obj: PositionInfo, bundle: Bundle ->
-                obj.fromBundle(bundle)
-            }
+                Bundleable.Creator<PositionInfo> { obj: PositionInfo, bundle: Bundle ->
+                    obj.fromBundle(bundle)
+                }
 
         private fun fromBundle(bundle: Bundle): PositionInfo {
             val mediaItemIndex = bundle.getInt(
-                keyForField(FIELD_MEDIA_ITEM_INDEX),  /* defaultValue= */
-                C.INDEX_UNSET
+                    keyForField(FIELD_MEDIA_ITEM_INDEX),  /* defaultValue= */
+                    C.INDEX_UNSET
             )
             val mediaItemBundle = bundle.getBundle(keyForField(FIELD_MEDIA_ITEM))
             val mediaItem =
-                if (mediaItemBundle == null) null else MediaItem.CREATOR.fromBundle(mediaItemBundle)
+                    if (mediaItemBundle == null) null else MediaItem.CREATOR.fromBundle(mediaItemBundle)
             val periodIndex =
-                bundle.getInt(keyForField(FIELD_PERIOD_INDEX),  /* defaultValue= */C.INDEX_UNSET)
+                    bundle.getInt(keyForField(FIELD_PERIOD_INDEX),  /* defaultValue= */C.INDEX_UNSET)
             val positionMs =
-                bundle.getLong(keyForField(FIELD_POSITION_MS),  /* defaultValue= */C.TIME_UNSET)
+                    bundle.getLong(keyForField(FIELD_POSITION_MS),  /* defaultValue= */C.TIME_UNSET)
             val contentPositionMs = bundle.getLong(
-                keyForField(FIELD_CONTENT_POSITION_MS),  /* defaultValue= */
-                C.TIME_UNSET
+                    keyForField(FIELD_CONTENT_POSITION_MS),  /* defaultValue= */
+                    C.TIME_UNSET
             )
             val adGroupIndex =
-                bundle.getInt(keyForField(FIELD_AD_GROUP_INDEX),  /* defaultValue= */C.INDEX_UNSET)
+                    bundle.getInt(keyForField(FIELD_AD_GROUP_INDEX),  /* defaultValue= */C.INDEX_UNSET)
             val adIndexInAdGroup = bundle.getInt(
-                keyForField(FIELD_AD_INDEX_IN_AD_GROUP),  /* defaultValue= */
-                C.INDEX_UNSET
+                    keyForField(FIELD_AD_INDEX_IN_AD_GROUP),  /* defaultValue= */
+                    C.INDEX_UNSET
             )
             return PositionInfo( /* windowUid= */
-                null, mediaItemIndex, mediaItem,  /* periodUid= */
-                null, periodIndex, positionMs, contentPositionMs, adGroupIndex, adIndexInAdGroup
+                    null, mediaItemIndex, mediaItem,  /* periodUid= */
+                    null, periodIndex, positionMs, contentPositionMs, adGroupIndex, adIndexInAdGroup
             )
         }
 
@@ -465,37 +465,37 @@ interface Player {
 
             companion object {
                 private val SUPPORTED_COMMANDS: IntArray = intArrayOf(
-                    COMMAND_PLAY_PAUSE,
-                    COMMAND_PREPARE,
-                    COMMAND_STOP,
-                    COMMAND_SEEK_TO_DEFAULT_POSITION,
-                    COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
-                    COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
-                    COMMAND_SEEK_TO_PREVIOUS,
-                    COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
-                    COMMAND_SEEK_TO_NEXT,
-                    COMMAND_SEEK_TO_MEDIA_ITEM,
-                    COMMAND_SEEK_BACK,
-                    COMMAND_SEEK_FORWARD,
-                    COMMAND_SET_SPEED_AND_PITCH,
-                    COMMAND_SET_SHUFFLE_MODE,
-                    COMMAND_SET_REPEAT_MODE,
-                    COMMAND_GET_CURRENT_MEDIA_ITEM,
-                    COMMAND_GET_TIMELINE,
-                    COMMAND_GET_MEDIA_ITEMS_METADATA,
-                    COMMAND_SET_MEDIA_ITEMS_METADATA,
-                    COMMAND_SET_MEDIA_ITEM,
-                    COMMAND_CHANGE_MEDIA_ITEMS,
-                    COMMAND_GET_AUDIO_ATTRIBUTES,
-                    COMMAND_GET_VOLUME,
-                    COMMAND_GET_DEVICE_VOLUME,
-                    COMMAND_SET_VOLUME,
-                    COMMAND_SET_DEVICE_VOLUME,
-                    COMMAND_ADJUST_DEVICE_VOLUME,
-                    COMMAND_SET_VIDEO_SURFACE,
-                    COMMAND_GET_TEXT,
-                    COMMAND_SET_TRACK_SELECTION_PARAMETERS,
-                    COMMAND_GET_TRACKS
+                        COMMAND_PLAY_PAUSE,
+                        COMMAND_PREPARE,
+                        COMMAND_STOP,
+                        COMMAND_SEEK_TO_DEFAULT_POSITION,
+                        COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM,
+                        COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
+                        COMMAND_SEEK_TO_PREVIOUS,
+                        COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
+                        COMMAND_SEEK_TO_NEXT,
+                        COMMAND_SEEK_TO_MEDIA_ITEM,
+                        COMMAND_SEEK_BACK,
+                        COMMAND_SEEK_FORWARD,
+                        COMMAND_SET_SPEED_AND_PITCH,
+                        COMMAND_SET_SHUFFLE_MODE,
+                        COMMAND_SET_REPEAT_MODE,
+                        COMMAND_GET_CURRENT_MEDIA_ITEM,
+                        COMMAND_GET_TIMELINE,
+                        COMMAND_GET_MEDIA_ITEMS_METADATA,
+                        COMMAND_SET_MEDIA_ITEMS_METADATA,
+                        COMMAND_SET_MEDIA_ITEM,
+                        COMMAND_CHANGE_MEDIA_ITEMS,
+                        COMMAND_GET_AUDIO_ATTRIBUTES,
+                        COMMAND_GET_VOLUME,
+                        COMMAND_GET_DEVICE_VOLUME,
+                        COMMAND_SET_VOLUME,
+                        COMMAND_SET_DEVICE_VOLUME,
+                        COMMAND_ADJUST_DEVICE_VOLUME,
+                        COMMAND_SET_VIDEO_SURFACE,
+                        COMMAND_GET_TEXT,
+                        COMMAND_SET_TRACK_SELECTION_PARAMETERS,
+                        COMMAND_GET_TRACKS
                 )
             }
         }
@@ -580,11 +580,11 @@ interface Player {
 
             /** Object that can restore [Commands] from a [Bundle].  */
             val CREATOR: Bundleable.Creator<Commands> =
-                Bundleable.Creator({ bundle: Bundle -> fromBundle(bundle) })
+                    Bundleable.Creator({ bundle: Bundle -> fromBundle(bundle) })
 
             private fun fromBundle(bundle: Bundle): Commands {
                 val commands: ArrayList<Int>? =
-                    bundle.getIntegerArrayList(keyForField(FIELD_COMMANDS))
+                        bundle.getIntegerArrayList(keyForField(FIELD_COMMANDS))
                 if (commands == null) {
                     return EMPTY
                 }
@@ -673,7 +673,7 @@ interface Player {
          * @param reason The reason for the transition.
          */
         fun onMediaItemTransition(
-            mediaItem: MediaItem?, @Player.MediaItemTransitionReason reason: Int
+                mediaItem: MediaItem?, @Player.MediaItemTransitionReason reason: Int
         ) {
         }
 
@@ -780,7 +780,7 @@ interface Player {
          * @param reason The [reason][PlayWhenReadyChangeReason] for the change.
          */
         fun onPlayWhenReadyChanged(
-            playWhenReady: Boolean, @PlayWhenReadyChangeReason reason: Int
+                playWhenReady: Boolean, @PlayWhenReadyChangeReason reason: Int
         ) {
         }
 
@@ -794,7 +794,7 @@ interface Player {
          * @param playbackSuppressionReason The current [PlaybackSuppressionReason].
          */
         fun onPlaybackSuppressionReasonChanged(
-            @PlaybackSuppressionReason playbackSuppressionReason: Int
+                @PlaybackSuppressionReason playbackSuppressionReason: Int
         ) {
         }
 
@@ -883,7 +883,7 @@ interface Player {
          * @param reason The [DiscontinuityReason] responsible for the discontinuity.
          */
         fun onPositionDiscontinuity(
-            oldPosition: PositionInfo?, newPosition: PositionInfo?, @DiscontinuityReason reason: Int
+                oldPosition: PositionInfo?, newPosition: PositionInfo?, @DiscontinuityReason reason: Int
         ) {
         }
 
@@ -1092,13 +1092,13 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        AnnotationTarget.FIELD,
-        AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
-        AnnotationTarget.PROPERTY_SETTER,
-        AnnotationTarget.VALUE_PARAMETER,
-        AnnotationTarget.LOCAL_VARIABLE,
-        TYPE_USE
+            AnnotationTarget.FIELD,
+            AnnotationTarget.FUNCTION,
+            AnnotationTarget.PROPERTY_GETTER,
+            AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER,
+            AnnotationTarget.LOCAL_VARIABLE,
+            TYPE_USE
     )
     @IntDef(value = [STATE_IDLE, STATE_BUFFERING, STATE_READY, STATE_ENDED])
     annotation class State
@@ -1111,13 +1111,13 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        AnnotationTarget.FIELD,
-        AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
-        AnnotationTarget.PROPERTY_SETTER,
-        AnnotationTarget.VALUE_PARAMETER,
-        AnnotationTarget.LOCAL_VARIABLE,
-        TYPE_USE
+            AnnotationTarget.FIELD,
+            AnnotationTarget.FUNCTION,
+            AnnotationTarget.PROPERTY_GETTER,
+            AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER,
+            AnnotationTarget.LOCAL_VARIABLE,
+            TYPE_USE
     )
     @IntDef(value = [PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST, PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS, PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY, PLAY_WHEN_READY_CHANGE_REASON_REMOTE, PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM])
     annotation class PlayWhenReadyChangeReason
@@ -1131,13 +1131,13 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        AnnotationTarget.FIELD,
-        AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
-        AnnotationTarget.PROPERTY_SETTER,
-        AnnotationTarget.VALUE_PARAMETER,
-        AnnotationTarget.LOCAL_VARIABLE,
-        TYPE_USE
+            AnnotationTarget.FIELD,
+            AnnotationTarget.FUNCTION,
+            AnnotationTarget.PROPERTY_GETTER,
+            AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER,
+            AnnotationTarget.LOCAL_VARIABLE,
+            TYPE_USE
     )
     @IntDef(value = [PLAYBACK_SUPPRESSION_REASON_NONE, PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS])
     annotation class PlaybackSuppressionReason
@@ -1150,16 +1150,16 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        AnnotationTarget.FIELD,
-        AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
-        AnnotationTarget.PROPERTY_SETTER,
-        AnnotationTarget.VALUE_PARAMETER,
-        AnnotationTarget.LOCAL_VARIABLE,
-        TYPE_USE
+            AnnotationTarget.FIELD,
+            AnnotationTarget.FUNCTION,
+            AnnotationTarget.PROPERTY_GETTER,
+            AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER,
+            AnnotationTarget.LOCAL_VARIABLE,
+            TYPE_USE
     )
     @IntDef(value = [REPEAT_MODE_OFF, REPEAT_MODE_ONE, REPEAT_MODE_ALL])
-    annotation class RepeatMode
+    annotation class RepeatMode {}
 
     /**
      * Reasons for position discontinuities. One of [.DISCONTINUITY_REASON_AUTO_TRANSITION],
@@ -1170,13 +1170,13 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        AnnotationTarget.FIELD,
-        AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
-        AnnotationTarget.PROPERTY_SETTER,
-        AnnotationTarget.VALUE_PARAMETER,
-        AnnotationTarget.LOCAL_VARIABLE,
-        TYPE_USE
+            AnnotationTarget.FIELD,
+            AnnotationTarget.FUNCTION,
+            AnnotationTarget.PROPERTY_GETTER,
+            AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER,
+            AnnotationTarget.LOCAL_VARIABLE,
+            TYPE_USE
     )
     @IntDef(value = [DISCONTINUITY_REASON_AUTO_TRANSITION, DISCONTINUITY_REASON_SEEK, DISCONTINUITY_REASON_SEEK_ADJUSTMENT, DISCONTINUITY_REASON_SKIP, DISCONTINUITY_REASON_REMOVE, DISCONTINUITY_REASON_INTERNAL])
     annotation class DiscontinuityReason
@@ -1189,15 +1189,15 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        AnnotationTarget.FIELD,
-        AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
-        AnnotationTarget.PROPERTY_SETTER,
-        AnnotationTarget.VALUE_PARAMETER,
-        AnnotationTarget.LOCAL_VARIABLE,
-        TYPE_USE,
-        AnnotationTarget.PROPERTY,
-        AnnotationTarget.TYPE
+            AnnotationTarget.FIELD,
+            AnnotationTarget.FUNCTION,
+            AnnotationTarget.PROPERTY_GETTER,
+            AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER,
+            AnnotationTarget.LOCAL_VARIABLE,
+            TYPE_USE,
+            AnnotationTarget.PROPERTY,
+            AnnotationTarget.TYPE
     )
     @IntDef(value = [TIMELINE_CHANGE_REASON_PLAYLIST_CHANGED, TIMELINE_CHANGE_REASON_SOURCE_UPDATE])
     annotation class TimelineChangeReason
@@ -1210,11 +1210,11 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        ElementType.FIELD,
-        ElementType.METHOD,
-        ElementType.PARAMETER,
-        ElementType.LOCAL_VARIABLE,
-        ElementType.TYPE_USE
+            ElementType.FIELD,
+            ElementType.METHOD,
+            ElementType.PARAMETER,
+            ElementType.LOCAL_VARIABLE,
+            ElementType.TYPE_USE
     )
     @IntDef(value = [MEDIA_ITEM_TRANSITION_REASON_REPEAT, MEDIA_ITEM_TRANSITION_REASON_AUTO, MEDIA_ITEM_TRANSITION_REASON_SEEK, MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED])
     annotation class MediaItemTransitionReason
@@ -1230,13 +1230,13 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        AnnotationTarget.FIELD,
-        AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
-        AnnotationTarget.PROPERTY_SETTER,
-        AnnotationTarget.VALUE_PARAMETER,
-        AnnotationTarget.LOCAL_VARIABLE,
-        TYPE_USE
+            AnnotationTarget.FIELD,
+            AnnotationTarget.FUNCTION,
+            AnnotationTarget.PROPERTY_GETTER,
+            AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER,
+            AnnotationTarget.LOCAL_VARIABLE,
+            TYPE_USE
     )
     @IntDef(value = [EVENT_TIMELINE_CHANGED, EVENT_MEDIA_ITEM_TRANSITION, EVENT_TRACKS_CHANGED, EVENT_IS_LOADING_CHANGED, EVENT_PLAYBACK_STATE_CHANGED, EVENT_PLAY_WHEN_READY_CHANGED, EVENT_PLAYBACK_SUPPRESSION_REASON_CHANGED, EVENT_IS_PLAYING_CHANGED, EVENT_REPEAT_MODE_CHANGED, EVENT_SHUFFLE_MODE_ENABLED_CHANGED, EVENT_PLAYER_ERROR, EVENT_POSITION_DISCONTINUITY, EVENT_PLAYBACK_PARAMETERS_CHANGED, EVENT_AVAILABLE_COMMANDS_CHANGED, EVENT_MEDIA_METADATA_CHANGED, EVENT_PLAYLIST_METADATA_CHANGED, EVENT_SEEK_BACK_INCREMENT_CHANGED, EVENT_SEEK_FORWARD_INCREMENT_CHANGED, EVENT_MAX_SEEK_TO_PREVIOUS_POSITION_CHANGED, EVENT_TRACK_SELECTION_PARAMETERS_CHANGED, EVENT_AUDIO_ATTRIBUTES_CHANGED, EVENT_AUDIO_SESSION_ID, EVENT_VOLUME_CHANGED, EVENT_SKIP_SILENCE_ENABLED_CHANGED, EVENT_SURFACE_SIZE_CHANGED, EVENT_VIDEO_SIZE_CHANGED, EVENT_RENDERED_FIRST_FRAME, EVENT_CUES, EVENT_METADATA, EVENT_DEVICE_INFO_CHANGED, EVENT_DEVICE_VOLUME_CHANGED])
     annotation class Event
@@ -1249,13 +1249,13 @@ interface Player {
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(
-        AnnotationTarget.FIELD,
-        AnnotationTarget.FUNCTION,
-        AnnotationTarget.PROPERTY_GETTER,
-        AnnotationTarget.PROPERTY_SETTER,
-        AnnotationTarget.VALUE_PARAMETER,
-        AnnotationTarget.LOCAL_VARIABLE,
-        TYPE_USE
+            AnnotationTarget.FIELD,
+            AnnotationTarget.FUNCTION,
+            AnnotationTarget.PROPERTY_GETTER,
+            AnnotationTarget.PROPERTY_SETTER,
+            AnnotationTarget.VALUE_PARAMETER,
+            AnnotationTarget.LOCAL_VARIABLE,
+            TYPE_USE
     )
     @IntDef(value = [COMMAND_INVALID, COMMAND_PLAY_PAUSE, COMMAND_PREPARE, COMMAND_STOP, COMMAND_SEEK_TO_DEFAULT_POSITION, COMMAND_SEEK_IN_CURRENT_MEDIA_ITEM, COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM, COMMAND_SEEK_TO_PREVIOUS, COMMAND_SEEK_TO_NEXT_MEDIA_ITEM, COMMAND_SEEK_TO_NEXT, COMMAND_SEEK_TO_MEDIA_ITEM, COMMAND_SEEK_BACK, COMMAND_SEEK_FORWARD, COMMAND_SET_SPEED_AND_PITCH, COMMAND_SET_SHUFFLE_MODE, COMMAND_SET_REPEAT_MODE, COMMAND_GET_CURRENT_MEDIA_ITEM, COMMAND_GET_TIMELINE, COMMAND_GET_MEDIA_ITEMS_METADATA, COMMAND_SET_MEDIA_ITEMS_METADATA, COMMAND_SET_MEDIA_ITEM, COMMAND_CHANGE_MEDIA_ITEMS, COMMAND_GET_AUDIO_ATTRIBUTES, COMMAND_GET_VOLUME, COMMAND_GET_DEVICE_VOLUME, COMMAND_SET_VOLUME, COMMAND_SET_DEVICE_VOLUME, COMMAND_ADJUST_DEVICE_VOLUME, COMMAND_SET_VIDEO_SURFACE, COMMAND_GET_TEXT, COMMAND_SET_TRACK_SELECTION_PARAMETERS, COMMAND_GET_TRACKS])
     annotation class Command

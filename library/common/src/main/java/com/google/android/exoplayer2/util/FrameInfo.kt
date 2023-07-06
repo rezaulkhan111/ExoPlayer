@@ -15,16 +15,18 @@
  */
 package com.google.android.exoplayer2.util
 
+import com.google.android.exoplayer2.util.Assertions.checkArgument
+
 /** Value class specifying information about a decoded video frame.  */
-class FrameInfo constructor(width: Int, height: Int, pixelWidthHeightRatio: Float, streamOffsetUs: Long) {
+class FrameInfo {
     /** The width of the frame, in pixels.  */
-    val width: Int
+    var width = 0
 
     /** The height of the frame, in pixels.  */
-    val height: Int
+    var height = 0
 
     /** The ratio of width over height for each pixel.  */
-    val pixelWidthHeightRatio: Float
+    var pixelWidthHeightRatio = 0f
 
     /**
      * An offset in microseconds that is part of the input timestamps and should be ignored for
@@ -34,7 +36,8 @@ class FrameInfo constructor(width: Int, height: Int, pixelWidthHeightRatio: Floa
      * The offset stays constant within a stream but changes in between streams to ensure that
      * frame timestamps are always monotonically increasing.
      */
-    val streamOffsetUs: Long
+    var streamOffsetUs: Long = 0
+
     // TODO(b/227624622): Add color space information for HDR.
     /**
      * Creates a new instance.
@@ -45,9 +48,9 @@ class FrameInfo constructor(width: Int, height: Int, pixelWidthHeightRatio: Floa
      * @param streamOffsetUs An offset in microseconds that is part of the input timestamps and should
      * be ignored for processing but added back to the output timestamps.
      */
-    init {
-        Assertions.checkArgument(width > 0, "width must be positive, but is: " + width)
-        Assertions.checkArgument(height > 0, "height must be positive, but is: " + height)
+    constructor(width: Int, height: Int, pixelWidthHeightRatio: Float, streamOffsetUs: Long) {
+        checkArgument(width > 0, "width must be positive, but is: $width")
+        checkArgument(height > 0, "height must be positive, but is: $height")
         this.width = width
         this.height = height
         this.pixelWidthHeightRatio = pixelWidthHeightRatio

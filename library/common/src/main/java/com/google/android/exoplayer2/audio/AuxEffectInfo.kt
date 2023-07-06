@@ -15,6 +15,9 @@
  */
 package com.google.android.exoplayer2.audio
 
+import android.media.AudioTrack
+import android.media.audiofx.AudioEffect
+
 /**
  * Represents auxiliary effect information, which can be used to attach an auxiliary effect to an
  * underlying [AudioTrack].
@@ -24,50 +27,56 @@ package com.google.android.exoplayer2.audio
  * associated audio effect instance and releasing it when it's no longer needed. See the
  * documentation of [AudioEffect] for more information.
  */
-class AuxEffectInfo
-/**
- * Creates an instance with the given effect identifier and send level.
- *
- * @param effectId The effect identifier. This is the value returned by [     ][AudioEffect.getId] on the effect, or {@value #NO_AUX_EFFECT_ID} which represents no
- * effect. This value is passed to [AudioTrack.attachAuxEffect] on the underlying
- * audio track.
- * @param sendLevel The send level for the effect, where 0 represents no effect and a value of 1
- * is full send. If `effectId` is not {@value #NO_AUX_EFFECT_ID}, this value is passed
- * to [AudioTrack.setAuxEffectSendLevel] on the underlying audio track.
- */ constructor(
-        /**
-         * The identifier of the effect, or [.NO_AUX_EFFECT_ID] if there is no effect.
-         *
-         * @see android.media.AudioTrack.attachAuxEffect
-         */
-        val effectId: Int,
-        /**
-         * The send level for the effect.
-         *
-         * @see android.media.AudioTrack.setAuxEffectSendLevel
-         */
-        val sendLevel: Float) {
-    public override fun equals(o: Any?): Boolean {
+class AuxEffectInfo {
+    /** Value for [.effectId] representing no auxiliary effect.  */
+    companion object {
+        const val NO_AUX_EFFECT_ID = 0
+    }
+
+    /**
+     * The identifier of the effect, or [.NO_AUX_EFFECT_ID] if there is no effect.
+     *
+     * @see android.media.AudioTrack.attachAuxEffect
+     */
+    var effectId = 0
+
+    /**
+     * The send level for the effect.
+     *
+     * @see android.media.AudioTrack.setAuxEffectSendLevel
+     */
+    var sendLevel = 0f
+
+    /**
+     * Creates an instance with the given effect identifier and send level.
+     *
+     * @param effectId The effect identifier. This is the value returned by [     ][AudioEffect.getId] on the effect, or {@value #NO_AUX_EFFECT_ID} which represents no
+     * effect. This value is passed to [AudioTrack.attachAuxEffect] on the underlying
+     * audio track.
+     * @param sendLevel The send level for the effect, where 0 represents no effect and a value of 1
+     * is full send. If `effectId` is not {@value #NO_AUX_EFFECT_ID}, this value is passed
+     * to [AudioTrack.setAuxEffectSendLevel] on the underlying audio track.
+     */
+    constructor(effectId: Int, sendLevel: Float) {
+        this.effectId = effectId
+        this.sendLevel = sendLevel
+    }
+
+    override fun equals(o: Any?): Boolean {
         if (this === o) {
             return true
         }
         if (o == null || javaClass != o.javaClass) {
             return false
         }
-        val auxEffectInfo: AuxEffectInfo = o as AuxEffectInfo
-        return (effectId == auxEffectInfo.effectId
-                && java.lang.Float.compare(auxEffectInfo.sendLevel, sendLevel) == 0)
+        val auxEffectInfo = o as AuxEffectInfo
+        return (effectId == auxEffectInfo.effectId && auxEffectInfo.sendLevel.compareTo(sendLevel) == 0)
     }
 
-    public override fun hashCode(): Int {
-        var result: Int = 17
+    override fun hashCode(): Int {
+        var result = 17
         result = 31 * result + effectId
         result = 31 * result + java.lang.Float.floatToIntBits(sendLevel)
         return result
-    }
-
-    companion object {
-        /** Value for [.effectId] representing no auxiliary effect.  */
-        val NO_AUX_EFFECT_ID: Int = 0
     }
 }

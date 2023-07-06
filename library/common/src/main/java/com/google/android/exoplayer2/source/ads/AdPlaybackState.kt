@@ -15,16 +15,26 @@
  */
 package com.google.android.exoplayer2.source.ads
 
+import android.annotation.SuppressLint
 import android.net.Uri
 import android.os.Bundle
 import androidx.annotation.*
 import androidx.annotation.IntRange
 import com.google.android.exoplayer2.*
+import com.google.android.exoplayer2.source.ads.AdPlaybackState.AdState
 import com.google.android.exoplayer2.util.*
+import com.google.android.exoplayer2.util.Assertions.checkArgument
+import com.google.android.exoplayer2.util.Assertions.checkState
+import com.google.android.exoplayer2.util.Util.areEqual
+import com.google.android.exoplayer2.util.Util.nullSafeArrayAppend
+import com.google.android.exoplayer2.util.Util.nullSafeArrayCopy
+import com.google.android.exoplayer2.util.Util.sum
+import org.checkerframework.checker.nullness.compatqual.NullableType
 import java.lang.annotation.Documented
 import java.lang.annotation.Retention
 import java.lang.annotation.RetentionPolicy
 import java.util.*
+import kotlin.math.max
 
 /**
  * Represents ad group times and information on the state and URIs of ads within each ad group.
@@ -33,19 +43,7 @@ import java.util.*
  * Instances are immutable. Call the `with*` methods to get new instances that have the
  * required changes.
  */
-class AdPlaybackState private constructor(
-        /**
-         * The opaque identifier for ads with which this instance is associated, or `null` if unset.
-         */
-        val adsId: Any?,
-        adGroups: Array<AdGroup?>?,
-        /** The position offset in the first unplayed ad at which to begin playback, in microseconds.  */
-        val adResumePositionUs: Long,
-        /**
-         * The duration of the content period in microseconds, if known. [C.TIME_UNSET] otherwise.
-         */
-        val contentDurationUs: Long,
-        removedAdGroupCount: Int) : Bundleable {
+class AdPlaybackState : Bundleable {
     /**
      * Represents a group of ads, with information about their states.
      *
@@ -53,22 +51,28 @@ class AdPlaybackState private constructor(
      * Instances are immutable. Call the `with*` methods to get new instances that have the
      * required changes.
      */
-    class AdGroup(
-            timeUs: Long,
-            count: Int,
-            originalCount: Int,
-            states: IntArray,
-            uris: Array<Uri?>,
-            durationsUs: LongArray,
-            contentResumeOffsetUs: Long,
-            isServerSideInserted: Boolean) : Bundleable {
+    class AdGroup : Bundleable {
+        companion object {
+            private const val FIELD_TIME_US = 0
+            private const val FIELD_COUNT = 1
+            private const val FIELD_URIS = 2
+            private const val FIELD_STATES = 3
+            private const val FIELD_DURATIONS_US = 4
+            private const val FIELD_CONTENT_RESUME_OFFSET_US = 5
+            private const val FIELD_IS_SERVER_SIDE_INSERTED = 6
+            private const val FIELD_ORIGINAL_COUNT = 7
+
+            /** Object that can restore [AdGroup] from a [Bundle].  */
+            val CREATOR: Bundleable.Creator<AdGroup> = Bundleable.Creator<AdGroup> { obj: AdGroup, bundle: Bundle -> obj.fromBundle(bundle) }
+        }
+
         /**
          * The time of the ad group in the [Timeline.Period], in microseconds, or [ ][C.TIME_END_OF_SOURCE] to indicate a postroll ad.
          */
-        val timeUs: Long
+        var timeUs: Long = 0
 
         /** The number of ads in the ad group, or [C.LENGTH_UNSET] if unknown.  */
-        val count: Int
+        var count = 0
 
         /**
          * The original number of ads in the ad group in case the ad group is only partially available,
@@ -76,25 +80,25 @@ class AdPlaybackState private constructor(
          * inserted ad live stream is joined while an ad is already playing and some ad information is
          * missing.
          */
-        val originalCount: Int
+        var originalCount = 0
 
         /** The URI of each ad in the ad group.  */
-        val uris: Array<Uri?>
+        var uris: Array<Uri?>? = null
 
         /** The state of each ad in the ad group.  */
-        val states: IntArray
+        var states: IntArray? = null
 
         /** The durations of each ad in the ad group, in microseconds.  */
-        val durationsUs: LongArray
+        var durationsUs: LongArray? = null
 
         /**
          * The offset in microseconds which should be added to the content stream when resuming playback
          * after the ad group.
          */
-        val contentResumeOffsetUs: Long
+        var contentResumeOffsetUs: Long = 0
 
         /** Whether this ad group is server-side inserted and part of the content stream.  */
-        val isServerSideInserted: Boolean
+        var isServerSideInserted = false
 
         /**
          * Creates a new ad group with an unspecified number of ads.
@@ -102,22 +106,33 @@ class AdPlaybackState private constructor(
          * @param timeUs The time of the ad group in the [Timeline.Period], in microseconds, or
          * [C.TIME_END_OF_SOURCE] to indicate a postroll ad.
          */
-        constructor(timeUs: Long) : this(
-                timeUs,  /* count= */
-                C.LENGTH_UNSET,  /* originalCount= */
-                C.LENGTH_UNSET, IntArray(0), arrayOfNulls<Uri>(0), LongArray(0),  /* contentResumeOffsetUs= */
-                0,  /* isServerSideInserted= */
-                false) {
+        constructor(timeUs: Long) {
+            AdGroup(timeUs,  /* count= */
+                    C.LENGTH_UNSET,  /* originalCount= */
+                    C.LENGTH_UNSET, IntArray(0), arrayOfNulls<Uri>(0), LongArray(0),  /* contentResumeOffsetUs= */
+                    0,  /* isServerSideInserted= */
+                    false)
+        }
+
+        constructor(timeUs: Long, count: Int, originalCount: Int, @AdState states: IntArray?, uris: Array<Uri?>?, durationsUs: LongArray?, contentResumeOffsetUs: Long, isServerSideInserted: Boolean) {
+            checkArgument(states!!.size == uris?.size)
+            this.timeUs = timeUs
+            this.count = count
+            this.originalCount = originalCount
+            this.states = states
+            this.uris = uris
+            this.durationsUs = durationsUs!!
+            this.contentResumeOffsetUs = contentResumeOffsetUs
+            this.isServerSideInserted = isServerSideInserted
         }
 
         /**
          * Returns the index of the first ad in the ad group that should be played, or [.count] if
          * no ads should be played.
          */
-        val firstAdIndexToPlay: Int
-            get() {
-                return getNextAdIndexToPlay(-1)
-            }
+        fun getFirstAdIndexToPlay(): Int {
+            return getNextAdIndexToPlay(-1)
+        }
 
         /**
          * Returns the index of the next ad in the ad group that should be played after playing `lastPlayedAdIndex`, or [.count] if no later ads should be played. If no ads have been
@@ -128,11 +143,9 @@ class AdPlaybackState private constructor(
          * playable.
          */
         fun getNextAdIndexToPlay(@IntRange(from = -1) lastPlayedAdIndex: Int): Int {
-            var nextAdIndexToPlay: Int = lastPlayedAdIndex + 1
-            while (nextAdIndexToPlay < states.size) {
-                if ((isServerSideInserted
-                                || (states.get(nextAdIndexToPlay) == AD_STATE_UNAVAILABLE
-                                ) || (states.get(nextAdIndexToPlay) == AD_STATE_AVAILABLE))) {
+            var nextAdIndexToPlay = lastPlayedAdIndex + 1
+            while (nextAdIndexToPlay < states!!.size) {
+                if (isServerSideInserted || states!![nextAdIndexToPlay] == AD_STATE_UNAVAILABLE || states!![nextAdIndexToPlay] == AD_STATE_AVAILABLE) {
                     break
                 }
                 nextAdIndexToPlay++
@@ -142,7 +155,7 @@ class AdPlaybackState private constructor(
 
         /** Returns whether the ad group has at least one ad that should be played.  */
         fun shouldPlayAdGroup(): Boolean {
-            return count == C.LENGTH_UNSET || firstAdIndexToPlay < count
+            return count == C.LENGTH_UNSET || getFirstAdIndexToPlay() < count
         }
 
         /**
@@ -153,72 +166,49 @@ class AdPlaybackState private constructor(
                 return true
             }
             for (i in 0 until count) {
-                if (states.get(i) == AD_STATE_UNAVAILABLE || states.get(i) == AD_STATE_AVAILABLE) {
+                if (states!![i] == AD_STATE_UNAVAILABLE || states!![i] == AD_STATE_AVAILABLE) {
                     return true
                 }
             }
             return false
         }
 
-        public override fun equals(o: Any?): Boolean {
+        override fun equals(o: Any?): Boolean {
             if (this === o) {
                 return true
             }
             if (o == null || javaClass != o.javaClass) {
                 return false
             }
-            val adGroup: AdGroup = o as AdGroup
-            return ((timeUs == adGroup.timeUs
-                    ) && (count == adGroup.count
-                    ) && (originalCount == adGroup.originalCount
-                    ) && Arrays.equals(uris, adGroup.uris)
-                    && Arrays.equals(states, adGroup.states)
-                    && Arrays.equals(durationsUs, adGroup.durationsUs)
-                    && (contentResumeOffsetUs == adGroup.contentResumeOffsetUs
-                    ) && (isServerSideInserted == adGroup.isServerSideInserted))
+            val adGroup = o as AdGroup
+            return (timeUs == adGroup.timeUs && count == adGroup.count && originalCount == adGroup.originalCount && Arrays.equals(uris, adGroup.uris) && Arrays.equals(states, adGroup.states) && Arrays.equals(durationsUs, adGroup.durationsUs)) && contentResumeOffsetUs == adGroup.contentResumeOffsetUs && isServerSideInserted == adGroup.isServerSideInserted
         }
 
-        public override fun hashCode(): Int {
-            var result: Int = count
+        override fun hashCode(): Int {
+            var result = count
             result = 31 * result + originalCount
             result = 31 * result + (timeUs xor (timeUs ushr 32)).toInt()
             result = 31 * result + Arrays.hashCode(uris)
             result = 31 * result + Arrays.hashCode(states)
             result = 31 * result + Arrays.hashCode(durationsUs)
             result = 31 * result + (contentResumeOffsetUs xor (contentResumeOffsetUs ushr 32)).toInt()
-            result = 31 * result + (if (isServerSideInserted) 1 else 0)
+            result = 31 * result + if (isServerSideInserted) 1 else 0
             return result
         }
 
         /** Returns a new instance with the [.timeUs] set to the specified value.  */
         @CheckResult
         fun withTimeUs(timeUs: Long): AdGroup {
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /** Returns a new instance with the ad count set to `count`.  */
         @CheckResult
         fun withAdCount(count: Int): AdGroup {
-            val states: IntArray = copyStatesWithSpaceForAdCount(states, count)
-            val durationsUs: LongArray = copyDurationsUsWithSpaceForAdCount(durationsUs, count)
-            val uris: Array<Uri?> = Arrays.copyOf(uris, count)
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            val states = copyStatesWithSpaceForAdCount(states, count)
+            val durationsUs = copyDurationsUsWithSpaceForAdCount(durationsUs, count)
+            val uris = Arrays.copyOf<@NullableType Uri?>(uris, count)
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /**
@@ -227,20 +217,12 @@ class AdPlaybackState private constructor(
          */
         @CheckResult
         fun withAdUri(uri: Uri?, @IntRange(from = 0) index: Int): AdGroup {
-            val states: IntArray = copyStatesWithSpaceForAdCount(states, index + 1)
-            val durationsUs: LongArray = if (durationsUs.size == states.size) durationsUs else copyDurationsUsWithSpaceForAdCount(durationsUs, states.size)
-            val uris: Array<Uri?> = Arrays.copyOf(uris, states.size)
-            uris.get(index) = uri
-            states.get(index) = AD_STATE_AVAILABLE
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            @AdState val states = copyStatesWithSpaceForAdCount(states!!, index + 1)
+            val durationsUs = if (durationsUs!!.size == states!!.size) durationsUs else copyDurationsUsWithSpaceForAdCount(durationsUs!!, states.size)
+            val uris = Arrays.copyOf<@NullableType Uri?>(uris, states.size)
+            uris[index] = uri
+            states[index] = AD_STATE_AVAILABLE
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /**
@@ -252,138 +234,78 @@ class AdPlaybackState private constructor(
          * ad count specified later. Otherwise, `index` must be less than the current ad count.
          */
         @CheckResult
-        fun withAdState(state: @AdState Int, @IntRange(from = 0) index: Int): AdGroup {
-            Assertions.checkArgument(count == C.LENGTH_UNSET || index < count)
-            val states: IntArray = copyStatesWithSpaceForAdCount(states,  /* count= */index + 1)
-            Assertions.checkArgument(
-                    (states.get(index) == AD_STATE_UNAVAILABLE
-                            ) || (states.get(index) == AD_STATE_AVAILABLE
-                            ) || (states.get(index) == state))
-            val durationsUs: LongArray = if (durationsUs.size == states.size) durationsUs else copyDurationsUsWithSpaceForAdCount(durationsUs, states.size)
-            val uris: Array<Uri?> = if (uris.size == states.size) uris else Arrays.copyOf(uris, states.size)
-            states.get(index) = state
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+        fun withAdState(@AdState state: Int, @IntRange(from = 0) index: Int): AdGroup {
+            checkArgument(count == C.LENGTH_UNSET || index < count)
+            val states = copyStatesWithSpaceForAdCount(states!!,  /* count= */index + 1)
+            checkArgument(states!![index] == AD_STATE_UNAVAILABLE || states[index] == AD_STATE_AVAILABLE || states[index] == state)
+            val durationsUs = if (durationsUs!!.size == states.size) durationsUs else copyDurationsUsWithSpaceForAdCount(durationsUs!!, states.size)
+            val uris = if (uris!!.size == states.size) uris else Arrays.copyOf<@NullableType Uri?>(uris, states.size)
+            states[index] = state
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /** Returns a new instance with the specified ad durations, in microseconds.  */
         @CheckResult
         fun withAdDurationsUs(durationsUs: LongArray): AdGroup {
-            var durationsUs: LongArray = durationsUs
-            if (durationsUs.size < uris.size) {
-                durationsUs = copyDurationsUsWithSpaceForAdCount(durationsUs, uris.size)
-            } else if (count != C.LENGTH_UNSET && durationsUs.size > uris.size) {
-                durationsUs = Arrays.copyOf(durationsUs, uris.size)
+            var durationsUs = durationsUs
+            if (durationsUs.size < uris!!.size) {
+                durationsUs = copyDurationsUsWithSpaceForAdCount(durationsUs, uris!!.size)
+            } else if (count != C.LENGTH_UNSET && durationsUs.size > uris!!.size) {
+                durationsUs = durationsUs.copyOf(uris!!.size)
             }
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /** Returns an instance with the specified [.contentResumeOffsetUs].  */
         @CheckResult
         fun withContentResumeOffsetUs(contentResumeOffsetUs: Long): AdGroup {
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /** Returns an instance with the specified value for [.isServerSideInserted].  */
         @CheckResult
         fun withIsServerSideInserted(isServerSideInserted: Boolean): AdGroup {
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /** Returns an instance with the specified value for [.originalCount].  */
         fun withOriginalAdCount(originalCount: Int): AdGroup {
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /** Removes the last ad from the ad group.  */
+        @SuppressLint("WrongConstant")
         fun withLastAdRemoved(): AdGroup {
-            val newCount: Int = states.size - 1
-            val newStates: IntArray = Arrays.copyOf(states, newCount)
-            val newUris: Array<Uri?> = Arrays.copyOf(uris, newCount)
-            var newDurationsUs: LongArray = durationsUs
-            if (durationsUs.size > newCount) {
+            val newCount = states!!.size - 1
+            val newStates = Arrays.copyOf(states, newCount)
+            val newUris = Arrays.copyOf<@NullableType Uri?>(uris, newCount)
+            var newDurationsUs = durationsUs
+            if (durationsUs!!.size > newCount) {
                 newDurationsUs = Arrays.copyOf(durationsUs, newCount)
             }
-            return AdGroup(
-                    timeUs,
-                    newCount,
-                    originalCount,
-                    newStates,
-                    newUris,
-                    newDurationsUs,  /* contentResumeOffsetUs= */
-                    Util.sum(*newDurationsUs),
-                    isServerSideInserted)
+            return AdGroup(timeUs, newCount, originalCount, newStates, newUris, newDurationsUs,  /* contentResumeOffsetUs= */
+                    sum(*newDurationsUs!!), isServerSideInserted)
         }
 
         /**
          * Returns an instance with all unavailable and available ads marked as skipped. If the ad count
          * hasn't been set, it will be set to zero.
          */
+        @SuppressLint("WrongConstant")
         @CheckResult
         fun withAllAdsSkipped(): AdGroup {
             if (count == C.LENGTH_UNSET) {
-                return AdGroup(
-                        timeUs,  /* count= */
-                        0,
-                        originalCount, IntArray(0), arrayOfNulls(0), LongArray(0),
-                        contentResumeOffsetUs,
-                        isServerSideInserted)
+                return AdGroup(timeUs,  /* count= */
+                        0, originalCount, IntArray(0), arrayOfNulls(0), LongArray(0), contentResumeOffsetUs, isServerSideInserted)
             }
-            val count: Int = states.size
-            val states: IntArray = Arrays.copyOf(states, count)
+            val count = states!!.size
+            val states = Arrays.copyOf(states, count)
             for (i in 0 until count) {
-                if (states.get(i) == AD_STATE_AVAILABLE || states.get(i) == AD_STATE_UNAVAILABLE) {
-                    states.get(i) = AD_STATE_SKIPPED
+                if (states[i] == AD_STATE_AVAILABLE || states[i] == AD_STATE_UNAVAILABLE) {
+                    states[i] = AD_STATE_SKIPPED
                 }
             }
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
 
         /**
@@ -391,45 +313,56 @@ class AdPlaybackState private constructor(
          * available or unavailable, which allows to play them again.
          */
         @CheckResult
-        fun withAllAdsReset(): AdGroup {
+        fun withAllAdsReset(): AdGroup? {
             if (count == C.LENGTH_UNSET) {
                 return this
             }
-            val count: Int = states.size
-            val states: IntArray = Arrays.copyOf(states, count)
+            val count = states.size
+            val states = Arrays.copyOf(states, count)
             for (i in 0 until count) {
-                if ((states.get(i) == AD_STATE_PLAYED
-                                ) || (states.get(i) == AD_STATE_SKIPPED
-                                ) || (states.get(i) == AD_STATE_ERROR)) {
-                    states.get(i) = if (uris.get(i) == null) AD_STATE_UNAVAILABLE else AD_STATE_AVAILABLE
+                if (states[i] == AD_STATE_PLAYED || states[i] == AD_STATE_SKIPPED || states[i] == AD_STATE_ERROR) {
+                    states[i] = if (uris[i] == null) AD_STATE_UNAVAILABLE else AD_STATE_AVAILABLE
                 }
             }
-            return AdGroup(
-                    timeUs,
-                    count,
-                    originalCount,
-                    states,
-                    uris,
-                    durationsUs,
-                    contentResumeOffsetUs,
-                    isServerSideInserted)
+            return AdGroup(timeUs, count, originalCount, states, uris, durationsUs, contentResumeOffsetUs, isServerSideInserted)
         }
+
+        @CheckResult
+        private fun copyStatesWithSpaceForAdCount(states: IntArray?, count: Int): IntArray? {
+            var states = states
+            val oldStateCount = states!!.size
+            val newStateCount = max(count, oldStateCount)
+            states = Arrays.copyOf(states, newStateCount)
+            Arrays.fill(states, oldStateCount, newStateCount, AD_STATE_UNAVAILABLE)
+            return states
+        }
+
+        @CheckResult
+        private fun copyDurationsUsWithSpaceForAdCount(durationsUs: LongArray?, count: Int): LongArray {
+            var durationsUs = durationsUs
+            val oldDurationsUsCount = durationsUs!!.size
+            val newDurationsUsCount = max(count, oldDurationsUsCount)
+            durationsUs = Arrays.copyOf(durationsUs, newDurationsUsCount)
+            Arrays.fill(durationsUs, oldDurationsUsCount, newDurationsUsCount, C.TIME_UNSET)
+            return durationsUs
+        }
+
+        // Bundleable implementation.
 
         // Bundleable implementation.
         @Documented
         @Retention(RetentionPolicy.SOURCE)
         @Target(TYPE_USE)
-        @IntDef([FIELD_TIME_US, FIELD_COUNT, FIELD_URIS, FIELD_STATES, FIELD_DURATIONS_US, FIELD_CONTENT_RESUME_OFFSET_US, FIELD_IS_SERVER_SIDE_INSERTED, FIELD_ORIGINAL_COUNT])
-        private annotation class FieldNumber constructor()
+        @IntDef(value = [FIELD_TIME_US, FIELD_COUNT, FIELD_URIS, FIELD_STATES, FIELD_DURATIONS_US, FIELD_CONTENT_RESUME_OFFSET_US, FIELD_IS_SERVER_SIDE_INSERTED, FIELD_ORIGINAL_COUNT])
+        private annotation class FieldNumber
 
         // putParcelableArrayList actually supports null elements.
-        public override fun toBundle(): Bundle {
-            val bundle: Bundle = Bundle()
+        override fun toBundle(): Bundle {
+            val bundle = Bundle()
             bundle.putLong(keyForField(FIELD_TIME_US), timeUs)
             bundle.putInt(keyForField(FIELD_COUNT), count)
             bundle.putInt(keyForField(FIELD_ORIGINAL_COUNT), originalCount)
-            bundle.putParcelableArrayList(
-                    keyForField(FIELD_URIS), ArrayList(Arrays.asList(*uris)))
+            bundle.putParcelableArrayList(keyForField(FIELD_URIS), ArrayList(listOf<@NullableType Uri?>(*uris!!)))
             bundle.putIntArray(keyForField(FIELD_STATES), states)
             bundle.putLongArray(keyForField(FIELD_DURATIONS_US), durationsUs)
             bundle.putLong(keyForField(FIELD_CONTENT_RESUME_OFFSET_US), contentResumeOffsetUs)
@@ -437,76 +370,68 @@ class AdPlaybackState private constructor(
             return bundle
         }
 
-        init {
-            Assertions.checkArgument(states.size == uris.size)
-            this.timeUs = timeUs
-            this.count = count
-            this.originalCount = originalCount
-            this.states = states
-            this.uris = uris
-            this.durationsUs = durationsUs
-            this.contentResumeOffsetUs = contentResumeOffsetUs
-            this.isServerSideInserted = isServerSideInserted
+        // getParcelableArrayList may have null elements.
+        private fun fromBundle(bundle: Bundle): AdGroup? {
+            val timeUs = bundle.getLong(keyForField(FIELD_TIME_US))
+            val count = bundle.getInt(keyForField(FIELD_COUNT),  /* defaultValue= */C.LENGTH_UNSET)
+            val originalCount = bundle.getInt(keyForField(FIELD_ORIGINAL_COUNT),  /* defaultValue= */C.LENGTH_UNSET)
+            val uriList = bundle.getParcelableArrayList<@NullableType Uri?>(keyForField(FIELD_URIS))
+            val states = bundle.getIntArray(keyForField(FIELD_STATES))
+            val durationsUs = bundle.getLongArray(keyForField(FIELD_DURATIONS_US))
+            val contentResumeOffsetUs = bundle.getLong(keyForField(FIELD_CONTENT_RESUME_OFFSET_US))
+            val isServerSideInserted = bundle.getBoolean(keyForField(FIELD_IS_SERVER_SIDE_INSERTED))
+            return AdGroup(timeUs,
+                    count,
+                    originalCount,
+                    states ?: IntArray(0),
+                    uriList?.toTypedArray() ?: arrayOfNulls(0),
+                    durationsUs ?: LongArray(0),
+                    contentResumeOffsetUs,
+                    isServerSideInserted)
         }
 
-        companion object {
-            @CheckResult
-            private fun copyStatesWithSpaceForAdCount(states: IntArray, count: Int): IntArray {
-                var states: IntArray = states
-                val oldStateCount: Int = states.size
-                val newStateCount: Int = Math.max(count, oldStateCount)
-                states = Arrays.copyOf(states, newStateCount)
-                Arrays.fill(states, oldStateCount, newStateCount, AD_STATE_UNAVAILABLE)
-                return states
-            }
-
-            @CheckResult
-            private fun copyDurationsUsWithSpaceForAdCount(durationsUs: LongArray, count: Int): LongArray {
-                var durationsUs: LongArray = durationsUs
-                val oldDurationsUsCount: Int = durationsUs.size
-                val newDurationsUsCount: Int = Math.max(count, oldDurationsUsCount)
-                durationsUs = Arrays.copyOf(durationsUs, newDurationsUsCount)
-                Arrays.fill(durationsUs, oldDurationsUsCount, newDurationsUsCount, C.TIME_UNSET)
-                return durationsUs
-            }
-
-            private val FIELD_TIME_US: Int = 0
-            private val FIELD_COUNT: Int = 1
-            private val FIELD_URIS: Int = 2
-            private val FIELD_STATES: Int = 3
-            private val FIELD_DURATIONS_US: Int = 4
-            private val FIELD_CONTENT_RESUME_OFFSET_US: Int = 5
-            private val FIELD_IS_SERVER_SIDE_INSERTED: Int = 6
-            private val FIELD_ORIGINAL_COUNT: Int = 7
-
-            /** Object that can restore [AdGroup] from a [Bundle].  */
-            val CREATOR: Bundleable.Creator<AdGroup> = Bundleable.Creator({ bundle: Bundle -> fromBundle(bundle) })
-
-            // getParcelableArrayList may have null elements.
-            private fun fromBundle(bundle: Bundle): AdGroup {
-                val timeUs: Long = bundle.getLong(keyForField(FIELD_TIME_US))
-                val count: Int = bundle.getInt(keyForField(FIELD_COUNT),  /* defaultValue= */C.LENGTH_UNSET)
-                val originalCount: Int = bundle.getInt(keyForField(FIELD_ORIGINAL_COUNT),  /* defaultValue= */C.LENGTH_UNSET)
-                val uriList: ArrayList<Uri>? = bundle.getParcelableArrayList(keyForField(FIELD_URIS))
-                val states: IntArray? = bundle.getIntArray(keyForField(FIELD_STATES))
-                val durationsUs: LongArray? = bundle.getLongArray(keyForField(FIELD_DURATIONS_US))
-                val contentResumeOffsetUs: Long = bundle.getLong(keyForField(FIELD_CONTENT_RESUME_OFFSET_US))
-                val isServerSideInserted: Boolean = bundle.getBoolean(keyForField(FIELD_IS_SERVER_SIDE_INSERTED))
-                return AdGroup(
-                        timeUs,
-                        count,
-                        originalCount,
-                        if (states == null) IntArray(0) else states,
-                        if (uriList == null) arrayOfNulls(0) else uriList.toTypedArray<Uri>(),
-                        if (durationsUs == null) LongArray(0) else durationsUs,
-                        contentResumeOffsetUs,
-                        isServerSideInserted)
-            }
-
-            private fun keyForField(field: @FieldNumber Int): String {
-                return Integer.toString(field, Character.MAX_RADIX)
-            }
+        private fun keyForField(@FieldNumber field: Int): String? {
+            return field.toString(Character.MAX_RADIX)
         }
+    }
+
+    companion object {
+        /** State for an ad that does not yet have a URL.  */
+        const val AD_STATE_UNAVAILABLE = 0
+
+        /** State for an ad that has a URL but has not yet been played.  */
+        const val AD_STATE_AVAILABLE = 1
+
+        /** State for an ad that was skipped.  */
+        const val AD_STATE_SKIPPED = 2
+
+        /** State for an ad that was played in full.  */
+        const val AD_STATE_PLAYED = 3
+
+        /** State for an ad that could not be loaded.  */
+        const val AD_STATE_ERROR = 4
+
+        private val REMOVED_AD_GROUP = AdGroup( /* timeUs= */0).withAdCount(0)
+
+        /** Ad playback state with no ads.  */
+        val NONE: AdPlaybackState = AdPlaybackState( /* adsId= */
+                null, arrayOfNulls(0),  /* adResumePositionUs= */
+                0L,  /* contentDurationUs= */
+                C.TIME_UNSET,  /* removedAdGroupCount= */
+                0)
+
+        private const val FIELD_AD_GROUPS = 1
+        private const val FIELD_AD_RESUME_POSITION_US = 2
+        private const val FIELD_CONTENT_DURATION_US = 3
+        private const val FIELD_REMOVED_AD_GROUP_COUNT = 4
+
+        /**
+         * Object that can restore [AdPlaybackState] from a [Bundle].
+         *
+         *
+         * The [.adsId] of restored instances will always be `null`.
+         */
+        val CREATOR: Bundleable.Creator<AdPlaybackState> = Bundleable.Creator<AdPlaybackState> { obj: AdPlaybackState, bundle: Bundle -> obj.fromBundle(bundle) }
     }
 
     /**
@@ -517,19 +442,33 @@ class AdPlaybackState private constructor(
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(AnnotationTarget.FIELD, AnnotationTarget.FUNCTION, AnnotationTarget.PROPERTY_GETTER, AnnotationTarget.PROPERTY_SETTER, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.LOCAL_VARIABLE, TYPE_USE)
-    @IntDef([AD_STATE_UNAVAILABLE, AD_STATE_AVAILABLE, AD_STATE_SKIPPED, AD_STATE_PLAYED, AD_STATE_ERROR])
-    annotation class AdState constructor()
+    @IntDef(value = [AD_STATE_UNAVAILABLE, AD_STATE_AVAILABLE, AD_STATE_SKIPPED, AD_STATE_PLAYED, AD_STATE_ERROR])
+    annotation class AdState {}
+
+    /**
+     * The opaque identifier for ads with which this instance is associated, or `null` if unset.
+     */
+    var adsId: Any? = null
 
     /** The number of ad groups.  */
-    val adGroupCount: Int
+    var adGroupCount = 0
+
+    /** The position offset in the first unplayed ad at which to begin playback, in microseconds.  */
+    var adResumePositionUs: Long = 0
+
+    /**
+     * The duration of the content period in microseconds, if known. [C.TIME_UNSET] otherwise.
+     */
+    var contentDurationUs: Long = 0
 
     /**
      * The number of ad groups that have been removed. Ad groups with indices between `0`
      * (inclusive) and `removedAdGroupCount` (exclusive) will be empty and must not be modified
      * by any of the `with*` methods.
      */
-    val removedAdGroupCount: Int
-    private val adGroups: Array<AdGroup?>?
+    var removedAdGroupCount = 0
+
+    private var adGroups: Array<AdGroup?>? = null
 
     /**
      * Creates a new ad playback state with the specified ad group times.
@@ -538,17 +477,25 @@ class AdPlaybackState private constructor(
      * @param adGroupTimesUs The times of ad groups in microseconds, relative to the start of the
      * [Timeline.Period] they belong to. A final element with the value [     ][C.TIME_END_OF_SOURCE] indicates that there is a postroll ad.
      */
-    constructor(adsId: Any?, vararg adGroupTimesUs: Long) : this(
-            adsId,
-            createEmptyAdGroups(adGroupTimesUs),  /* adResumePositionUs= */
-            0,  /* contentDurationUs= */
-            C.TIME_UNSET,  /* removedAdGroupCount= */
-            0) {
+    constructor(adsId: Any?, vararg adGroupTimesUs: Long) {
+        this(adsId, createEmptyAdGroups(adGroupTimesUs),  /* adResumePositionUs= */
+                0,  /* contentDurationUs= */
+                C.TIME_UNSET,  /* removedAdGroupCount= */
+                0)
+    }
+
+    private constructor(adsId: Any?, adGroups: Array<AdGroup?>, adResumePositionUs: Long, contentDurationUs: Long, removedAdGroupCount: Int) {
+        this.adsId = adsId
+        this.adResumePositionUs = adResumePositionUs
+        this.contentDurationUs = contentDurationUs
+        adGroupCount = adGroups.size + removedAdGroupCount
+        this.adGroups = adGroups
+        this.removedAdGroupCount = removedAdGroupCount
     }
 
     /** Returns the specified [AdGroup].  */
     fun getAdGroup(@IntRange(from = 0) adGroupIndex: Int): AdGroup {
-        return if (adGroupIndex < removedAdGroupCount) REMOVED_AD_GROUP else (adGroups!!.get(adGroupIndex - removedAdGroupCount))!!
+        return if (adGroupIndex < removedAdGroupCount) REMOVED_AD_GROUP else adGroups!![adGroupIndex - removedAdGroupCount]!!
     }
 
     /**
@@ -566,7 +513,7 @@ class AdPlaybackState private constructor(
     fun getAdGroupIndexForPositionUs(positionUs: Long, periodDurationUs: Long): Int {
         // Use a linear search as the array elements may not be increasing due to TIME_END_OF_SOURCE.
         // In practice we expect there to be few ad groups so the search shouldn't be expensive.
-        var index: Int = adGroupCount - 1
+        var index = adGroupCount - 1
         while (index >= 0 && isPositionBeforeAdGroup(positionUs, periodDurationUs, index)) {
             index--
         }
@@ -585,33 +532,27 @@ class AdPlaybackState private constructor(
      * @return The index of the ad group, or [C.INDEX_UNSET].
      */
     fun getAdGroupIndexAfterPositionUs(positionUs: Long, periodDurationUs: Long): Int {
-        if ((positionUs == C.TIME_END_OF_SOURCE
-                        || (periodDurationUs != C.TIME_UNSET && positionUs >= periodDurationUs))) {
+        if ((positionUs == C.TIME_END_OF_SOURCE || periodDurationUs != C.TIME_UNSET) && positionUs >= periodDurationUs) {
             return C.INDEX_UNSET
         }
         // Use a linear search as the array elements may not be increasing due to TIME_END_OF_SOURCE.
         // In practice we expect there to be few ad groups so the search shouldn't be expensive.
-        var index: Int = removedAdGroupCount
-        while ((index < adGroupCount
-                        && ((getAdGroup(index).timeUs != C.TIME_END_OF_SOURCE
-                        && getAdGroup(index).timeUs <= positionUs)
-                        || !getAdGroup(index).shouldPlayAdGroup()))) {
+        var index = removedAdGroupCount
+        while (index < adGroupCount && ((getAdGroup(index).timeUs != C.TIME_END_OF_SOURCE && getAdGroup(index).timeUs <= positionUs) || !getAdGroup(index).shouldPlayAdGroup())) {
             index++
         }
         return if (index < adGroupCount) index else C.INDEX_UNSET
     }
 
     /** Returns whether the specified ad has been marked as in [.AD_STATE_ERROR].  */
-    fun isAdInErrorState(
-            @IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): Boolean {
+    fun isAdInErrorState(@IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): Boolean {
         if (adGroupIndex >= adGroupCount) {
             return false
         }
-        val adGroup: AdGroup = getAdGroup(adGroupIndex)
-        if (adGroup.count == C.LENGTH_UNSET || adIndexInAdGroup >= adGroup.count) {
-            return false
-        }
-        return adGroup.states.get(adIndexInAdGroup) == AD_STATE_ERROR
+        val adGroup = getAdGroup(adGroupIndex)
+        return if (adGroup.count == C.LENGTH_UNSET || adIndexInAdGroup >= adGroup.count) {
+            false
+        } else adGroup.states!![adIndexInAdGroup] == AdPlaybackState.AD_STATE_ERROR
     }
 
     /**
@@ -623,13 +564,11 @@ class AdPlaybackState private constructor(
      * @return The updated ad playback state.
      */
     @CheckResult
-    fun withAdGroupTimeUs(
-            @IntRange(from = 0) adGroupIndex: Int, adGroupTimeUs: Long): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        adGroups!!.get(adjustedIndex) = this.adGroups.get(adjustedIndex)!!.withTimeUs(adGroupTimeUs)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withAdGroupTimeUs(@IntRange(from = 0) adGroupIndex: Int, adGroupTimeUs: Long): AdPlaybackState {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = this.adGroups!![adjustedIndex]!!.withTimeUs(adGroupTimeUs)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -641,19 +580,18 @@ class AdPlaybackState private constructor(
      * @return The updated ad playback state.
      */
     @CheckResult
-    fun withNewAdGroup(@IntRange(from = 0) adGroupIndex: Int, adGroupTimeUs: Long): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val newAdGroup: AdGroup = AdGroup(adGroupTimeUs)
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayAppend(adGroups, newAdGroup)
+    fun withNewAdGroup(@IntRange(from = 0) adGroupIndex: Int, adGroupTimeUs: Long): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val newAdGroup = AdGroup(adGroupTimeUs)
+        val adGroups = nullSafeArrayAppend(adGroups, newAdGroup)
         System.arraycopy( /* src= */
                 adGroups,  /* srcPos= */
                 adjustedIndex,  /* dest= */
                 adGroups,  /* destPos= */
                 adjustedIndex + 1,  /* length= */
-                this.adGroups!!.size - adjustedIndex)
-        adGroups!!.get(adjustedIndex) = newAdGroup
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+                this.adGroups.size - adjustedIndex)
+        adGroups[adjustedIndex] = newAdGroup
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -661,17 +599,15 @@ class AdPlaybackState private constructor(
      * The ad count must be greater than zero.
      */
     @CheckResult
-    fun withAdCount(
-            @IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 1) adCount: Int): AdPlaybackState {
-        Assertions.checkArgument(adCount > 0)
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        if (adGroups!!.get(adjustedIndex)!!.count == adCount) {
+    fun withAdCount(@IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 1) adCount: Int): AdPlaybackState? {
+        checkArgument(adCount > 0)
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        if (adGroups!![adjustedIndex]!!.count == adCount) {
             return this
         }
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups.size)
-        adGroups!!.get(adjustedIndex) = this.adGroups.get(adjustedIndex)!!.withAdCount(adCount)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = this.adGroups!![adjustedIndex]!!.withAdCount(adCount)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -681,14 +617,12 @@ class AdPlaybackState private constructor(
      * inserted ad group.
      */
     @CheckResult
-    fun withAvailableAdUri(
-            @IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int, uri: Uri): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        Assertions.checkState(!(Uri.EMPTY == uri) || adGroups!!.get(adjustedIndex)!!.isServerSideInserted)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withAdUri(uri, adIndexInAdGroup)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withAvailableAdUri(@IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int, uri: Uri): AdPlaybackState {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        checkState(Uri.EMPTY != uri || adGroups[adjustedIndex]!!.isServerSideInserted)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withAdUri(uri, adIndexInAdGroup)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -701,54 +635,46 @@ class AdPlaybackState private constructor(
      * @throws IllegalStateException in case this methods is called on an ad group that [     ][AdGroup.isServerSideInserted].
      */
     @CheckResult
-    fun withAvailableAd(
-            @IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): AdPlaybackState {
+    fun withAvailableAd(@IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): AdPlaybackState? {
         return withAvailableAdUri(adGroupIndex, adIndexInAdGroup, Uri.EMPTY)
     }
 
     /** Returns an instance with the specified ad marked as [played][.AD_STATE_PLAYED].  */
     @CheckResult
-    fun withPlayedAd(
-            @IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withAdState(AD_STATE_PLAYED, adIndexInAdGroup)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withPlayedAd(@IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withAdState(AD_STATE_PLAYED, adIndexInAdGroup)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /** Returns an instance with the specified ad marked as [skipped][.AD_STATE_SKIPPED].  */
     @CheckResult
-    fun withSkippedAd(
-            @IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withAdState(AD_STATE_SKIPPED, adIndexInAdGroup)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withSkippedAd(@IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withAdState(AD_STATE_SKIPPED, adIndexInAdGroup)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /** Returns an instance with the last ad of the given ad group removed.  */
     @CheckResult
-    fun withLastAdRemoved(@IntRange(from = 0) adGroupIndex: Int): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withLastAdRemoved()
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withLastAdRemoved(@IntRange(from = 0) adGroupIndex: Int): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withLastAdRemoved()
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
      * Returns an instance with the specified ad marked [as having a load][.AD_STATE_ERROR].
      */
     @CheckResult
-    fun withAdLoadError(
-            @IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withAdState(AD_STATE_ERROR, adIndexInAdGroup)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withAdLoadError(@IntRange(from = 0) adGroupIndex: Int, @IntRange(from = 0) adIndexInAdGroup: Int): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withAdState(AD_STATE_ERROR, adIndexInAdGroup)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -756,12 +682,11 @@ class AdPlaybackState private constructor(
      * marked as played or in the error state).
      */
     @CheckResult
-    fun withSkippedAdGroup(@IntRange(from = 0) adGroupIndex: Int): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withAllAdsSkipped()
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withSkippedAdGroup(@IntRange(from = 0) adGroupIndex: Int): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withAllAdsSkipped()
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -771,14 +696,13 @@ class AdPlaybackState private constructor(
      * Must only be used if [.removedAdGroupCount] is 0.
      */
     @CheckResult
-    fun withAdDurationsUs(adDurationUs: Array<LongArray>): AdPlaybackState {
-        Assertions.checkState(removedAdGroupCount == 0)
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
+    fun withAdDurationsUs(adDurationUs: Array<LongArray?>): AdPlaybackState? {
+        checkState(removedAdGroupCount == 0)
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
         for (adGroupIndex in 0 until adGroupCount) {
-            adGroups!!.get(adGroupIndex) = adGroups.get(adGroupIndex)!!.withAdDurationsUs(adDurationUs.get(adGroupIndex))
+            adGroups[adGroupIndex] = adGroups[adGroupIndex]!!.withAdDurationsUs(adDurationUs[adGroupIndex]!!)
         }
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -786,13 +710,11 @@ class AdPlaybackState private constructor(
      * group.
      */
     @CheckResult
-    fun withAdDurationsUs(
-            @IntRange(from = 0) adGroupIndex: Int, vararg adDurationsUs: Long): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withAdDurationsUs(adDurationsUs)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withAdDurationsUs(@IntRange(from = 0) adGroupIndex: Int, vararg adDurationsUs: Long): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withAdDurationsUs(adDurationsUs)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -800,23 +722,21 @@ class AdPlaybackState private constructor(
      * start of the current ad.
      */
     @CheckResult
-    fun withAdResumePositionUs(adResumePositionUs: Long): AdPlaybackState {
-        if (this.adResumePositionUs == adResumePositionUs) {
-            return this
+    fun withAdResumePositionUs(adResumePositionUs: Long): AdPlaybackState? {
+        return if (this.adResumePositionUs == adResumePositionUs) {
+            this
         } else {
-            return AdPlaybackState(
-                    adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+            AdPlaybackState(adsId, adGroups!!, adResumePositionUs, contentDurationUs, removedAdGroupCount)
         }
     }
 
     /** Returns an instance with the specified content duration, in microseconds.  */
     @CheckResult
-    fun withContentDurationUs(contentDurationUs: Long): AdPlaybackState {
-        if (this.contentDurationUs == contentDurationUs) {
-            return this
+    fun withContentDurationUs(contentDurationUs: Long): AdPlaybackState? {
+        return if (this.contentDurationUs == contentDurationUs) {
+            this
         } else {
-            return AdPlaybackState(
-                    adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+            AdPlaybackState(adsId, adGroups!!, adResumePositionUs, contentDurationUs, removedAdGroupCount)
         }
     }
 
@@ -828,20 +748,19 @@ class AdPlaybackState private constructor(
      * (exclusive) will be empty and must not be modified by any of the `with*` methods.
      */
     @CheckResult
-    fun withRemovedAdGroupCount(@IntRange(from = 0) removedAdGroupCount: Int): AdPlaybackState {
-        if (this.removedAdGroupCount == removedAdGroupCount) {
-            return this
+    fun withRemovedAdGroupCount(@IntRange(from = 0) removedAdGroupCount: Int): AdPlaybackState? {
+        return if (this.removedAdGroupCount == removedAdGroupCount) {
+            this
         } else {
-            Assertions.checkArgument(removedAdGroupCount > this.removedAdGroupCount)
-            val adGroups: Array<AdGroup?> = arrayOfNulls(adGroupCount - removedAdGroupCount)
+            checkArgument(removedAdGroupCount > this.removedAdGroupCount)
+            val adGroups = arrayOfNulls<AdGroup>(adGroupCount - removedAdGroupCount)
             System.arraycopy( /* src= */
                     this.adGroups,  /* srcPos= */
                     removedAdGroupCount - this.removedAdGroupCount,  /* dest= */
                     adGroups,  /* destPos= */
                     0,  /* length= */
                     adGroups.size)
-            return AdPlaybackState(
-                    adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+            AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
         }
     }
 
@@ -850,16 +769,14 @@ class AdPlaybackState private constructor(
      * for the specified ad group.
      */
     @CheckResult
-    fun withContentResumeOffsetUs(
-            @IntRange(from = 0) adGroupIndex: Int, contentResumeOffsetUs: Long): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        if (adGroups!!.get(adjustedIndex)!!.contentResumeOffsetUs == contentResumeOffsetUs) {
+    fun withContentResumeOffsetUs(@IntRange(from = 0) adGroupIndex: Int, contentResumeOffsetUs: Long): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        if (adGroups!![adjustedIndex]!!.contentResumeOffsetUs == contentResumeOffsetUs) {
             return this
         }
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withContentResumeOffsetUs(contentResumeOffsetUs)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withContentResumeOffsetUs(contentResumeOffsetUs)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -867,16 +784,14 @@ class AdPlaybackState private constructor(
      * ad group.
      */
     @CheckResult
-    fun withOriginalAdCount(
-            @IntRange(from = 0) adGroupIndex: Int, originalAdCount: Int): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        if (adGroups!!.get(adjustedIndex)!!.originalCount == originalAdCount) {
+    fun withOriginalAdCount(@IntRange(from = 0) adGroupIndex: Int, originalAdCount: Int): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        if (adGroups!![adjustedIndex]!!.originalCount == originalAdCount) {
             return this
         }
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withOriginalAdCount(originalAdCount)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withOriginalAdCount(originalAdCount)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -884,16 +799,14 @@ class AdPlaybackState private constructor(
      * specified ad group.
      */
     @CheckResult
-    fun withIsServerSideInserted(
-            @IntRange(from = 0) adGroupIndex: Int, isServerSideInserted: Boolean): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        if (adGroups!!.get(adjustedIndex)!!.isServerSideInserted == isServerSideInserted) {
+    fun withIsServerSideInserted(@IntRange(from = 0) adGroupIndex: Int, isServerSideInserted: Boolean): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        if (adGroups!![adjustedIndex]!!.isServerSideInserted == isServerSideInserted) {
             return this
         }
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withIsServerSideInserted(isServerSideInserted)
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withIsServerSideInserted(isServerSideInserted)
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
     /**
@@ -901,33 +814,43 @@ class AdPlaybackState private constructor(
      * skipped, error) to either available or unavailable, which allows to play them again.
      */
     @CheckResult
-    fun withResetAdGroup(@IntRange(from = 0) adGroupIndex: Int): AdPlaybackState {
-        val adjustedIndex: Int = adGroupIndex - removedAdGroupCount
-        val adGroups: Array<AdGroup?>? = Util.nullSafeArrayCopy(adGroups, adGroups!!.size)
-        adGroups!!.get(adjustedIndex) = adGroups.get(adjustedIndex)!!.withAllAdsReset()
-        return AdPlaybackState(
-                adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
+    fun withResetAdGroup(@IntRange(from = 0) adGroupIndex: Int): AdPlaybackState? {
+        val adjustedIndex = adGroupIndex - removedAdGroupCount
+        val adGroups = nullSafeArrayCopy(adGroups, adGroups!!.size)
+        adGroups[adjustedIndex] = adGroups[adjustedIndex]!!.withAllAdsReset()
+        return AdPlaybackState(adsId, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
-    public override fun equals(o: Any?): Boolean {
+    /**
+     * Returns a copy of the ad playback state with the given ads ID.
+     *
+     * @param adsId The new ads ID.
+     * @param adPlaybackState The ad playback state to copy.
+     * @return The new ad playback state.
+     */
+    fun fromAdPlaybackState(adsId: Any?, adPlaybackState: AdPlaybackState): AdPlaybackState? {
+        val adGroups = arrayOfNulls<AdGroup>(adPlaybackState.adGroupCount - adPlaybackState.removedAdGroupCount)
+        for (i in adGroups.indices) {
+            val adGroup = adPlaybackState.adGroups!![i]
+            adGroups[i] = AdGroup(adGroup!!.timeUs, adGroup.count, adGroup.originalCount, Arrays.copyOf(adGroup.states, adGroup.states!!.size), Arrays.copyOf<@NullableType Uri?>(adGroup.uris, adGroup.uris!!.size), Arrays.copyOf(adGroup.durationsUs, adGroup.durationsUs!!.size), adGroup.contentResumeOffsetUs, adGroup.isServerSideInserted)
+        }
+        return AdPlaybackState(adsId, adGroups, adPlaybackState.adResumePositionUs, adPlaybackState.contentDurationUs, adPlaybackState.removedAdGroupCount)
+    }
+
+    override fun equals(o: Any?): Boolean {
         if (this === o) {
             return true
         }
         if (o == null || javaClass != o.javaClass) {
             return false
         }
-        val that: AdPlaybackState = o as AdPlaybackState
-        return (Util.areEqual(adsId, that.adsId)
-                && (adGroupCount == that.adGroupCount
-                ) && (adResumePositionUs == that.adResumePositionUs
-                ) && (contentDurationUs == that.contentDurationUs
-                ) && (removedAdGroupCount == that.removedAdGroupCount
-                ) && Arrays.equals(adGroups, that.adGroups))
+        val that = o as AdPlaybackState
+        return areEqual(adsId, that.adsId) && adGroupCount == that.adGroupCount && adResumePositionUs == that.adResumePositionUs && contentDurationUs == that.contentDurationUs && removedAdGroupCount == that.removedAdGroupCount && Arrays.equals(adGroups, that.adGroups)
     }
 
-    public override fun hashCode(): Int {
-        var result: Int = adGroupCount
-        result = 31 * result + (if (adsId == null) 0 else adsId.hashCode())
+    override fun hashCode(): Int {
+        var result = adGroupCount
+        result = 31 * result + (adsId?.hashCode() ?: 0)
         result = 31 * result + adResumePositionUs.toInt()
         result = 31 * result + contentDurationUs.toInt()
         result = 31 * result + removedAdGroupCount
@@ -935,8 +858,8 @@ class AdPlaybackState private constructor(
         return result
     }
 
-    public override fun toString(): String {
-        val sb: StringBuilder = StringBuilder()
+    override fun toString(): String {
+        val sb = StringBuilder()
         sb.append("AdPlaybackState(adsId=")
         sb.append(adsId)
         sb.append(", adResumePositionUs=")
@@ -944,11 +867,11 @@ class AdPlaybackState private constructor(
         sb.append(", adGroups=[")
         for (i in adGroups!!.indices) {
             sb.append("adGroup(timeUs=")
-            sb.append(adGroups.get(i)!!.timeUs)
+            sb.append(adGroups!![i]!!.timeUs)
             sb.append(", ads=[")
-            for (j in adGroups.get(i)!!.states.indices) {
+            for (j in adGroups!![i]!!.states!!.indices) {
                 sb.append("ad(state=")
-                when (adGroups.get(i)!!.states.get(j)) {
+                when (adGroups!![i]!!.states!![j]) {
                     AD_STATE_UNAVAILABLE -> sb.append('_')
                     AD_STATE_ERROR -> sb.append('!')
                     AD_STATE_AVAILABLE -> sb.append('R')
@@ -957,14 +880,14 @@ class AdPlaybackState private constructor(
                     else -> sb.append('?')
                 }
                 sb.append(", durationUs=")
-                sb.append(adGroups.get(i)!!.durationsUs.get(j))
+                sb.append(adGroups!![i]!!.durationsUs!![j])
                 sb.append(')')
-                if (j < adGroups.get(i)!!.states.size - 1) {
+                if (j < adGroups!![i]!!.states!!.size - 1) {
                     sb.append(", ")
                 }
             }
             sb.append("])")
-            if (i < adGroups.size - 1) {
+            if (i < adGroups!!.size - 1) {
                 sb.append(", ")
             }
         }
@@ -972,26 +895,27 @@ class AdPlaybackState private constructor(
         return sb.toString()
     }
 
-    private fun isPositionBeforeAdGroup(
-            positionUs: Long, periodDurationUs: Long, adGroupIndex: Int): Boolean {
+    private fun isPositionBeforeAdGroup(positionUs: Long, periodDurationUs: Long, adGroupIndex: Int): Boolean {
         if (positionUs == C.TIME_END_OF_SOURCE) {
             // The end of the content is at (but not before) any postroll ad, and after any other ads.
             return false
         }
-        val adGroupPositionUs: Long = getAdGroup(adGroupIndex).timeUs
-        if (adGroupPositionUs == C.TIME_END_OF_SOURCE) {
-            return periodDurationUs == C.TIME_UNSET || positionUs < periodDurationUs
+        val adGroupPositionUs = getAdGroup(adGroupIndex).timeUs
+        return if (adGroupPositionUs == C.TIME_END_OF_SOURCE) {
+            periodDurationUs == C.TIME_UNSET || positionUs < periodDurationUs
         } else {
-            return positionUs < adGroupPositionUs
+            positionUs < adGroupPositionUs
         }
     }
+
+    // Bundleable implementation.
 
     // Bundleable implementation.
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([FIELD_AD_GROUPS, FIELD_AD_RESUME_POSITION_US, FIELD_CONTENT_DURATION_US, FIELD_REMOVED_AD_GROUP_COUNT])
-    private annotation class FieldNumber constructor()
+    @IntDef(value = [FIELD_AD_GROUPS, FIELD_AD_RESUME_POSITION_US, FIELD_CONTENT_DURATION_US, FIELD_REMOVED_AD_GROUP_COUNT])
+    private annotation class FieldNumber
 
     /**
      * {@inheritDoc}
@@ -1000,10 +924,10 @@ class AdPlaybackState private constructor(
      * It omits the [.adsId] field so the [.adsId] of instances restored by [ ][.CREATOR] will always be `null`.
      */
     // TODO(b/166765820): See if missing adsId would be okay and add adsId to the Bundle otherwise.
-    public override fun toBundle(): Bundle {
-        val bundle: Bundle = Bundle()
-        val adGroupBundleList: ArrayList<Bundle> = ArrayList()
-        for (adGroup: AdGroup? in adGroups!!) {
+    override fun toBundle(): Bundle {
+        val bundle = Bundle()
+        val adGroupBundleList = ArrayList<Bundle>()
+        for (adGroup in adGroups!!) {
             adGroupBundleList.add(adGroup!!.toBundle())
         }
         bundle.putParcelableArrayList(keyForField(FIELD_AD_GROUPS), adGroupBundleList)
@@ -1013,105 +937,33 @@ class AdPlaybackState private constructor(
         return bundle
     }
 
-    init {
-        adGroupCount = adGroups!!.size + removedAdGroupCount
-        this.adGroups = adGroups
-        this.removedAdGroupCount = removedAdGroupCount
+    private fun fromBundle(bundle: Bundle): AdPlaybackState? {
+        val adGroupBundleList = bundle.getParcelableArrayList<Bundle>(keyForField(FIELD_AD_GROUPS))
+        val adGroups: Array<AdGroup?>
+        if (adGroupBundleList == null) {
+            adGroups = arrayOfNulls(0)
+        } else {
+            adGroups = arrayOfNulls(adGroupBundleList.size)
+            for (i in adGroupBundleList.indices) {
+                adGroups[i] = AdGroup.CREATOR.fromBundle(adGroupBundleList[i])
+            }
+        }
+        val adResumePositionUs = bundle.getLong(keyForField(FIELD_AD_RESUME_POSITION_US),  /* defaultValue= */0)
+        val contentDurationUs = bundle.getLong(keyForField(FIELD_CONTENT_DURATION_US),  /* defaultValue= */C.TIME_UNSET)
+        val removedAdGroupCount = bundle.getInt(keyForField(FIELD_REMOVED_AD_GROUP_COUNT))
+        return AdPlaybackState( /* adsId= */
+                null, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
     }
 
-    companion object {
-        /** State for an ad that does not yet have a URL.  */
-        val AD_STATE_UNAVAILABLE: Int = 0
+    private fun keyForField(@FieldNumber field: Int): String? {
+        return Integer.toString(field, Character.MAX_RADIX)
+    }
 
-        /** State for an ad that has a URL but has not yet been played.  */
-        val AD_STATE_AVAILABLE: Int = 1
-
-        /** State for an ad that was skipped.  */
-        val AD_STATE_SKIPPED: Int = 2
-
-        /** State for an ad that was played in full.  */
-        val AD_STATE_PLAYED: Int = 3
-
-        /** State for an ad that could not be loaded.  */
-        val AD_STATE_ERROR: Int = 4
-
-        /** Ad playback state with no ads.  */
-        val NONE: AdPlaybackState = AdPlaybackState( /* adsId= */
-                null, arrayOfNulls(0),  /* adResumePositionUs= */
-                0L,  /* contentDurationUs= */
-                C.TIME_UNSET,  /* removedAdGroupCount= */
-                0)
-        private val REMOVED_AD_GROUP: AdGroup = AdGroup( /* timeUs= */0).withAdCount(0)
-
-        /**
-         * Returns a copy of the ad playback state with the given ads ID.
-         *
-         * @param adsId The new ads ID.
-         * @param adPlaybackState The ad playback state to copy.
-         * @return The new ad playback state.
-         */
-        fun fromAdPlaybackState(adsId: Any?, adPlaybackState: AdPlaybackState): AdPlaybackState {
-            val adGroups: Array<AdGroup?> = arrayOfNulls(adPlaybackState.adGroupCount - adPlaybackState.removedAdGroupCount)
-            for (i in adGroups.indices) {
-                val adGroup: AdGroup? = adPlaybackState.adGroups!!.get(i)
-                adGroups.get(i) = AdGroup(
-                        adGroup!!.timeUs,
-                        adGroup.count,
-                        adGroup.originalCount,
-                        Arrays.copyOf(adGroup.states, adGroup.states.size),
-                        Arrays.copyOf(adGroup.uris, adGroup.uris.size),
-                        Arrays.copyOf(adGroup.durationsUs, adGroup.durationsUs.size),
-                        adGroup.contentResumeOffsetUs,
-                        adGroup.isServerSideInserted)
-            }
-            return AdPlaybackState(
-                    adsId,
-                    adGroups,
-                    adPlaybackState.adResumePositionUs,
-                    adPlaybackState.contentDurationUs,
-                    adPlaybackState.removedAdGroupCount)
+    private fun createEmptyAdGroups(adGroupTimesUs: LongArray): Array<AdGroup?>? {
+        val adGroups = arrayOfNulls<AdGroup>(adGroupTimesUs.size)
+        for (i in adGroups.indices) {
+            adGroups[i] = AdGroup(adGroupTimesUs[i])
         }
-
-        private val FIELD_AD_GROUPS: Int = 1
-        private val FIELD_AD_RESUME_POSITION_US: Int = 2
-        private val FIELD_CONTENT_DURATION_US: Int = 3
-        private val FIELD_REMOVED_AD_GROUP_COUNT: Int = 4
-
-        /**
-         * Object that can restore [AdPlaybackState] from a [Bundle].
-         *
-         *
-         * The [.adsId] of restored instances will always be `null`.
-         */
-        val CREATOR: Bundleable.Creator<AdPlaybackState> = Bundleable.Creator({ bundle: Bundle -> fromBundle(bundle) })
-        private fun fromBundle(bundle: Bundle): AdPlaybackState {
-            val adGroupBundleList: ArrayList<Bundle>? = bundle.getParcelableArrayList(keyForField(FIELD_AD_GROUPS))
-            val adGroups: Array<AdGroup?>?
-            if (adGroupBundleList == null) {
-                adGroups = arrayOfNulls(0)
-            } else {
-                adGroups = arrayOfNulls(adGroupBundleList.size)
-                for (i in adGroupBundleList.indices) {
-                    adGroups.get(i) = AdGroup.CREATOR.fromBundle(adGroupBundleList.get(i))
-                }
-            }
-            val adResumePositionUs: Long = bundle.getLong(keyForField(FIELD_AD_RESUME_POSITION_US),  /* defaultValue= */0)
-            val contentDurationUs: Long = bundle.getLong(keyForField(FIELD_CONTENT_DURATION_US),  /* defaultValue= */C.TIME_UNSET)
-            val removedAdGroupCount: Int = bundle.getInt(keyForField(FIELD_REMOVED_AD_GROUP_COUNT))
-            return AdPlaybackState( /* adsId= */
-                    null, adGroups, adResumePositionUs, contentDurationUs, removedAdGroupCount)
-        }
-
-        private fun keyForField(field: @FieldNumber Int): String {
-            return Integer.toString(field, Character.MAX_RADIX)
-        }
-
-        private fun createEmptyAdGroups(adGroupTimesUs: LongArray): Array<AdGroup?> {
-            val adGroups: Array<AdGroup?> = arrayOfNulls(adGroupTimesUs.size)
-            for (i in adGroups.indices) {
-                adGroups.get(i) = AdGroup(adGroupTimesUs.get(i))
-            }
-            return adGroups
-        }
+        return adGroups
     }
 }

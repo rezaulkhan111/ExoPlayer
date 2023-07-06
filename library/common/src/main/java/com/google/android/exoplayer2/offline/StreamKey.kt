@@ -68,31 +68,29 @@ class StreamKey : Comparable<StreamKey>, Parcelable {
         trackIndex = streamIndex
     }
 
-    internal constructor(`in`: Parcel) {
-        periodIndex = `in`.readInt()
-        groupIndex = `in`.readInt()
-        streamIndex = `in`.readInt()
+    internal constructor(parcel: Parcel) {
+        periodIndex = parcel.readInt()
+        groupIndex = parcel.readInt()
+        streamIndex = parcel.readInt()
         trackIndex = streamIndex
     }
 
-    public override fun toString(): String {
-        return periodIndex.toString() + "." + groupIndex + "." + streamIndex
+    override fun toString(): String {
+        return "$periodIndex.$groupIndex.$streamIndex"
     }
 
-    public override fun equals(o: Any?): Boolean {
-        if (this === o) {
+    override fun equals(anyObj: Any?): Boolean {
+        if (this === anyObj) {
             return true
         }
-        if (o == null || javaClass != o.javaClass) {
+        if (anyObj == null || javaClass != anyObj.javaClass) {
             return false
         }
-        val that: StreamKey = o as StreamKey
-        return (periodIndex == that.periodIndex
-                ) && (groupIndex == that.groupIndex
-                ) && (streamIndex == that.streamIndex)
+        val that: StreamKey = anyObj as StreamKey
+        return (periodIndex == that.periodIndex) && (groupIndex == that.groupIndex) && (streamIndex == that.streamIndex)
     }
 
-    public override fun hashCode(): Int {
+    override fun hashCode(): Int {
         var result: Int = periodIndex
         result = 31 * result + groupIndex
         result = 31 * result + streamIndex
@@ -100,7 +98,7 @@ class StreamKey : Comparable<StreamKey>, Parcelable {
     }
 
     // Comparable implementation.
-    public override fun compareTo(o: StreamKey): Int {
+    override fun compareTo(o: StreamKey): Int {
         var result: Int = periodIndex - o.periodIndex
         if (result == 0) {
             result = groupIndex - o.groupIndex
@@ -112,19 +110,20 @@ class StreamKey : Comparable<StreamKey>, Parcelable {
     }
 
     // Parcelable implementation.
-    public override fun describeContents(): Int {
+    override fun describeContents(): Int {
         return 0
     }
 
-    public override fun writeToParcel(dest: Parcel, flags: Int) {
+    override fun writeToParcel(dest: Parcel, flags: Int) {
         dest.writeInt(periodIndex)
         dest.writeInt(groupIndex)
         dest.writeInt(streamIndex)
     }
 
     companion object {
-        val CREATOR: Parcelable.Creator<StreamKey> = object : Parcelable.Creator<StreamKey?> {
-            public override fun createFromParcel(`in`: Parcel): StreamKey? {
+        @JvmField
+        val CREATOR: Parcelable.Creator<StreamKey> = object : Parcelable.Creator<StreamKey> {
+            public override fun createFromParcel(`in`: Parcel): StreamKey {
                 return StreamKey(`in`)
             }
 

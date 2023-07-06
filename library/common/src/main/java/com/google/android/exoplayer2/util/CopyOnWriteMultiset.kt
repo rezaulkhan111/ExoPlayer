@@ -35,11 +35,12 @@ import java.util.*
  * @param <E> The type of element being stored.
 </E> */
 // Intentionally extending @NonNull-by-default Object to disallow @Nullable E types.
-class CopyOnWriteMultiset<E : Any?> constructor() : Iterable<E> {
-    private val lock: Any
+class CopyOnWriteMultiset<E : Any?> : Iterable<E> {
+
+    private var lock: Any
 
     @GuardedBy("lock")
-    private val elementCounts: MutableMap<E, Int>
+    private var elementCounts: MutableMap<E, Int>
 
     @GuardedBy("lock")
     private var elementSet: Set<E>
@@ -47,11 +48,11 @@ class CopyOnWriteMultiset<E : Any?> constructor() : Iterable<E> {
     @GuardedBy("lock")
     private var elements: MutableList<E>
 
-    init {
+    constructor() {
         lock = Any()
         elementCounts = HashMap()
         elementSet = emptySet()
-        elements = emptyList<E>()
+        elements = emptyList<E>().toMutableList()
     }
 
     /**
@@ -60,18 +61,18 @@ class CopyOnWriteMultiset<E : Any?> constructor() : Iterable<E> {
      * @param element The element to be added.
      */
     fun add(element: E) {
-        synchronized(lock, {
+        synchronized(lock) {
             val elements: MutableList<E> = ArrayList(elements)
             elements.add(element)
             this.elements = Collections.unmodifiableList(elements)
-            val count: Int? = elementCounts.get(element)
+            val count: Int? = elementCounts[element]
             if (count == null) {
                 val elementSet: MutableSet<E> = HashSet(elementSet)
                 elementSet.add(element)
                 this.elementSet = Collections.unmodifiableSet(elementSet)
             }
             elementCounts.put(element, if (count != null) count + 1 else 1)
-        })
+        }
     }
 
     /**
@@ -80,8 +81,8 @@ class CopyOnWriteMultiset<E : Any?> constructor() : Iterable<E> {
      * @param element The element to be removed.
      */
     fun remove(element: E) {
-        synchronized(lock, {
-            val count: Int? = elementCounts.get(element)
+        synchronized(lock) {
+            val count: Int? = elementCounts[element]
             if (count == null) {
                 return
             }
@@ -96,7 +97,7 @@ class CopyOnWriteMultiset<E : Any?> constructor() : Iterable<E> {
             } else {
                 elementCounts.put(element, count - 1)
             }
-        })
+        }
     }
 
     /**
@@ -108,7 +109,7 @@ class CopyOnWriteMultiset<E : Any?> constructor() : Iterable<E> {
      * @return An unmodifiable set containing the unique elements in this multiset.
      */
     fun elementSet(): Set<E> {
-        synchronized(lock, { return elementSet })
+        synchronized(lock) { return elementSet }
     }
 
     /**
@@ -120,12 +121,12 @@ class CopyOnWriteMultiset<E : Any?> constructor() : Iterable<E> {
      *
      * @return An unmodifiable iterator over all the elements in this multiset (including duplicates).
      */
-    public override fun iterator(): MutableIterator<E> {
-        synchronized(lock, { return elements.iterator() })
+    override fun iterator(): MutableIterator<E> {
+        synchronized(lock) { return elements.iterator() }
     }
 
     /** Returns the number of occurrences of an element in this multiset.  */
     fun count(element: E): Int {
-        synchronized(lock, { return if (elementCounts.containsKey(element)) (elementCounts.get(element))!! else 0 })
+        synchronized(lock) { return if (elementCounts.containsKey(element)) (elementCounts.get(element))!! else 0 }
     }
 }

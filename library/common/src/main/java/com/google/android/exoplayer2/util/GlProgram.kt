@@ -362,33 +362,33 @@ class GlProgram {
          *
          * Should be called before each drawing call.
          */
-        @Throws(GlUtil.GlException::class)
+        @Throws(GlException::class)
         fun bind() {
             when (type) {
                 GLES20.GL_INT -> GLES20.glUniform1i(location, intValue)
                 GLES20.GL_FLOAT -> {
                     GLES20.glUniform1fv(location,  /* count= */1, floatValue,  /* offset= */0)
-                    GlUtil.checkGlError()
+                    checkGlError()
                 }
 
                 GLES20.GL_FLOAT_VEC2 -> {
                     GLES20.glUniform2fv(location,  /* count= */1, floatValue,  /* offset= */0)
-                    GlUtil.checkGlError()
+                    checkGlError()
                 }
 
                 GLES20.GL_FLOAT_VEC3 -> {
                     GLES20.glUniform3fv(location,  /* count= */1, floatValue,  /* offset= */0)
-                    GlUtil.checkGlError()
+                    checkGlError()
                 }
 
                 GLES20.GL_FLOAT_MAT3 -> {
                     GLES20.glUniformMatrix3fv(location,  /* count= */1,  /* transpose= */false, floatValue,  /* offset= */0)
-                    GlUtil.checkGlError()
+                    checkGlError()
                 }
 
                 GLES20.GL_FLOAT_MAT4 -> {
                     GLES20.glUniformMatrix4fv(location,  /* count= */1,  /* transpose= */false, floatValue,  /* offset= */0)
-                    GlUtil.checkGlError()
+                    checkGlError()
                 }
 
                 GLES20.GL_SAMPLER_2D, GLES11Ext.GL_SAMPLER_EXTERNAL_OES, GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT -> {
@@ -396,10 +396,10 @@ class GlProgram {
                         throw IllegalStateException("No call to setSamplerTexId() before bind.")
                     }
                     GLES20.glActiveTexture(GLES20.GL_TEXTURE0 + texUnitIndex)
-                    GlUtil.checkGlError()
+                    checkGlError()
                     GlUtil.bindTexture(if (type == GLES20.GL_SAMPLER_2D) GLES20.GL_TEXTURE_2D else GLES11Ext.GL_TEXTURE_EXTERNAL_OES, texIdValue)
                     GLES20.glUniform1i(location, texUnitIndex)
-                    GlUtil.checkGlError()
+                    checkGlError()
                 }
 
                 else -> throw IllegalStateException("Unexpected uniform type: " + type)
@@ -409,16 +409,16 @@ class GlProgram {
         companion object {
             /** Returns the uniform at the given index in the program.  */
             fun create(programId: Int, index: Int): Uniform {
-                val length: IntArray = IntArray(1)
+                val length = IntArray(1)
                 GLES20.glGetProgramiv(programId, GLES20.GL_ACTIVE_UNIFORM_MAX_LENGTH, length,  /* offset= */0)
-                val type: IntArray = IntArray(1)
-                val nameBytes: ByteArray = ByteArray(length[0])
+                val type = IntArray(1)
+                val nameBytes = ByteArray(length[0])
                 GLES20.glGetActiveUniform(programId, index, length[0], IntArray(1),  /* lengthOffset= */
                         0, IntArray(1),  /*sizeOffset= */
                         0, type,  /* typeOffset= */
                         0, nameBytes,  /* nameOffset= */
                         0)
-                val name: String = String(nameBytes,  /* offset= */0, getCStringLength(nameBytes))
+                val name = String(nameBytes,  /* offset= */0, getCStringLength(nameBytes))
                 val location: Int = getUniformLocation(programId, name)
                 return Uniform(name, location, type[0])
             }
@@ -427,7 +427,7 @@ class GlProgram {
 
     companion object {
         // https://www.khronos.org/registry/OpenGL/extensions/EXT/EXT_YUV_target.txt
-        private val GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT: Int = 0x8BE7
+        private const val GL_SAMPLER_EXTERNAL_2D_Y2Y_EXT: Int = 0x8BE7
 
         /**
          * Loads a file from the assets folder.
@@ -448,7 +448,7 @@ class GlProgram {
             }
         }
 
-        @Throws(GlUtil.GlException::class)
+        @Throws(GlException::class)
         private fun addShader(programId: Int, type: Int, glsl: String?) {
             val shader: Int = GLES20.glCreateShader(type)
             GLES20.glShaderSource(shader, glsl)
@@ -458,7 +458,7 @@ class GlProgram {
             GlUtil.checkGlException(result.get(0) == GLES20.GL_TRUE, GLES20.glGetShaderInfoLog(shader) + ", source: " + glsl)
             GLES20.glAttachShader(programId, shader)
             GLES20.glDeleteShader(shader)
-            GlUtil.checkGlError()
+            checkGlError()
         }
 
         private fun getAttributeLocation(programId: Int, attributeName: String): Int {

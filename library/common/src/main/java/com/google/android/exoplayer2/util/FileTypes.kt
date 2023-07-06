@@ -113,7 +113,8 @@ object FileTypes {
     private const val EXTENSION_AVI: String = ".avi"
 
     /** Returns the [Type] corresponding to the response headers provided.  */
-    fun inferFileTypeFromResponseHeaders(responseHeaders: Map<String?, List<String?>?>): @FileTypes.Type Int {
+    @FileTypes.Type
+    fun inferFileTypeFromResponseHeaders(responseHeaders: Map<String?, List<String?>?>): Int {
         val contentTypes: List<String?>? = responseHeaders.get(HEADER_CONTENT_TYPE)
         val mimeType: String? = if (contentTypes == null || contentTypes.isEmpty()) null else contentTypes.get(0)
         return inferFileTypeFromMimeType(mimeType)
@@ -125,7 +126,8 @@ object FileTypes {
      *
      * Returns [.UNKNOWN] if the mime type is `null`.
      */
-    fun inferFileTypeFromMimeType(mimeType: String?): @FileTypes.Type Int {
+    @FileTypes.Type
+    fun inferFileTypeFromMimeType(mimeType: String?): Int {
         var mimeType: String? = mimeType
         if (mimeType == null) {
             return UNKNOWN
@@ -153,8 +155,9 @@ object FileTypes {
     }
 
     /** Returns the [Type] corresponding to the [Uri] provided.  */
-    fun inferFileTypeFromUri(uri: Uri): @FileTypes.Type Int {
-        val filename: String? = uri.getLastPathSegment()
+    @FileTypes.Type
+    fun inferFileTypeFromUri(uri: Uri): Int {
+        val filename: String? = uri.lastPathSegment
         if (filename == null) {
             return UNKNOWN
         } else if (filename.endsWith(EXTENSION_AC3) || filename.endsWith(EXTENSION_EC3)) {

@@ -16,8 +16,10 @@
 package com.google.android.exoplayer2.util
 
 import android.util.SparseBooleanArray
+import com.google.android.exoplayer2.util.Assertions.checkIndex
+import com.google.android.exoplayer2.util.Assertions.checkState
+import com.google.errorprone.annotations.CanIgnoreReturnValue
 
-com.google.errorprone.annotations.CanIgnoreReturnValue
 /**
  * A set of integer flags.
  *
@@ -28,15 +30,14 @@ com.google.errorprone.annotations.CanIgnoreReturnValue
  *
  * Instances are immutable.
  */
-class FlagSet private constructor(  // A SparseBooleanArray is used instead of a Set to avoid auto-boxing the flag values.
-        private val flags: SparseBooleanArray) {
+class FlagSet {
     /** A builder for [FlagSet] instances.  */
-    class Builder constructor() {
-        private val flags: SparseBooleanArray
-        private var buildCalled: Boolean = false
+    class Builder {
+        private var flags: SparseBooleanArray
+        private var buildCalled = false
 
         /** Creates a builder.  */
-        init {
+        constructor() {
             flags = SparseBooleanArray()
         }
 
@@ -49,7 +50,7 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
          */
         @CanIgnoreReturnValue
         fun add(flag: Int): Builder {
-            Assertions.checkState(!buildCalled)
+            checkState(!buildCalled)
             flags.append(flag,  /* value= */true)
             return this
         }
@@ -64,10 +65,9 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
          */
         @CanIgnoreReturnValue
         fun addIf(flag: Int, condition: Boolean): Builder {
-            if (condition) {
-                return add(flag)
-            }
-            return this
+            return if (condition) {
+                add(flag)
+            } else this
         }
 
         /**
@@ -79,7 +79,7 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
          */
         @CanIgnoreReturnValue
         fun addAll(vararg flags: Int): Builder {
-            for (flag: Int in flags) {
+            for (flag in flags) {
                 add(flag)
             }
             return this
@@ -93,9 +93,9 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
          * @throws IllegalStateException If [.build] has already been called.
          */
         @CanIgnoreReturnValue
-        fun addAll(flags: FlagSet?): Builder {
-            for (i in 0 until flags!!.size()) {
-                add(flags.get(i))
+        fun addAll(flags: FlagSet): Builder {
+            for (i in 0 until flags.size()) {
+                add(flags[i])
             }
             return this
         }
@@ -109,7 +109,7 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
          */
         @CanIgnoreReturnValue
         fun remove(flag: Int): Builder {
-            Assertions.checkState(!buildCalled)
+            checkState(!buildCalled)
             flags.delete(flag)
             return this
         }
@@ -124,10 +124,9 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
          */
         @CanIgnoreReturnValue
         fun removeIf(flag: Int, condition: Boolean): Builder {
-            if (condition) {
-                return remove(flag)
-            }
-            return this
+            return if (condition) {
+                remove(flag)
+            } else this
         }
 
         /**
@@ -139,7 +138,7 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
          */
         @CanIgnoreReturnValue
         fun removeAll(vararg flags: Int): Builder {
-            for (flag: Int in flags) {
+            for (flag in flags) {
                 remove(flag)
             }
             return this
@@ -151,10 +150,17 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
          * @throws IllegalStateException If this method has already been called.
          */
         fun build(): FlagSet {
-            Assertions.checkState(!buildCalled)
+            checkState(!buildCalled)
             buildCalled = true
             return FlagSet(flags)
         }
+    }
+
+    // A SparseBooleanArray is used instead of a Set to avoid auto-boxing the flag values.
+    private var flags: SparseBooleanArray? = null
+
+    private constructor(flags: SparseBooleanArray) {
+        this.flags = flags
     }
 
     /**
@@ -164,7 +170,7 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
      * @return Whether the set contains the flag.
      */
     operator fun contains(flag: Int): Boolean {
-        return flags.get(flag)
+        return flags!![flag]
     }
 
     /**
@@ -174,7 +180,7 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
      * @return Whether the set contains at least one of the flags.
      */
     fun containsAny(vararg flags: Int): Boolean {
-        for (flag: Int in flags) {
+        for (flag in flags) {
             if (contains(flag)) {
                 return true
             }
@@ -184,7 +190,7 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
 
     /** Returns the number of flags in this set.  */
     fun size(): Int {
-        return flags.size()
+        return flags!!.size()
     }
 
     /**
@@ -195,44 +201,44 @@ class FlagSet private constructor(  // A SparseBooleanArray is used instead of a
      * @throws IndexOutOfBoundsException If index is outside the allowed range.
      */
     operator fun get(index: Int): Int {
-        Assertions.checkIndex(index,  /* start= */0,  /* limit= */size())
-        return flags.keyAt(index)
+        checkIndex(index,  /* start= */0,  /* limit= */size())
+        return flags!!.keyAt(index)
     }
 
-    public override fun equals(o: Any?): Boolean {
+    override fun equals(o: Any?): Boolean {
         if (this === o) {
             return true
         }
-        if (!(o is FlagSet)) {
+        if (o !is FlagSet) {
             return false
         }
-        val that: FlagSet = o
-        if (Util.SDK_INT < 24) {
+        val that = o
+        return if (Util.SDK_INT < 24) {
             // SparseBooleanArray.equals() is not implemented on API levels below 24.
             if (size() != that.size()) {
                 return false
             }
             for (i in 0 until size()) {
-                if (get(i) != that.get(i)) {
+                if (get(i) != that[i]) {
                     return false
                 }
             }
-            return true
+            true
         } else {
-            return (flags == that.flags)
+            flags == that.flags
         }
     }
 
-    public override fun hashCode(): Int {
-        if (Util.SDK_INT < 24) {
+    override fun hashCode(): Int {
+        return if (Util.SDK_INT < 24) {
             // SparseBooleanArray.hashCode() is not implemented on API levels below 24.
-            var hashCode: Int = size()
+            var hashCode = size()
             for (i in 0 until size()) {
                 hashCode = 31 * hashCode + get(i)
             }
-            return hashCode
+            hashCode
         } else {
-            return flags.hashCode()
+            flags.hashCode()
         }
     }
 }

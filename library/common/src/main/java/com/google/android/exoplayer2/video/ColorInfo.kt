@@ -17,75 +17,81 @@ package com.google.android.exoplayer2.video
 
 import android.os.Bundle
 import androidx.annotation.IntDef
+import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.C.ColorRange
 import com.google.android.exoplayer2.C.ColorTransfer
 import org.checkerframework.dataflow.qual.Pure
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
+import java.util.*
 
-com.google.android.exoplayer2.*import java.lang.annotation.Documentedimport
-
-java.lang.annotation .Retentionimport java.lang.annotation .RetentionPolicyimport java.util.*
 /**
  * Stores color info.
  *
  *
  * When a `null` `ColorInfo` instance is used, this often represents a generic [ ][.SDR_BT709_LIMITED] instance.
  */
-class ColorInfo
-/**
- * Constructs the ColorInfo.
- *
- * @param colorSpace The color space of the video.
- * @param colorRange The color range of the video.
- * @param colorTransfer The color transfer characteristics of the video.
- * @param hdrStaticInfo HdrStaticInfo as defined in CTA-861.3, or null if none specified.
- */ constructor(
-        /**
-         * The color space of the video. Valid values are [C.COLOR_SPACE_BT601], [ ][C.COLOR_SPACE_BT709], [C.COLOR_SPACE_BT2020] or [Format.NO_VALUE] if unknown.
-         */
-        val colorSpace: @C.ColorSpace Int,
-        /**
-         * The color range of the video. Valid values are [C.COLOR_RANGE_LIMITED], [ ][C.COLOR_RANGE_FULL] or [Format.NO_VALUE] if unknown.
-         */
-        val colorRange: @ColorRange Int,
-        /**
-         * The color transfer characteristics of the video. Valid values are [C.COLOR_TRANSFER_HLG],
-         * [C.COLOR_TRANSFER_ST2084], [C.COLOR_TRANSFER_SDR] or [Format.NO_VALUE] if
-         * unknown.
-         */
-        val colorTransfer: @ColorTransfer Int,
-        /** HdrStaticInfo as defined in CTA-861.3, or null if none specified.  */
-        val hdrStaticInfo: ByteArray?) : Bundleable {
+class ColorInfo : Bundleable {
+    /**
+     * The color space of the video. Valid values are [C.COLOR_SPACE_BT601], [ ][C.COLOR_SPACE_BT709], [C.COLOR_SPACE_BT2020] or [Format.NO_VALUE] if unknown.
+     */
+    @C.ColorSpace
+    var colorSpace = 0
+
+    /**
+     * The color range of the video. Valid values are [C.COLOR_RANGE_LIMITED], [ ][C.COLOR_RANGE_FULL] or [Format.NO_VALUE] if unknown.
+     */
+    @ColorRange
+    var colorRange = 0
+
+    /**
+     * The color transfer characteristics of the video. Valid values are [C.COLOR_TRANSFER_HLG],
+     * [C.COLOR_TRANSFER_ST2084], [C.COLOR_TRANSFER_SDR] or [Format.NO_VALUE] if
+     * unknown.
+     */
+    @ColorTransfer
+    var colorTransfer = 0
+
+    /** HdrStaticInfo as defined in CTA-861.3, or null if none specified.  */
+    val hdrStaticInfo: ByteArray?
+
     // Lazily initialized hashcode.
-    private var hashCode: Int = 0
-    public override fun equals(obj: Any?): Boolean {
+    private var hashCode = 0
+
+    /**
+     * Constructs the ColorInfo.
+     *
+     * @param colorSpace The color space of the video.
+     * @param colorRange The color range of the video.
+     * @param colorTransfer The color transfer characteristics of the video.
+     * @param hdrStaticInfo HdrStaticInfo as defined in CTA-861.3, or null if none specified.
+     */
+    constructor(@C.ColorSpace colorSpace: Int, @ColorRange colorRange: Int, @ColorTransfer colorTransfer: Int, hdrStaticInfo: ByteArray?) {
+        this.colorSpace = colorSpace
+        this.colorRange = colorRange
+        this.colorTransfer = colorTransfer
+        this.hdrStaticInfo = hdrStaticInfo
+    }
+
+    override fun equals(obj: Any?): Boolean {
         if (this === obj) {
             return true
         }
         if (obj == null || javaClass != obj.javaClass) {
             return false
         }
-        val other: ColorInfo = obj as ColorInfo
-        return (colorSpace == other.colorSpace
-                ) && (colorRange == other.colorRange
-                ) && (colorTransfer == other.colorTransfer
-                ) && Arrays.equals(hdrStaticInfo, other.hdrStaticInfo)
+        val other = obj as ColorInfo
+        return colorSpace == other.colorSpace && colorRange == other.colorRange && colorTransfer == other.colorTransfer && Arrays.equals(hdrStaticInfo, other.hdrStaticInfo)
     }
 
-    public override fun toString(): String {
-        return ("ColorInfo("
-                + colorSpace
-                + ", "
-                + colorRange
-                + ", "
-                + colorTransfer
-                + ", "
-                + (hdrStaticInfo != null)
-                + ")")
+    override fun toString(): String {
+        return ("ColorInfo(" + colorSpace + ", " + colorRange + ", " + colorTransfer + ", " + (hdrStaticInfo != null) + ")")
     }
 
-    public override fun hashCode(): Int {
+    override fun hashCode(): Int {
         if (hashCode == 0) {
-            var result: Int = 17
+            var result = 17
             result = 31 * result + colorSpace
             result = 31 * result + colorRange
             result = 31 * result + colorTransfer
@@ -96,14 +102,16 @@ class ColorInfo
     }
 
     // Bundleable implementation
+
+    // Bundleable implementation
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([FIELD_COLOR_SPACE, FIELD_COLOR_RANGE, FIELD_COLOR_TRANSFER, FIELD_HDR_STATIC_INFO])
-    private annotation class FieldNumber constructor()
+    @IntDef(value = [FIELD_COLOR_SPACE, FIELD_COLOR_RANGE, FIELD_COLOR_TRANSFER, FIELD_HDR_STATIC_INFO])
+    private annotation class FieldNumber
 
-    public override fun toBundle(): Bundle {
-        val bundle: Bundle = Bundle()
+    override fun toBundle(): Bundle {
+        val bundle = Bundle()
         bundle.putInt(keyForField(FIELD_COLOR_SPACE), colorSpace)
         bundle.putInt(keyForField(FIELD_COLOR_RANGE), colorRange)
         bundle.putInt(keyForField(FIELD_COLOR_TRANSFER), colorTransfer)
@@ -113,11 +121,7 @@ class ColorInfo
 
     companion object {
         /** Color info representing SDR BT.709 limited range, which is a common SDR video color format.  */
-        val SDR_BT709_LIMITED: ColorInfo = ColorInfo(
-                C.COLOR_SPACE_BT709,
-                C.COLOR_RANGE_LIMITED,
-                C.COLOR_TRANSFER_SDR,  /* hdrStaticInfo= */
-                null)
+        val SDR_BT709_LIMITED = ColorInfo(C.COLOR_SPACE_BT709, C.COLOR_RANGE_LIMITED, C.COLOR_TRANSFER_SDR,  /* hdrStaticInfo= */ null)
 
         /**
          * Returns the [C.ColorSpace] corresponding to the given ISO color primary code, as per
@@ -125,12 +129,13 @@ class ColorInfo
          * made.
          */
         @Pure
-        fun isoColorPrimariesToColorSpace(isoColorPrimaries: Int): @C.ColorSpace Int {
-            when (isoColorPrimaries) {
-                1 -> return C.COLOR_SPACE_BT709
-                4, 5, 6, 7 -> return C.COLOR_SPACE_BT601
-                9 -> return C.COLOR_SPACE_BT2020
-                else -> return Format.Companion.NO_VALUE
+        @C.ColorSpace
+        fun isoColorPrimariesToColorSpace(isoColorPrimaries: Int): Int {
+            return when (isoColorPrimaries) {
+                1 -> C.COLOR_SPACE_BT709
+                4, 5, 6, 7 -> C.COLOR_SPACE_BT601
+                9 -> C.COLOR_SPACE_BT2020
+                else -> Format.NO_VALUE
             }
         }
 
@@ -140,37 +145,32 @@ class ColorInfo
          * mapping can be made.
          */
         @Pure
-        fun isoTransferCharacteristicsToColorTransfer(
-                isoTransferCharacteristics: Int): @ColorTransfer Int {
-            when (isoTransferCharacteristics) {
-                1, 6, 7 -> return C.COLOR_TRANSFER_SDR
-                16 -> return C.COLOR_TRANSFER_ST2084
-                18 -> return C.COLOR_TRANSFER_HLG
-                else -> return Format.Companion.NO_VALUE
+        @ColorTransfer
+        fun isoTransferCharacteristicsToColorTransfer(isoTransferCharacteristics: Int): Int {
+            return when (isoTransferCharacteristics) {
+                1, 6, 7 -> C.COLOR_TRANSFER_SDR
+                16 -> C.COLOR_TRANSFER_ST2084
+                18 -> C.COLOR_TRANSFER_HLG
+                else -> Format.NO_VALUE
             }
         }
 
         /** Returns whether the `ColorInfo` uses an HDR [C.ColorTransfer].  */
         fun isTransferHdr(colorInfo: ColorInfo?): Boolean {
-            return (colorInfo != null
-                    ) && (colorInfo.colorTransfer != Format.Companion.NO_VALUE
-                    ) && (colorInfo.colorTransfer != C.COLOR_TRANSFER_SDR)
+            return colorInfo != null && colorInfo.colorTransfer != Format.NO_VALUE && colorInfo.colorTransfer != C.COLOR_TRANSFER_SDR
         }
 
-        private val FIELD_COLOR_SPACE: Int = 0
-        private val FIELD_COLOR_RANGE: Int = 1
-        private val FIELD_COLOR_TRANSFER: Int = 2
-        private val FIELD_HDR_STATIC_INFO: Int = 3
-        val CREATOR: Bundleable.Creator<ColorInfo> = Bundleable.Creator({ bundle: Bundle ->
-            ColorInfo(
-                    bundle.getInt(keyForField(FIELD_COLOR_SPACE), Format.Companion.NO_VALUE),
-                    bundle.getInt(keyForField(FIELD_COLOR_RANGE), Format.Companion.NO_VALUE),
-                    bundle.getInt(keyForField(FIELD_COLOR_TRANSFER), Format.Companion.NO_VALUE),
-                    bundle.getByteArray(keyForField(FIELD_HDR_STATIC_INFO)))
-        })
+        private const val FIELD_COLOR_SPACE = 0
+        private const val FIELD_COLOR_RANGE = 1
+        private const val FIELD_COLOR_TRANSFER = 2
+        private const val FIELD_HDR_STATIC_INFO = 3
 
-        private fun keyForField(field: @FieldNumber Int): String {
-            return Integer.toString(field, Character.MAX_RADIX)
+        val CREATOR: Bundleable.Creator<ColorInfo> = Bundleable.Creator<ColorInfo> { bundle: Bundle ->
+            ColorInfo(bundle.getInt(keyForField(FIELD_COLOR_SPACE), Format.NO_VALUE), bundle.getInt(keyForField(FIELD_COLOR_RANGE), Format.NO_VALUE), bundle.getInt(keyForField(FIELD_COLOR_TRANSFER), Format.NO_VALUE), bundle.getByteArray(keyForField(FIELD_HDR_STATIC_INFO)))
+        }
+
+        private fun keyForField(@FieldNumber field: Int): String? {
+            return field.toString(Character.MAX_RADIX)
         }
     }
 }

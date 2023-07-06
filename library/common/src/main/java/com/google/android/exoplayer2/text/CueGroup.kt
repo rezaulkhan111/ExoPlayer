@@ -15,11 +15,21 @@
  */
 package com.google.android.exoplayer2.text
 
-import android.graphics.Bitmapimport
+import android.graphics.Bitmap
+import android.os.Bundle
+import androidx.annotation.IntDef
+import com.google.android.exoplayer2.Bundleable
+import com.google.android.exoplayer2.Timeline
+import com.google.android.exoplayer2.util.BundleableUtil.fromBundleList
+import com.google.android.exoplayer2.util.BundleableUtil.toBundleArrayList
+import com.google.common.collect.ImmutableList
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 
-android.os.Bundleimport androidx.annotation .IntDefimport com.google.android.exoplayer2.Bundleableimport com.google.android.exoplayer2.Timelineimport com.google.android.exoplayer2.util.BundleableUtilimport com.google.common.collect.ImmutableList java.lang.annotation .Documentedimport java.lang.annotation .Retentionimport java.lang.annotation .RetentionPolicy
 /** Class to represent the state of active [Cues][Cue] at a particular time.  */
-class CueGroup(cues: List<Cue>?, presentationTimeUs: Long) : Bundleable {
+class CueGroup : Bundleable {
+
     /**
      * The cues in this group.
      *
@@ -30,7 +40,7 @@ class CueGroup(cues: List<Cue>?, presentationTimeUs: Long) : Bundleable {
      *
      * This list may be empty if the group represents a state with no cues.
      */
-    val cues: ImmutableList<Cue>
+    var cues: ImmutableList<Cue>? = null
 
     /**
      * The presentation time of the [.cues], in microseconds.
@@ -38,59 +48,62 @@ class CueGroup(cues: List<Cue>?, presentationTimeUs: Long) : Bundleable {
      *
      * This time is an offset from the start of the current [Timeline.Period].
      */
-    val presentationTimeUs: Long
-
-    // Bundleable implementation.
-    @Documented
-    @Retention(RetentionPolicy.SOURCE)
-    @Target(TYPE_USE)
-    @IntDef([FIELD_CUES, FIELD_PRESENTATION_TIME_US])
-    private annotation class FieldNumber
-
-    override fun toBundle(): Bundle {
-        val bundle = Bundle()
-        bundle.putParcelableArrayList(
-                keyForField(FIELD_CUES), BundleableUtil.toBundleArrayList(filterOutBitmapCues(cues)))
-        bundle.putLong(keyForField(FIELD_PRESENTATION_TIME_US), presentationTimeUs)
-        return bundle
-    }
+    var presentationTimeUs: Long = 0
 
     /** Creates a CueGroup.  */
-    init {
+    constructor(cues: List<Cue>?, presentationTimeUs: Long) {
         this.cues = ImmutableList.copyOf(cues)
         this.presentationTimeUs = presentationTimeUs
     }
 
+    // Bundleable implementation.
+
     companion object {
         /** An empty group with no [Cues][Cue] and presentation time of zero.  */
-        val EMPTY_TIME_ZERO = CueGroup(ImmutableList.of(),  /* presentationTimeUs= */0)
+        val EMPTY_TIME_ZERO: CueGroup = CueGroup(ImmutableList.of(),  /* presentationTimeUs= */0)
+
         private const val FIELD_CUES = 0
         private const val FIELD_PRESENTATION_TIME_US = 1
-        val CREATOR = Bundleable.Creator { bundle: Bundle -> fromBundle(bundle) }
-        private fun fromBundle(bundle: Bundle): CueGroup {
-            val cueBundles = bundle.getParcelableArrayList<Bundle>(keyForField(FIELD_CUES))
-            val cues: List<Cue> = if (cueBundles == null) ImmutableList.of() else BundleableUtil.fromBundleList(Cue.Companion.CREATOR, cueBundles)
-            val presentationTimeUs = bundle.getLong(keyForField(FIELD_PRESENTATION_TIME_US))
-            return CueGroup(cues, presentationTimeUs)
-        }
 
-        private fun keyForField(field: @FieldNumber Int): String {
-            return Integer.toString(field, Character.MAX_RADIX)
-        }
+        val CREATOR: Bundleable.Creator<CueGroup> = Bundleable.Creator<CueGroup> { obj: CueGroup, bundle: Bundle -> obj.fromBundle(bundle) }
+    }
 
-        /**
-         * Filters out [Cue] objects containing [Bitmap]. It is used when transferring cues
-         * between processes to prevent transferring too much data.
-         */
-        private fun filterOutBitmapCues(cues: List<Cue>): ImmutableList<Cue> {
-            val builder = ImmutableList.builder<Cue>()
-            for (i in cues.indices) {
-                if (cues[i].bitmap != null) {
-                    continue
-                }
-                builder.add(cues[i])
+    @Documented
+    @Retention(RetentionPolicy.SOURCE)
+    @Target(TYPE_USE)
+    @IntDef(value = [FIELD_CUES, FIELD_PRESENTATION_TIME_US])
+    private annotation class FieldNumber {}
+
+    override fun toBundle(): Bundle {
+        val bundle = Bundle()
+        bundle.putParcelableArrayList(keyForField(FIELD_CUES), toBundleArrayList(filterOutBitmapCues(cues)))
+        bundle.putLong(keyForField(FIELD_PRESENTATION_TIME_US), presentationTimeUs)
+        return bundle
+    }
+
+    private fun fromBundle(bundle: Bundle): CueGroup {
+        val cueBundles = bundle.getParcelableArrayList<Bundle?>(keyForField(FIELD_CUES))
+        val cues: List<Cue> = if (cueBundles == null) ImmutableList.of() else fromBundleList(Cue.CREATOR, cueBundles)!!
+        val presentationTimeUs = bundle.getLong(keyForField(FIELD_PRESENTATION_TIME_US))
+        return CueGroup(cues, presentationTimeUs)
+    }
+
+    private fun keyForField(@FieldNumber field: Int): String? {
+        return field.toString(Character.MAX_RADIX)
+    }
+
+    /**
+     * Filters out [Cue] objects containing [Bitmap]. It is used when transferring cues
+     * between processes to prevent transferring too much data.
+     */
+    private fun filterOutBitmapCues(cues: List<Cue>?): ImmutableList<Cue>? {
+        val builder = ImmutableList.builder<Cue>()
+        for (i in cues!!.indices) {
+            if (cues[i].bitmap != null) {
+                continue
             }
-            return builder.build()
+            builder.add(cues[i])
         }
+        return builder.build()
     }
 }

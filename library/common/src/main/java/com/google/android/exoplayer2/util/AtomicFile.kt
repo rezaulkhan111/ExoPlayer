@@ -15,7 +15,9 @@
  */
 package com.google.android.exoplayer2.util
 
-java.io.*
+import com.google.android.exoplayer2.util.Log.w
+import java.io.*
+
 /**
  * A helper class for performing atomic operations on a file by creating a backup file until a write
  * has successfully completed.
@@ -30,26 +32,32 @@ java.io.*
  * may be accessed or modified concurrently by multiple threads or processes. The caller is
  * responsible for ensuring appropriate mutual exclusion invariants whenever it accesses the file.
  */
-class AtomicFile constructor(private val baseName: File) {
-    private val backupName: File
+class AtomicFile {
+    companion object {
+        private val TAG = "AtomicFile"
+    }
+
+    private var baseName: File? = null
+    private var backupName: File? = null
 
     /**
      * Create a new AtomicFile for a file located at the given File path. The secondary backup file
      * will be the same file path with ".bak" appended.
      */
-    init {
-        backupName = File(baseName.getPath() + ".bak")
+    constructor(baseName: File) {
+        this.baseName = baseName
+        backupName = File(baseName.path + ".bak")
     }
 
     /** Returns whether the file or its backup exists.  */
     fun exists(): Boolean {
-        return baseName.exists() || backupName.exists()
+        return baseName!!.exists() || backupName!!.exists()
     }
 
     /** Delete the atomic file. This deletes both the base and backup files.  */
     fun delete() {
-        baseName.delete()
-        backupName.delete()
+        baseName!!.delete()
+        backupName!!.delete()
     }
 
     /**
@@ -83,30 +91,30 @@ class AtomicFile constructor(private val baseName: File) {
      * lost). You must do your own threading protection for access to AtomicFile.
      */
     @Throws(IOException::class)
-    fun startWrite(): OutputStream {
+    fun startWrite(): OutputStream? {
         // Rename the current file so it may be used as a backup during the next read
-        if (baseName.exists()) {
-            if (!backupName.exists()) {
-                if (!baseName.renameTo(backupName)) {
-                    Log.w(TAG, "Couldn't rename file " + baseName + " to backup file " + backupName)
+        if (baseName!!.exists()) {
+            if (!backupName!!.exists()) {
+                if (!baseName!!.renameTo(backupName)) {
+                    w(TAG, "Couldn't rename file $baseName to backup file $backupName")
                 }
             } else {
-                baseName.delete()
+                baseName!!.delete()
             }
         }
-        var str: OutputStream
-        try {
-            str = AtomicFileOutputStream(baseName)
+        val str: OutputStream
+        str = try {
+            AtomicFileOutputStream(baseName)
         } catch (e: FileNotFoundException) {
-            val parent: File? = baseName.getParentFile()
+            val parent = baseName!!.parentFile
             if (parent == null || !parent.mkdirs()) {
-                throw IOException("Couldn't create " + baseName, e)
+                throw IOException("Couldn't create $baseName", e)
             }
             // Try again now that we've created the parent directory.
             try {
-                str = AtomicFileOutputStream(baseName)
+                AtomicFileOutputStream(baseName)
             } catch (e2: FileNotFoundException) {
-                throw IOException("Couldn't create " + baseName, e2)
+                throw IOException("Couldn't create $baseName", e2)
             }
         }
         return str
@@ -123,7 +131,7 @@ class AtomicFile constructor(private val baseName: File) {
     fun endWrite(str: OutputStream) {
         str.close()
         // If close() throws exception, the next line is skipped.
-        backupName.delete()
+        backupName!!.delete()
     }
 
     /**
@@ -136,63 +144,59 @@ class AtomicFile constructor(private val baseName: File) {
      * written to be dropped. You must do your own threading protection for access to AtomicFile.
      */
     @Throws(FileNotFoundException::class)
-    fun openRead(): InputStream {
+    fun openRead(): InputStream? {
         restoreBackup()
         return FileInputStream(baseName)
     }
 
     private fun restoreBackup() {
-        if (backupName.exists()) {
-            baseName.delete()
-            backupName.renameTo(baseName)
+        if (backupName!!.exists()) {
+            baseName!!.delete()
+            backupName!!.renameTo(baseName)
         }
     }
 
-    private class AtomicFileOutputStream constructor(file: File?) : OutputStream() {
+    private class AtomicFileOutputStream(file: File?) : OutputStream() {
         private val fileOutputStream: FileOutputStream
-        private var closed: Boolean = false
+        private var closed = false
 
         init {
             fileOutputStream = FileOutputStream(file)
         }
 
         @Throws(IOException::class)
-        public override fun close() {
+        override fun close() {
             if (closed) {
                 return
             }
             closed = true
             flush()
             try {
-                fileOutputStream.getFD().sync()
+                fileOutputStream.fd.sync()
             } catch (e: IOException) {
-                Log.w(TAG, "Failed to sync file descriptor:", e)
+                w(TAG, "Failed to sync file descriptor:", e)
             }
             fileOutputStream.close()
         }
 
         @Throws(IOException::class)
-        public override fun flush() {
+        override fun flush() {
             fileOutputStream.flush()
         }
 
         @Throws(IOException::class)
-        public override fun write(b: Int) {
+        override fun write(b: Int) {
             fileOutputStream.write(b)
         }
 
         @Throws(IOException::class)
-        public override fun write(b: ByteArray) {
+        override fun write(b: ByteArray) {
             fileOutputStream.write(b)
         }
 
         @Throws(IOException::class)
-        public override fun write(b: ByteArray, off: Int, len: Int) {
+        override fun write(b: ByteArray, off: Int, len: Int) {
             fileOutputStream.write(b, off, len)
         }
-    }
-
-    companion object {
-        private val TAG: String = "AtomicFile"
     }
 }

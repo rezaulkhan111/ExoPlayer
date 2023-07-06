@@ -15,7 +15,8 @@
  */
 package com.google.android.exoplayer2.util
 
-com.google.android.exoplayer2.*import java.lang.Exception
+import com.google.android.exoplayer2.*
+import java.lang.Exception
 
 /** Thrown when an exception occurs while applying effects to video frames.  */
 class FrameProcessingException : Exception {
@@ -81,10 +82,10 @@ class FrameProcessingException : Exception {
          */
         @JvmOverloads
         fun from(exception: Exception?, presentationTimeUs: Long =  /* presentationTimeUs= */C.TIME_UNSET): FrameProcessingException {
-            if (exception is FrameProcessingException) {
-                return exception
+            return if (exception is FrameProcessingException) {
+                exception
             } else {
-                return FrameProcessingException(exception, presentationTimeUs)
+                FrameProcessingException(exception, presentationTimeUs)
             }
         }
     }

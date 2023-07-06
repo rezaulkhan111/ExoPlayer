@@ -18,6 +18,7 @@ package com.google.android.exoplayer2.util
 import android.os.Bundle
 import android.util.SparseArray
 import com.google.android.exoplayer2.Bundleable
+import com.google.android.exoplayer2.util.Util.castNonNull
 import com.google.common.collect.ImmutableList
 
 /** Utilities for [Bundleable].  */

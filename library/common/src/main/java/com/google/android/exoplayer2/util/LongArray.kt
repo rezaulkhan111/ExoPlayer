@@ -19,14 +19,18 @@ import java.util.*
 import kotlin.LongArray
 
 /** An append-only, auto-growing `long[]`.  */
-class LongArray @JvmOverloads constructor(initialCapacity: Int = DEFAULT_INITIAL_CAPACITY) {
-    private var size: Int = 0
-    private var values: LongArray
+class LongArray {
+    private var size = 0
+    private var values: LongArray? = null
+
+    constructor() {
+        LongArray(DEFAULT_INITIAL_CAPACITY)
+    }
 
     /**
      * @param initialCapacity The initial capacity of the array.
      */
-    init {
+    constructor(initialCapacity: Int) {
         values = LongArray(initialCapacity)
     }
 
@@ -36,10 +40,10 @@ class LongArray @JvmOverloads constructor(initialCapacity: Int = DEFAULT_INITIAL
      * @param value The value to append.
      */
     fun add(value: Long) {
-        if (size == values.size) {
+        if (size == values?.size) {
             values = Arrays.copyOf(values, size * 2)
         }
-        values.get(size++) = value
+        values!![size++] = value
     }
 
     /**
@@ -52,9 +56,9 @@ class LongArray @JvmOverloads constructor(initialCapacity: Int = DEFAULT_INITIAL
      */
     operator fun get(index: Int): Long {
         if (index < 0 || index >= size) {
-            throw IndexOutOfBoundsException("Invalid index " + index + ", size is " + size)
+            throw IndexOutOfBoundsException("Invalid index $index, size is $size")
         }
-        return values.get(index)
+        return values!![index]
     }
 
     /** Returns the current size of the array.  */
@@ -67,11 +71,11 @@ class LongArray @JvmOverloads constructor(initialCapacity: Int = DEFAULT_INITIAL
      *
      * @return The primitive array containing the copied values.
      */
-    fun toArray(): LongArray {
-        return Arrays.copyOf(values, size)
+    fun toArray(): LongArray? {
+        return values?.copyOf(size)
     }
 
     companion object {
-        private val DEFAULT_INITIAL_CAPACITY: Int = 32
+        private const val DEFAULT_INITIAL_CAPACITY: Int = 32
     }
 }

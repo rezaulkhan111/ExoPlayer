@@ -15,17 +15,20 @@
  */
 package com.google.android.exoplayer2.util
 
-android.view.*
+import android.view.*
+import com.google.android.exoplayer2.util.Assertions.checkArgument
+
 /** Immutable value class for a [Surface] and supporting information.  */
-class SurfaceInfo @JvmOverloads constructor(surface: Surface, width: Int, height: Int, orientationDegrees: Int =  /* orientationDegrees= */0) {
+class SurfaceInfo {
+
     /** The [Surface].  */
-    val surface: Surface
+    var surface: Surface? = null
 
     /** The width of frames rendered to the [.surface], in pixels.  */
-    val width: Int
+    var width = 0
 
     /** The height of frames rendered to the [.surface], in pixels.  */
-    val height: Int
+    var height = 0
 
     /**
      * A counter-clockwise rotation to apply to frames before rendering them to the [.surface].
@@ -33,38 +36,35 @@ class SurfaceInfo @JvmOverloads constructor(surface: Surface, width: Int, height
      *
      * Must be 0, 90, 180, or 270 degrees. Default is 0.
      */
-    val orientationDegrees: Int
+    var orientationDegrees = 0
+
     /** Creates a new instance.  */
+    constructor(surface: Surface?, width: Int, height: Int) {
+        SurfaceInfo(surface, width, height,  /* orientationDegrees= */0)
+    }
+
     /** Creates a new instance.  */
-    init {
-        Assertions.checkArgument(
-                (orientationDegrees == 0
-                        ) || (orientationDegrees == 90
-                        ) || (orientationDegrees == 180
-                        ) || (orientationDegrees == 270),
-                "orientationDegrees must be 0, 90, 180, or 270")
+    constructor(surface: Surface?, width: Int, height: Int, orientationDegrees: Int) {
+        checkArgument(orientationDegrees == 0 || orientationDegrees == 90 || orientationDegrees == 180 || orientationDegrees == 270, "orientationDegrees must be 0, 90, 180, or 270")
         this.surface = surface
         this.width = width
         this.height = height
         this.orientationDegrees = orientationDegrees
     }
 
-    public override fun equals(o: Any?): Boolean {
+    override fun equals(o: Any?): Boolean {
         if (this === o) {
             return true
         }
-        if (!(o is SurfaceInfo)) {
+        if (o !is SurfaceInfo) {
             return false
         }
-        val that: SurfaceInfo = o
-        return (width == that.width
-                ) && (height == that.height
-                ) && (orientationDegrees == that.orientationDegrees
-                ) && (surface == that.surface)
+        val that = o
+        return width == that.width && height == that.height && orientationDegrees == that.orientationDegrees && surface == that.surface
     }
 
-    public override fun hashCode(): Int {
-        var result: Int = surface.hashCode()
+    override fun hashCode(): Int {
+        var result = surface.hashCode()
         result = 31 * result + width
         result = 31 * result + height
         result = 31 * result + orientationDegrees

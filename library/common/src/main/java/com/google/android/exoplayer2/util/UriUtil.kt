@@ -15,13 +15,13 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.net.Uriimport
+import android.net.Uri
+import android.text.TextUtils
 
-android.text.TextUtils
 /** Utility methods for manipulating URIs.  */
 object UriUtil {
     /** The length of arrays returned by [.getUriIndices].  */
-    private val INDEX_COUNT: Int = 4
+    private const val INDEX_COUNT: Int = 4
 
     /**
      * An index into an array returned by [.getUriIndices].
@@ -31,7 +31,7 @@ object UriUtil {
      * if the URI is a relative reference (no scheme). The hier-part starts at (schemeColon + 1),
      * including when the URI has no scheme.
      */
-    private val SCHEME_COLON: Int = 0
+    private const val SCHEME_COLON: Int = 0
 
     /**
      * An index into an array returned by [.getUriIndices].
@@ -42,7 +42,7 @@ object UriUtil {
      * (query) if no path part. The characters starting at this index can be "//" only if the
      * authority part is non-empty (in this case the double-slash means the first segment is empty).
      */
-    private val PATH: Int = 1
+    private const val PATH: Int = 1
 
     /**
      * An index into an array returned by [.getUriIndices].
@@ -52,7 +52,7 @@ object UriUtil {
      * before the query. Equals fragment if no query part, and (fragment - 1) if the query part is a
      * single '?' with no data.
      */
-    private val QUERY: Int = 2
+    private const val QUERY: Int = 2
 
     /**
      * An index into an array returned by [.getUriIndices].
@@ -62,7 +62,7 @@ object UriUtil {
      * before the fragment. Equal to the length of the URI if no fragment part, and (length - 1) if
      * the fragment part is a single '#' with no data.
      */
-    private val FRAGMENT: Int = 3
+    private const val FRAGMENT: Int = 3
 
     /**
      * Like [.resolve], but returns a [Uri] instead of a [String].
@@ -92,53 +92,52 @@ object UriUtil {
         baseUri = if (baseUri == null) "" else baseUri
         referenceUri = if (referenceUri == null) "" else referenceUri
         val refIndices: IntArray = getUriIndices(referenceUri)
-        if (refIndices.get(SCHEME_COLON) != -1) {
+        if (refIndices[SCHEME_COLON] != -1) {
             // The reference is absolute. The target Uri is the reference.
             uri.append(referenceUri)
-            removeDotSegments(uri, refIndices.get(PATH), refIndices.get(QUERY))
+            removeDotSegments(uri, refIndices[PATH], refIndices[QUERY])
             return uri.toString()
         }
         val baseIndices: IntArray = getUriIndices(baseUri)
-        if (refIndices.get(FRAGMENT) == 0) {
+        if (refIndices[FRAGMENT] == 0) {
             // The reference is empty or contains just the fragment part, then the target Uri is the
             // concatenation of the base Uri without its fragment, and the reference.
-            return uri.append(baseUri, 0, baseIndices.get(FRAGMENT)).append(referenceUri).toString()
+            return uri.append(baseUri, 0, baseIndices[FRAGMENT]).append(referenceUri).toString()
         }
-        if (refIndices.get(QUERY) == 0) {
+        if (refIndices[QUERY] == 0) {
             // The reference starts with the query part. The target is the base up to (but excluding) the
             // query, plus the reference.
-            return uri.append(baseUri, 0, baseIndices.get(QUERY)).append(referenceUri).toString()
+            return uri.append(baseUri, 0, baseIndices[QUERY]).append(referenceUri).toString()
         }
-        if (refIndices.get(PATH) != 0) {
+        if (refIndices[PATH] != 0) {
             // The reference has authority. The target is the base scheme plus the reference.
-            val baseLimit: Int = baseIndices.get(SCHEME_COLON) + 1
+            val baseLimit: Int = baseIndices[SCHEME_COLON] + 1
             uri.append(baseUri, 0, baseLimit).append(referenceUri)
-            return removeDotSegments(uri, baseLimit + refIndices.get(PATH), baseLimit + refIndices.get(QUERY))
+            return removeDotSegments(uri, baseLimit + refIndices[PATH], baseLimit + refIndices[QUERY])
         }
-        if (referenceUri.get(refIndices.get(PATH)) == '/') {
+        if (referenceUri[refIndices[PATH]] == '/') {
             // The reference path is rooted. The target is the base scheme and authority (if any), plus
             // the reference.
-            uri.append(baseUri, 0, baseIndices.get(PATH)).append(referenceUri)
-            return removeDotSegments(uri, baseIndices.get(PATH), baseIndices.get(PATH) + refIndices.get(QUERY))
+            uri.append(baseUri, 0, baseIndices[PATH]).append(referenceUri)
+            return removeDotSegments(uri, baseIndices[PATH], baseIndices[PATH] + refIndices[QUERY])
         }
 
         // The target Uri is the concatenation of the base Uri up to (but excluding) the last segment,
         // and the reference. This can be split into 2 cases:
-        if ((baseIndices.get(SCHEME_COLON) + 2 < baseIndices.get(PATH)
-                        && baseIndices.get(PATH) == baseIndices.get(QUERY))) {
+        return if ((baseIndices[SCHEME_COLON] + 2 < baseIndices[PATH] && baseIndices[PATH] == baseIndices[QUERY])) {
             // Case 1: The base hier-part is just the authority, with an empty path. An additional '/' is
             // needed after the authority, before appending the reference.
-            uri.append(baseUri, 0, baseIndices.get(PATH)).append('/').append(referenceUri)
-            return removeDotSegments(uri, baseIndices.get(PATH), baseIndices.get(PATH) + refIndices.get(QUERY) + 1)
+            uri.append(baseUri, 0, baseIndices[PATH]).append('/').append(referenceUri)
+            removeDotSegments(uri, baseIndices[PATH], baseIndices[PATH] + refIndices[QUERY] + 1)
         } else {
             // Case 2: Otherwise, find the last '/' in the base hier-part and append the reference after
             // it. If base hier-part has no '/', it could only mean that it is completely empty or
             // contains only one segment, in which case the whole hier-part is excluded and the reference
             // is appended right after the base scheme colon without an added '/'.
-            val lastSlashIndex: Int = baseUri.lastIndexOf('/', baseIndices.get(QUERY) - 1)
-            val baseLimit: Int = if (lastSlashIndex == -1) baseIndices.get(PATH) else lastSlashIndex + 1
+            val lastSlashIndex: Int = baseUri.lastIndexOf('/', baseIndices[QUERY] - 1)
+            val baseLimit: Int = if (lastSlashIndex == -1) baseIndices[PATH] else lastSlashIndex + 1
             uri.append(baseUri, 0, baseLimit).append(referenceUri)
-            return removeDotSegments(uri, baseIndices.get(PATH), baseLimit + refIndices.get(QUERY))
+            removeDotSegments(uri, baseIndices[PATH], baseLimit + refIndices[QUERY])
         }
     }
 
@@ -157,7 +156,7 @@ object UriUtil {
     fun removeQueryParameter(uri: Uri, queryParameterName: String): Uri {
         val builder: Uri.Builder = uri.buildUpon()
         builder.clearQuery()
-        for (key: String in uri.getQueryParameterNames()) {
+        for (key: String in uri.queryParameterNames) {
             if (!(key == queryParameterName)) {
                 for (value: String? in uri.getQueryParameters(key)) {
                     builder.appendQueryParameter(key, value)
@@ -175,44 +174,41 @@ object UriUtil {
      * @param limit The limit (exclusive) of the path in `uri`.
      */
     private fun removeDotSegments(uri: StringBuilder, offset: Int, limit: Int): String {
-        var offset: Int = offset
-        var limit: Int = limit
-        if (offset >= limit) {
+        var mOffset: Int = offset
+        var mLimit: Int = limit
+        if (mOffset >= mLimit) {
             // Nothing to do.
             return uri.toString()
         }
-        if (uri.get(offset) == '/') {
+        if (uri[mOffset] == '/') {
             // If the path starts with a /, always retain it.
-            offset++
+            mOffset++
         }
         // The first character of the current path segment.
-        var segmentStart: Int = offset
-        var i: Int = offset
-        while (i <= limit) {
-            var nextSegmentStart: Int
-            if (i == limit) {
-                nextSegmentStart = i
-            } else if (uri.get(i) == '/') {
-                nextSegmentStart = i + 1
+        var segmentStart: Int = mOffset
+        var i: Int = mOffset
+        while (i <= mLimit) {
+            val nextSegmentStart: Int = if (i == mLimit) {
+                i
+            } else if (uri[i] == '/') {
+                i + 1
             } else {
                 i++
                 continue
             }
             // We've encountered the end of a segment or the end of the path. If the final segment was
             // "." or "..", remove the appropriate segments of the path.
-            if (i == segmentStart + 1 && uri.get(segmentStart) == '.') {
+            if (i == segmentStart + 1 && uri[segmentStart] == '.') {
                 // Given "abc/def/./ghi", remove "./" to get "abc/def/ghi".
                 uri.delete(segmentStart, nextSegmentStart)
-                limit -= nextSegmentStart - segmentStart
+                mLimit -= nextSegmentStart - segmentStart
                 i = segmentStart
-            } else if ((i == segmentStart + 2
-                            ) && (uri.get(segmentStart) == '.'
-                            ) && (uri.get(segmentStart + 1) == '.')) {
+            } else if ((i == segmentStart + 2) && (uri[segmentStart] == '.') && (uri[segmentStart + 1] == '.')) {
                 // Given "abc/def/../ghi", remove "def/../" to get "abc/ghi".
                 val prevSegmentStart: Int = uri.lastIndexOf("/", segmentStart - 2) + 1
-                val removeFrom: Int = if (prevSegmentStart > offset) prevSegmentStart else offset
+                val removeFrom: Int = if (prevSegmentStart > mOffset) prevSegmentStart else mOffset
                 uri.delete(removeFrom, nextSegmentStart)
-                limit -= nextSegmentStart - removeFrom
+                mLimit -= nextSegmentStart - removeFrom
                 segmentStart = prevSegmentStart
                 i = prevSegmentStart
             } else {
@@ -230,9 +226,9 @@ object UriUtil {
      * @return The corresponding indices.
      */
     private fun getUriIndices(uriString: String): IntArray {
-        val indices: IntArray = IntArray(INDEX_COUNT)
+        val indices = IntArray(INDEX_COUNT)
         if (TextUtils.isEmpty(uriString)) {
-            indices.get(SCHEME_COLON) = -1
+            indices[SCHEME_COLON] = -1
             return indices
         }
 
@@ -262,9 +258,7 @@ object UriUtil {
 
         // Determine hier-part structure: hier-part = "//" authority path / path
         // This block can also cope with schemeIndex == -1.
-        val hasAuthority: Boolean = (schemeIndex + 2 < queryIndex
-                ) && (uriString.get(schemeIndex + 1) == '/'
-                ) && (uriString.get(schemeIndex + 2) == '/')
+        val hasAuthority: Boolean = (schemeIndex + 2 < queryIndex) && (uriString[schemeIndex + 1] == '/') && (uriString[schemeIndex + 2] == '/')
         var pathIndex: Int
         if (hasAuthority) {
             pathIndex = uriString.indexOf('/', schemeIndex + 3) // find first '/' after "://"
@@ -274,10 +268,10 @@ object UriUtil {
         } else {
             pathIndex = schemeIndex + 1
         }
-        indices.get(SCHEME_COLON) = schemeIndex
-        indices.get(PATH) = pathIndex
-        indices.get(QUERY) = queryIndex
-        indices.get(FRAGMENT) = fragmentIndex
+        indices[SCHEME_COLON] = schemeIndex
+        indices[PATH] = pathIndex
+        indices[QUERY] = queryIndex
+        indices[FRAGMENT] = fragmentIndex
         return indices
     }
 }

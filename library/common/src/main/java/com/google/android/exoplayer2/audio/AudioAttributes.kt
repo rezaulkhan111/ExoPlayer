@@ -15,17 +15,23 @@
  */
 package com.google.android.exoplayer2.audio
 
+import android.annotation.SuppressLint
 import android.os.Bundle
+import androidx.annotation.*
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.C.*
+import com.google.android.exoplayer2.C.AudioAllowedCapturePolicy
+import com.google.android.exoplayer2.C.AudioContentType
+import com.google.android.exoplayer2.C.AudioFlags
+import com.google.android.exoplayer2.C.AudioUsage
+import com.google.android.exoplayer2.C.SpatializationBehavior
 import com.google.android.exoplayer2.audio.AudioAttributes.Builder
 import com.google.android.exoplayer2.util.*
+import com.google.errorprone.annotations.CanIgnoreReturnValue
+import java.lang.annotation.Documented
+import java.lang.annotation.Retention
+import java.lang.annotation.RetentionPolicy
 
-androidx.annotation .*import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.util.*
-import com.google.errorprone.annotations.CanIgnoreReturnValueimport
-
-java.lang.annotation .Documentedimport java.lang.annotation .Retentionimport java.lang.annotation .RetentionPolicy
 /**
  * Attributes for audio playback, which configure the underlying platform [ ].
  *
@@ -38,44 +44,31 @@ java.lang.annotation .Documentedimport java.lang.annotation .Retentionimport jav
  * This class is based on [android.media.AudioAttributes], but can be used on all supported
  * API versions.
  */
-class AudioAttributes private constructor(
-        /** The [C.AudioContentType].  */
-        val contentType: @AudioContentType Int,
-        /** The [C.AudioFlags].  */
-        val flags: @AudioFlags Int,
-        /** The [C.AudioUsage].  */
-        val usage: @AudioUsage Int,
-        /** The [C.AudioAllowedCapturePolicy].  */
-        val allowedCapturePolicy: @AudioAllowedCapturePolicy Int,
-        /** The [C.SpatializationBehavior].  */
-        val spatializationBehavior: @SpatializationBehavior Int) : Bundleable {
-    /** A direct wrapper around [android.media.AudioAttributes].  */
-    @RequiresApi(21)
-    class AudioAttributesV21(audioAttributes: AudioAttributes) {
-        val audioAttributes: android.media.AudioAttributes
+class AudioAttributes : Bundleable {
 
-        init {
-            val builder: android.media.AudioAttributes.Builder = android.media.AudioAttributes.Builder()
-                    .setContentType(audioAttributes.contentType)
-                    .setFlags(audioAttributes.flags)
-                    .setUsage(audioAttributes.usage)
-            if (Util.SDK_INT >= 29) {
-                Api29.setAllowedCapturePolicy(builder, audioAttributes.allowedCapturePolicy)
-            }
-            if (Util.SDK_INT >= 32) {
-                Api32.setSpatializationBehavior(builder, audioAttributes.spatializationBehavior)
-            }
-            this.audioAttributes = builder.build()
-        }
-    }
+    /**
+     * The default audio attributes, where the content type is [C.AUDIO_CONTENT_TYPE_UNKNOWN],
+     * usage is [C.USAGE_MEDIA], capture policy is [C.ALLOW_CAPTURE_BY_ALL] and no flags
+     * are set.
+     */
+    val DEFAULT: AudioAttributes = Builder().build()
 
     /** Builder for [AudioAttributes].  */
-    class Builder constructor() {
-        private var contentType: @AudioContentType Int
-        private var flags: @AudioFlags Int
-        private var usage: @AudioUsage Int
-        private var allowedCapturePolicy: @AudioAllowedCapturePolicy Int
-        private var spatializationBehavior: @SpatializationBehavior Int
+    class Builder {
+        @AudioContentType
+        private var contentType: Int
+
+        @AudioFlags
+        private var flags: Int
+
+        @AudioUsage
+        private var usage: Int
+
+        @AudioAllowedCapturePolicy
+        private var allowedCapturePolicy: Int
+
+        @SpatializationBehavior
+        private var spatializationBehavior: Int
 
         /**
          * Creates a new builder for [AudioAttributes].
@@ -83,7 +76,7 @@ class AudioAttributes private constructor(
          *
          * By default the content type is [C.AUDIO_CONTENT_TYPE_UNKNOWN], usage is [ ][C.USAGE_MEDIA], capture policy is [C.ALLOW_CAPTURE_BY_ALL] and no flags are set.
          */
-        init {
+        constructor() {
             contentType = C.AUDIO_CONTENT_TYPE_UNKNOWN
             flags = 0
             usage = C.USAGE_MEDIA
@@ -93,44 +86,73 @@ class AudioAttributes private constructor(
 
         /** See [android.media.AudioAttributes.Builder.setContentType]  */
         @CanIgnoreReturnValue
-        fun setContentType(contentType: @AudioContentType Int): Builder {
+        fun setContentType(@AudioContentType contentType: Int): Builder {
             this.contentType = contentType
             return this
         }
 
         /** See [android.media.AudioAttributes.Builder.setFlags]  */
         @CanIgnoreReturnValue
-        fun setFlags(flags: @AudioFlags Int): Builder {
+        fun setFlags(@AudioFlags flags: Int): Builder {
             this.flags = flags
             return this
         }
 
         /** See [android.media.AudioAttributes.Builder.setUsage]  */
         @CanIgnoreReturnValue
-        fun setUsage(usage: @AudioUsage Int): Builder {
+        fun setUsage(@AudioUsage usage: Int): Builder {
             this.usage = usage
             return this
         }
 
         /** See [android.media.AudioAttributes.Builder.setAllowedCapturePolicy].  */
         @CanIgnoreReturnValue
-        fun setAllowedCapturePolicy(allowedCapturePolicy: @AudioAllowedCapturePolicy Int): Builder {
+        fun setAllowedCapturePolicy(@AudioAllowedCapturePolicy allowedCapturePolicy: Int): Builder {
             this.allowedCapturePolicy = allowedCapturePolicy
             return this
         }
 
         /** See [android.media.AudioAttributes.Builder.setSpatializationBehavior].  */
         @CanIgnoreReturnValue
-        fun setSpatializationBehavior(spatializationBehavior: @SpatializationBehavior Int): Builder {
+        fun setSpatializationBehavior(@SpatializationBehavior spatializationBehavior: Int): Builder {
             this.spatializationBehavior = spatializationBehavior
             return this
         }
 
         /** Creates an [AudioAttributes] instance from this builder.  */
         fun build(): AudioAttributes {
-            return AudioAttributes(
-                    contentType, flags, usage, allowedCapturePolicy, spatializationBehavior)
+            return AudioAttributes(contentType, flags, usage, allowedCapturePolicy, spatializationBehavior)
         }
+    }
+
+    /** The [C.AudioContentType].  */
+    @AudioContentType
+    var contentType = 0
+
+    /** The [C.AudioFlags].  */
+    @AudioFlags
+    var flags = 0
+
+    /** The [C.AudioUsage].  */
+    @AudioUsage
+    var usage = 0
+
+    /** The [C.AudioAllowedCapturePolicy].  */
+    @AudioAllowedCapturePolicy
+    var allowedCapturePolicy = 0
+
+    /** The [C.SpatializationBehavior].  */
+    @SpatializationBehavior
+    var spatializationBehavior = 0
+
+    private var audioAttributesV21: AudioAttributesV21? = null
+
+    private constructor(@AudioContentType contentType: Int, @AudioFlags flags: Int, @AudioUsage usage: Int, @AudioAllowedCapturePolicy allowedCapturePolicy: Int, @SpatializationBehavior spatializationBehavior: Int) {
+        this.contentType = contentType
+        this.flags = flags
+        this.usage = usage
+        this.allowedCapturePolicy = allowedCapturePolicy
+        this.spatializationBehavior = spatializationBehavior
     }
 
     /**
@@ -140,33 +162,27 @@ class AudioAttributes private constructor(
      * Some fields are ignored if the corresponding [android.media.AudioAttributes.Builder]
      * setter is not available on the current API level.
      */
-    @get:RequiresApi(21)
-    var audioAttributesV21: AudioAttributesV21? = null
-        get() {
-            if (field == null) {
-                field = AudioAttributesV21(this)
-            }
-            return field
+    @RequiresApi(21)
+    fun getAudioAttributesV21(): AudioAttributesV21? {
+        if (audioAttributesV21 == null) {
+            audioAttributesV21 = AudioAttributesV21(this)
         }
-        private set
+        return audioAttributesV21
+    }
 
-    public override fun equals(obj: Any?): Boolean {
+    override fun equals(obj: Any?): Boolean {
         if (this === obj) {
             return true
         }
         if (obj == null || javaClass != obj.javaClass) {
             return false
         }
-        val other: AudioAttributes = obj as AudioAttributes
-        return (contentType == other.contentType
-                ) && (flags == other.flags
-                ) && (usage == other.usage
-                ) && (allowedCapturePolicy == other.allowedCapturePolicy
-                ) && (spatializationBehavior == other.spatializationBehavior)
+        val other = obj as AudioAttributes
+        return contentType == other.contentType && flags == other.flags && usage == other.usage && allowedCapturePolicy == other.allowedCapturePolicy && spatializationBehavior == other.spatializationBehavior
     }
 
-    public override fun hashCode(): Int {
-        var result: Int = 17
+    override fun hashCode(): Int {
+        var result = 17
         result = 31 * result + contentType
         result = 31 * result + flags
         result = 31 * result + usage
@@ -179,11 +195,11 @@ class AudioAttributes private constructor(
     @Documented
     @Retention(RetentionPolicy.SOURCE)
     @Target(TYPE_USE)
-    @IntDef([FIELD_CONTENT_TYPE, FIELD_FLAGS, FIELD_USAGE, FIELD_ALLOWED_CAPTURE_POLICY, FIELD_SPATIALIZATION_BEHAVIOR])
-    private annotation class FieldNumber constructor()
+    @IntDef(value = [FIELD_CONTENT_TYPE, FIELD_FLAGS, FIELD_USAGE, FIELD_ALLOWED_CAPTURE_POLICY, FIELD_SPATIALIZATION_BEHAVIOR])
+    private annotation class FieldNumber {}
 
-    public override fun toBundle(): Bundle {
-        val bundle: Bundle = Bundle()
+    override fun toBundle(): Bundle {
+        val bundle = Bundle()
         bundle.putInt(keyForField(FIELD_CONTENT_TYPE), contentType)
         bundle.putInt(keyForField(FIELD_FLAGS), flags)
         bundle.putInt(keyForField(FIELD_USAGE), usage)
@@ -192,12 +208,35 @@ class AudioAttributes private constructor(
         return bundle
     }
 
+    /** Object that can restore [AudioAttributes] from a [Bundle].  */
+    val CREATOR: Bundleable.Creator<AudioAttributes> = Bundleable.Creator<AudioAttributes> { bundle: Bundle ->
+        val builder = Builder()
+        if (bundle.containsKey(keyForField(FIELD_CONTENT_TYPE))) {
+            builder.setContentType(bundle.getInt(keyForField(FIELD_CONTENT_TYPE)))
+        }
+        if (bundle.containsKey(keyForField(FIELD_FLAGS))) {
+            builder.setFlags(bundle.getInt(keyForField(FIELD_FLAGS)))
+        }
+        if (bundle.containsKey(keyForField(FIELD_USAGE))) {
+            builder.setUsage(bundle.getInt(keyForField(FIELD_USAGE)))
+        }
+        if (bundle.containsKey(keyForField(FIELD_ALLOWED_CAPTURE_POLICY))) {
+            builder.setAllowedCapturePolicy(bundle.getInt(keyForField(FIELD_ALLOWED_CAPTURE_POLICY)))
+        }
+        if (bundle.containsKey(keyForField(FIELD_SPATIALIZATION_BEHAVIOR))) {
+            builder.setSpatializationBehavior(bundle.getInt(keyForField(FIELD_SPATIALIZATION_BEHAVIOR)))
+        }
+        builder.build()
+    }
+
+    private fun keyForField(@FieldNumber field: Int): String? {
+        return Integer.toString(field, Character.MAX_RADIX)
+    }
+
     @RequiresApi(29)
     private object Api29 {
         @DoNotInline
-        fun setAllowedCapturePolicy(
-                builder: android.media.AudioAttributes.Builder,
-                allowedCapturePolicy: @AudioAllowedCapturePolicy Int) {
+        fun setAllowedCapturePolicy(builder: android.media.AudioAttributes.Builder, @AudioAllowedCapturePolicy allowedCapturePolicy: Int) {
             builder.setAllowedCapturePolicy(allowedCapturePolicy)
         }
     }
@@ -205,50 +244,34 @@ class AudioAttributes private constructor(
     @RequiresApi(32)
     private object Api32 {
         @DoNotInline
-        fun setSpatializationBehavior(
-                builder: android.media.AudioAttributes.Builder,
-                spatializationBehavior: @SpatializationBehavior Int) {
+        fun setSpatializationBehavior(builder: android.media.AudioAttributes.Builder, @SpatializationBehavior spatializationBehavior: Int) {
             builder.setSpatializationBehavior(spatializationBehavior)
         }
     }
 
     companion object {
-        /**
-         * The default audio attributes, where the content type is [C.AUDIO_CONTENT_TYPE_UNKNOWN],
-         * usage is [C.USAGE_MEDIA], capture policy is [C.ALLOW_CAPTURE_BY_ALL] and no flags
-         * are set.
-         */
-        val DEFAULT: AudioAttributes = Builder().build()
-        private val FIELD_CONTENT_TYPE: Int = 0
-        private val FIELD_FLAGS: Int = 1
-        private val FIELD_USAGE: Int = 2
-        private val FIELD_ALLOWED_CAPTURE_POLICY: Int = 3
-        private val FIELD_SPATIALIZATION_BEHAVIOR: Int = 4
+        private const val FIELD_CONTENT_TYPE = 0
+        private const val FIELD_FLAGS = 1
+        private const val FIELD_USAGE = 2
+        private const val FIELD_ALLOWED_CAPTURE_POLICY = 3
+        private const val FIELD_SPATIALIZATION_BEHAVIOR = 4
 
-        /** Object that can restore [AudioAttributes] from a [Bundle].  */
-        val CREATOR: Bundleable.Creator<AudioAttributes> = Bundleable.Creator({ bundle: Bundle ->
-            val builder: Builder = Builder()
-            if (bundle.containsKey(keyForField(FIELD_CONTENT_TYPE))) {
-                builder.setContentType(bundle.getInt(keyForField(FIELD_CONTENT_TYPE)))
-            }
-            if (bundle.containsKey(keyForField(FIELD_FLAGS))) {
-                builder.setFlags(bundle.getInt(keyForField(FIELD_FLAGS)))
-            }
-            if (bundle.containsKey(keyForField(FIELD_USAGE))) {
-                builder.setUsage(bundle.getInt(keyForField(FIELD_USAGE)))
-            }
-            if (bundle.containsKey(keyForField(FIELD_ALLOWED_CAPTURE_POLICY))) {
-                builder.setAllowedCapturePolicy(bundle.getInt(keyForField(FIELD_ALLOWED_CAPTURE_POLICY)))
-            }
-            if (bundle.containsKey(keyForField(FIELD_SPATIALIZATION_BEHAVIOR))) {
-                builder.setSpatializationBehavior(
-                        bundle.getInt(keyForField(FIELD_SPATIALIZATION_BEHAVIOR)))
-            }
-            builder.build()
-        })
+        /** A direct wrapper around [android.media.AudioAttributes].  */
+        @RequiresApi(21)
+        @SuppressLint("NewApi")
+        class AudioAttributesV21 {
+            var audioAttributes: android.media.AudioAttributes? = null
 
-        private fun keyForField(field: @FieldNumber Int): String {
-            return Integer.toString(field, Character.MAX_RADIX)
+            constructor(audioAttributes: AudioAttributes) {
+                val builder = android.media.AudioAttributes.Builder().setContentType(audioAttributes.contentType).setFlags(audioAttributes.flags).setUsage(audioAttributes.usage)
+                if (Util.SDK_INT >= 29) {
+                    Api29.setAllowedCapturePolicy(builder, audioAttributes.allowedCapturePolicy)
+                }
+                if (Util.SDK_INT >= 32) {
+                    Api32.setSpatializationBehavior(builder, audioAttributes.spatializationBehavior)
+                }
+                this.audioAttributes = builder.build()
+            }
         }
     }
 }

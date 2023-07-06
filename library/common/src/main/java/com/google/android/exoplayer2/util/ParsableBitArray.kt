@@ -15,36 +15,55 @@
  */
 package com.google.android.exoplayer2.util
 
-com.google.common.base.Charsetsimport java.nio.charset.Charset
+import com.google.android.exoplayer2.util.Assertions.checkState
+import com.google.android.exoplayer2.util.Util.toLong
+import com.google.android.exoplayer2.util.Util.toUnsignedLong
+import com.google.common.base.Charsets
+import java.nio.charset.Charset
+import kotlin.math.min
+
 /** Wraps a byte array, providing methods that allow it to be read as a bitstream.  */
 class ParsableBitArray {
-    var data: ByteArray?
+    var data: ByteArray? = null
 
     // The offset within the data, stored as the current byte offset, and the bit offset within that
     // byte (from 0 to 7).
-    private var byteOffset: Int = 0
-    private var bitOffset: Int = 0
-    private var byteLimit: Int = 0
+    private var byteOffset = 0
+    private var bitOffset = 0
+    private var byteLimit = 0
 
     /** Creates a new instance that initially has no backing data.  */
     constructor() {
         data = Util.EMPTY_BYTE_ARRAY
     }
+
+    /**
+     * Creates a new instance that wraps an existing array.
+     *
+     * @param data The data to wrap.
+     */
+    constructor(data: ByteArray) {
+        ParsableBitArray(data, data.size)
+    }
+
     /**
      * Creates a new instance that wraps an existing array.
      *
      * @param data The data to wrap.
      * @param limit The limit in bytes.
      */
-    /**
-     * Creates a new instance that wraps an existing array.
-     *
-     * @param data The data to wrap.
-     */
-    @JvmOverloads
-    constructor(data: ByteArray, limit: Int = data.length) {
+    constructor(data: ByteArray?, limit: Int) {
         this.data = data
         byteLimit = limit
+    }
+
+    /**
+     * Updates the instance to wrap `data`, and resets the position to zero.
+     *
+     * @param data The array to wrap.
+     */
+    fun reset(data: ByteArray) {
+        reset(data, data.size)
     }
 
     /**
@@ -54,22 +73,17 @@ class ParsableBitArray {
      * @param parsableByteArray The [ParsableByteArray].
      */
     fun reset(parsableByteArray: ParsableByteArray) {
-        reset(parsableByteArray.getData(), parsableByteArray.limit())
-        position = parsableByteArray.getPosition() * 8
+        reset(parsableByteArray.data, parsableByteArray.limit())
+        setPosition(parsableByteArray.getPosition() * 8)
     }
+
     /**
      * Updates the instance to wrap `data`, and resets the position to zero.
      *
      * @param data The array to wrap.
      * @param limit The limit in bytes.
      */
-    /**
-     * Updates the instance to wrap `data`, and resets the position to zero.
-     *
-     * @param data The array to wrap.
-     */
-    @JvmOverloads
-    fun reset(data: ByteArray?, limit: Int = data.length) {
+    fun reset(data: ByteArray?, limit: Int) {
         this.data = data
         byteOffset = 0
         bitOffset = 0
@@ -80,32 +94,32 @@ class ParsableBitArray {
     fun bitsLeft(): Int {
         return (byteLimit - byteOffset) * 8 - bitOffset
     }
+
     /** Returns the current bit offset.  */
-    /**
-     * Sets the current bit offset.
-     *
-     * @param position The position to set.
-     */
-    var position: Int
-        get() {
-            return byteOffset * 8 + bitOffset
-        }
-        set(position) {
-            byteOffset = position / 8
-            bitOffset = position - (byteOffset * 8)
-            assertValidOffset()
-        }
+    fun getPosition(): Int {
+        return byteOffset * 8 + bitOffset
+    }
 
     /**
      * Returns the current byte offset. Must only be called when the position is byte aligned.
      *
      * @throws IllegalStateException If the position isn't byte aligned.
      */
-    val bytePosition: Int
-        get() {
-            Assertions.checkState(bitOffset == 0)
-            return byteOffset
-        }
+    fun getBytePosition(): Int {
+        checkState(bitOffset == 0)
+        return byteOffset
+    }
+
+    /**
+     * Sets the current bit offset.
+     *
+     * @param position The position to set.
+     */
+    fun setPosition(position: Int) {
+        byteOffset = position / 8
+        bitOffset = position - byteOffset * 8
+        assertValidOffset()
+    }
 
     /** Skips a single bit.  */
     fun skipBit() {
@@ -122,9 +136,9 @@ class ParsableBitArray {
      * @param numBits The number of bits to skip.
      */
     fun skipBits(numBits: Int) {
-        val numBytes: Int = numBits / 8
+        val numBytes = numBits / 8
         byteOffset += numBytes
-        bitOffset += numBits - (numBytes * 8)
+        bitOffset += numBits - numBytes * 8
         if (bitOffset > 7) {
             byteOffset++
             bitOffset -= 8
@@ -138,7 +152,7 @@ class ParsableBitArray {
      * @return Whether the bit is set.
      */
     fun readBit(): Boolean {
-        val returnValue: Boolean = (data!!.get(byteOffset).toInt() and (0x80 shr bitOffset)) != 0
+        val returnValue = data!![byteOffset].toInt() and (0x80 shr bitOffset) != 0
         skipBit()
         return returnValue
     }
@@ -153,14 +167,14 @@ class ParsableBitArray {
         if (numBits == 0) {
             return 0
         }
-        var returnValue: Int = 0
+        var returnValue = 0
         bitOffset += numBits
         while (bitOffset > 8) {
             bitOffset -= 8
-            returnValue = returnValue or ((data!!.get(byteOffset++).toInt() and 0xFF) shl bitOffset)
+            returnValue = returnValue or (data!![byteOffset++].toInt() and 0xFF shl bitOffset)
         }
-        returnValue = returnValue or ((data!!.get(byteOffset).toInt() and 0xFF) shr (8 - bitOffset))
-        returnValue = returnValue and (-0x1 ushr (32 - numBits))
+        returnValue = returnValue or (data!![byteOffset].toInt() and 0xFF shr 8) - bitOffset
+        returnValue = returnValue and (-0x1 ushr 32) - numBits
         if (bitOffset == 8) {
             bitOffset = 0
             byteOffset++
@@ -176,10 +190,9 @@ class ParsableBitArray {
      * @return A long whose bottom `numBits` bits hold the read data.
      */
     fun readBitsToLong(numBits: Int): Long {
-        if (numBits <= 32) {
-            return Util.toUnsignedLong(readBits(numBits))
-        }
-        return Util.toLong(readBits(numBits - 32), readBits(32))
+        return if (numBits <= 32) {
+            toUnsignedLong(readBits(numBits))
+        } else toLong(readBits(numBits - 32), readBits(32))
     }
 
     /**
@@ -193,26 +206,26 @@ class ParsableBitArray {
      */
     fun readBits(buffer: ByteArray, offset: Int, numBits: Int) {
         // Whole bytes.
-        val to: Int = offset + (numBits shr 3) /* numBits / 8 */
+        val to = offset + (numBits shr 3) /* numBits / 8 */
         for (i in offset until to) {
-            buffer.get(i) = (data!!.get(byteOffset++).toInt() shl bitOffset).toByte()
-            buffer.get(i) = (buffer.get(i).toInt() or ((data!!.get(byteOffset).toInt() and 0xFF) shr (8 - bitOffset))).toByte()
+            buffer[i] = (data!![byteOffset++].toInt() shl bitOffset).toByte()
+            buffer[i] = (buffer[i].toInt() or (data!![byteOffset].toInt() and 0xFF shr 8) - bitOffset).toByte()
         }
         // Trailing bits.
-        val bitsLeft: Int = numBits and 7 /* numBits % 8 */
+        val bitsLeft = numBits and 7 /* numBits % 8 */
         if (bitsLeft == 0) {
             return
         }
         // Set bits that are going to be overwritten to 0.
-        buffer.get(to) = (buffer.get(to).toInt() and (0xFF shr bitsLeft)).toByte()
+        buffer[to] = (buffer[to].toInt() and (0xFF shr bitsLeft)).toByte()
         if (bitOffset + bitsLeft > 8) {
             // We read the rest of data[byteOffset] and increase byteOffset.
-            buffer.get(to) = (buffer.get(to).toInt() or ((data!!.get(byteOffset++).toInt() and 0xFF) shl bitOffset)).toByte()
+            buffer[to] = (buffer[to].toInt() or (data!![byteOffset++].toInt() and 0xFF shl bitOffset)).toByte()
             bitOffset -= 8
         }
         bitOffset += bitsLeft
-        val lastDataByteTrailingBits: Int = (data!!.get(byteOffset).toInt() and 0xFF) shr (8 - bitOffset)
-        buffer.get(to) = (buffer.get(to).toInt() or (lastDataByteTrailingBits shl (8 - bitsLeft)).toByte().toInt()).toByte()
+        val lastDataByteTrailingBits = data!![byteOffset].toInt() and 0xFF shr 8 - bitOffset
+        buffer[to] = (buffer[to].toInt() or (lastDataByteTrailingBits shl 8 - bitsLeft).toByte().toInt()).toByte()
         if (bitOffset == 8) {
             bitOffset = 0
             byteOffset++
@@ -243,7 +256,7 @@ class ParsableBitArray {
      * @throws IllegalStateException If the position isn't byte aligned.
      */
     fun readBytes(buffer: ByteArray?, offset: Int, length: Int) {
-        Assertions.checkState(bitOffset == 0)
+        checkState(bitOffset == 0)
         System.arraycopy(data, byteOffset, buffer, offset, length)
         byteOffset += length
         assertValidOffset()
@@ -256,10 +269,22 @@ class ParsableBitArray {
      * @throws IllegalStateException If the position isn't byte aligned.
      */
     fun skipBytes(length: Int) {
-        Assertions.checkState(bitOffset == 0)
+        checkState(bitOffset == 0)
         byteOffset += length
         assertValidOffset()
     }
+
+    /**
+     * Reads the next `length` bytes as a UTF-8 string. Must only be called when the position is
+     * byte aligned.
+     *
+     * @param length The number of bytes to read.
+     * @return The string encoded by the bytes in UTF-8.
+     */
+    fun readBytesAsString(length: Int): String? {
+        return readBytesAsString(length, Charsets.UTF_8)
+    }
+
     /**
      * Reads the next `length` bytes as a string encoded in [Charset]. Must only be called
      * when the position is byte aligned.
@@ -268,18 +293,10 @@ class ParsableBitArray {
      * @param charset The character set of the encoded characters.
      * @return The string encoded by the bytes in the specified character set.
      */
-    /**
-     * Reads the next `length` bytes as a UTF-8 string. Must only be called when the position is
-     * byte aligned.
-     *
-     * @param length The number of bytes to read.
-     * @return The string encoded by the bytes in UTF-8.
-     */
-    @JvmOverloads
-    fun readBytesAsString(length: Int, charset: Charset? = Charsets.UTF_8): String {
-        val bytes: ByteArray = ByteArray(length)
+    fun readBytesAsString(length: Int, charset: Charset?): String? {
+        val bytes = ByteArray(length)
         readBytes(bytes, 0, length)
-        return String(bytes, (charset)!!)
+        return String(bytes, charset!!)
     }
 
     /**
@@ -291,34 +308,33 @@ class ParsableBitArray {
      * @param numBits The number of bits to write.
      */
     fun putInt(value: Int, numBits: Int) {
-        var value: Int = value
-        var remainingBitsToRead: Int = numBits
+        var valueIn = value
+        var remainingBitsToRead = numBits
         if (numBits < 32) {
-            value = value and ((1 shl numBits) - 1)
+            valueIn = valueIn and (1 shl numBits) - 1
         }
-        val firstByteReadSize: Int = Math.min(8 - bitOffset, numBits)
-        val firstByteRightPaddingSize: Int = 8 - bitOffset - firstByteReadSize
-        val firstByteBitmask: Int = (0xFF00 shr bitOffset) or ((1 shl firstByteRightPaddingSize) - 1)
-        data!!.get(byteOffset) = (data!!.get(byteOffset).toInt() and firstByteBitmask).toByte()
-        val firstByteInputBits: Int = value ushr (numBits - firstByteReadSize)
-        data!!.get(byteOffset) = (data!!.get(byteOffset).toInt() or (firstByteInputBits shl firstByteRightPaddingSize)).toByte()
+        val firstByteReadSize = min(8 - bitOffset, numBits)
+        val firstByteRightPaddingSize = 8 - bitOffset - firstByteReadSize
+        val firstByteBitmask = 0xFF00 shr bitOffset or (1 shl firstByteRightPaddingSize) - 1
+        data!![byteOffset] = (data!![byteOffset].toInt() and firstByteBitmask).toByte()
+        val firstByteInputBits = valueIn ushr numBits - firstByteReadSize
+        data!![byteOffset] = (data!![byteOffset].toInt() or (firstByteInputBits shl firstByteRightPaddingSize)).toByte()
         remainingBitsToRead -= firstByteReadSize
-        var currentByteIndex: Int = byteOffset + 1
+        var currentByteIndex = byteOffset + 1
         while (remainingBitsToRead > 8) {
-            data!!.get(currentByteIndex++) = (value ushr (remainingBitsToRead - 8)).toByte()
+            data!![currentByteIndex++] = (valueIn ushr remainingBitsToRead - 8).toByte()
             remainingBitsToRead -= 8
         }
-        val lastByteRightPaddingSize: Int = 8 - remainingBitsToRead
-        data!!.get(currentByteIndex) = (data!!.get(currentByteIndex).toInt() and ((1 shl lastByteRightPaddingSize) - 1)).toByte()
-        val lastByteInput: Int = value and ((1 shl remainingBitsToRead) - 1)
-        data!!.get(currentByteIndex) = (data!!.get(currentByteIndex).toInt() or (lastByteInput shl lastByteRightPaddingSize)).toByte()
+        val lastByteRightPaddingSize = 8 - remainingBitsToRead
+        data!![currentByteIndex] = (data!![currentByteIndex].toInt() and (1 shl lastByteRightPaddingSize) - 1).toByte()
+        val lastByteInput = valueIn and (1 shl remainingBitsToRead) - 1
+        data!![currentByteIndex] = (data!![currentByteIndex].toInt() or (lastByteInput shl lastByteRightPaddingSize)).toByte()
         skipBits(numBits)
         assertValidOffset()
     }
 
     private fun assertValidOffset() {
         // It is fine for position to be at the end of the array, but no further.
-        Assertions.checkState(
-                byteOffset >= 0 && (byteOffset < byteLimit || (byteOffset == byteLimit && bitOffset == 0)))
+        checkState(byteOffset >= 0 && (byteOffset < byteLimit || byteOffset == byteLimit) && bitOffset == 0)
     }
 }

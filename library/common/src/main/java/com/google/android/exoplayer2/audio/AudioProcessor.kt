@@ -16,7 +16,6 @@
 package com.google.android.exoplayer2.audio
 
 import com.google.android.exoplayer2.*
-import com.google.android.exoplayer2.C.PcmEncoding
 import com.google.android.exoplayer2.util.*
 import com.google.common.base.Objects
 import com.google.errorprone.annotations.CanIgnoreReturnValue
@@ -37,9 +36,9 @@ interface AudioProcessor {
     class AudioFormat {
         companion object {
             val NOT_SET: AudioFormat = AudioFormat( /* sampleRate= */
-                    Format.Companion.NO_VALUE,  /* channelCount= */
-                    Format.Companion.NO_VALUE,  /* encoding= */
-                    Format.Companion.NO_VALUE)
+                    Format.NO_VALUE,  /* channelCount= */
+                    Format.NO_VALUE,  /* encoding= */
+                    Format.NO_VALUE)
         }
 
         /** The sample rate in Hertz.  */
@@ -117,7 +116,7 @@ interface AudioProcessor {
     fun configure(inputAudioFormat: AudioFormat?): AudioFormat?
 
     /** Returns whether the processor is configured and will process input buffers.  */
-    open fun isActive(): Boolean
+    fun isActive(): Boolean
 
     /**
      * Queues audio data between the position and limit of the `inputBuffer` for processing.
@@ -146,13 +145,13 @@ interface AudioProcessor {
      *
      * @return A buffer containing processed output data between its position and limit.
      */
-    open fun getOutput(): ByteBuffer?
+    fun getOutput(): ByteBuffer?
 
     /**
      * Returns whether this processor will return no more output from [.getOutput] until
      * [.flush] has been called and more input has been queued.
      */
-    open fun isEnded(): Boolean
+    fun isEnded(): Boolean
 
     /**
      * Clears any buffered data and pending output. If the audio processor is active, also prepares

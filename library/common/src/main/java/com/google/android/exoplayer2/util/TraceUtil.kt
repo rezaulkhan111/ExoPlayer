@@ -15,10 +15,11 @@
  */
 package com.google.android.exoplayer2.util
 
+import android.annotation.SuppressLint
 import android.os.*
-import androidx.annotation.RequiresApiimport
+import androidx.annotation.RequiresApi
+import com.google.android.exoplayer2.ExoPlayerLibraryInfo
 
-com.google.android.exoplayer2.ExoPlayerLibraryInfo
 /** Calls through to [android.os.Trace] methods on supported API levels.  */
 object TraceUtil {
     /**
@@ -28,6 +29,7 @@ object TraceUtil {
      * @param sectionName The name of the code section to appear in the trace. This may be at most 127
      * Unicode code units long.
      */
+    @SuppressLint("NewApi")
     fun beginSection(sectionName: String) {
         if (ExoPlayerLibraryInfo.TRACE_ENABLED && Util.SDK_INT >= 18) {
             beginSectionV18(sectionName)
@@ -39,6 +41,7 @@ object TraceUtil {
      *
      * @see android.os.Trace.endSection
      */
+    @SuppressLint("NewApi")
     fun endSection() {
         if (ExoPlayerLibraryInfo.TRACE_ENABLED && Util.SDK_INT >= 18) {
             endSectionV18()

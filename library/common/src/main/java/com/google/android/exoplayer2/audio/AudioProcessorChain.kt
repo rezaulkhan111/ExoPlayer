@@ -15,7 +15,7 @@
  */
 package com.google.android.exoplayer2.audio
 
-import com.google.android.exoplayer2import.PlaybackParameters
+import com.google.android.exoplayer2.PlaybackParameters
 
 /**
  * Provides a chain of audio processors, which are used for any user-defined processing and applying

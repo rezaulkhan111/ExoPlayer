@@ -13,9 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2import
+package com.google.android.exoplayer2
 
-import com.google.android.exoplayer2.ExoPlayerLibraryInfo
 import com.google.android.exoplayer2.util.Assertions
 import com.google.android.exoplayer2.util.TraceUtil
 

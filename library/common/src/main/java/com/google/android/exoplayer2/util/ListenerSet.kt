@@ -15,9 +15,13 @@
  */
 package com.google.android.exoplayer2.util
 
-import android.os.Handlerimport
-
-android.os.Looperimport android.os.Messageimport androidx.annotation .CheckResultimport com.google.android.exoplayer2.Cimport java.util.*import java.util.concurrent.CopyOnWriteArraySet
+import android.os.Handler
+import android.os.Looper
+import android.os.Message
+import androidx.annotation.CheckResult
+import com.google.android.exoplayer2.C
+import java.util.*
+import java.util.concurrent.CopyOnWriteArraySet
 
 /**
  * A set of listeners.
@@ -42,7 +46,7 @@ class ListenerSet<T : Any?> private constructor(
      *
      * @param <T> The listener type.
     </T> */
-    open interface Event<T> {
+    fun interface Event<T> {
         /** Invokes the event notification on the given listener.  */
         operator fun invoke(listener: T)
     }
@@ -53,7 +57,7 @@ class ListenerSet<T : Any?> private constructor(
      *
      * @param <T> The listener type.
     </T> */
-    open interface IterationFinishedEvent<T> {
+    fun interface IterationFinishedEvent<T> {
         /**
          * Invokes the iteration finished event.
          *

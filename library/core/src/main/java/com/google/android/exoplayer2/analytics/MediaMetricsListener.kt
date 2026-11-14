@@ -13,882 +13,875 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.analytics;
+package com.google.android.exoplayer2.analytics
 
-import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
-import static com.google.android.exoplayer2.util.Util.castNonNull;
-
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.media.DeniedByServerException;
-import android.media.MediaCodec;
-import android.media.MediaDrm;
-import android.media.MediaDrmResetException;
-import android.media.NotProvisionedException;
-import android.media.metrics.LogSessionId;
-import android.media.metrics.MediaMetricsManager;
-import android.media.metrics.NetworkEvent;
-import android.media.metrics.PlaybackErrorEvent;
-import android.media.metrics.PlaybackMetrics;
-import android.media.metrics.PlaybackSession;
-import android.media.metrics.PlaybackStateEvent;
-import android.media.metrics.TrackChangeEvent;
-import android.os.SystemClock;
-import android.system.ErrnoException;
-import android.system.OsConstants;
-import android.util.Pair;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.C.ContentType;
-import com.google.android.exoplayer2.ExoPlaybackException;
-import com.google.android.exoplayer2.ExoPlayerLibraryInfo;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.ParserException;
-import com.google.android.exoplayer2.PlaybackException;
-import com.google.android.exoplayer2.Player;
-import com.google.android.exoplayer2.Timeline;
-import com.google.android.exoplayer2.Tracks;
-import com.google.android.exoplayer2.audio.AudioSink;
-import com.google.android.exoplayer2.decoder.DecoderCounters;
-import com.google.android.exoplayer2.drm.DefaultDrmSessionManager;
-import com.google.android.exoplayer2.drm.DrmInitData;
-import com.google.android.exoplayer2.drm.DrmSession;
-import com.google.android.exoplayer2.drm.UnsupportedDrmException;
-import com.google.android.exoplayer2.mediacodec.MediaCodecDecoderException;
-import com.google.android.exoplayer2.mediacodec.MediaCodecRenderer;
-import com.google.android.exoplayer2.source.LoadEventInfo;
-import com.google.android.exoplayer2.source.MediaLoadData;
-import com.google.android.exoplayer2.source.MediaSource;
-import com.google.android.exoplayer2.upstream.FileDataSource;
-import com.google.android.exoplayer2.upstream.HttpDataSource;
-import com.google.android.exoplayer2.upstream.UdpDataSource;
-import com.google.android.exoplayer2.util.NetworkTypeObserver;
-import com.google.android.exoplayer2.util.Util;
-import com.google.android.exoplayer2.video.VideoSize;
-import com.google.common.collect.ImmutableList;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.UUID;
-import org.checkerframework.checker.nullness.compatqual.NullableType;
-import org.checkerframework.checker.nullness.qual.EnsuresNonNullIf;
-import org.checkerframework.checker.nullness.qual.RequiresNonNull;
+import android.annotation.SuppressLint
+import android.content.Context
+import android.media.DeniedByServerException
+import android.media.MediaCodec
+import android.media.MediaDrm
+import android.media.MediaDrmResetException
+import android.media.NotProvisionedException
+import android.media.metrics.LogSessionId
+import android.media.metrics.MediaMetricsManager
+import android.media.metrics.NetworkEvent
+import android.media.metrics.PlaybackErrorEvent
+import android.media.metrics.PlaybackMetrics
+import android.media.metrics.PlaybackSession
+import android.media.metrics.PlaybackStateEvent
+import android.media.metrics.TrackChangeEvent
+import android.os.SystemClock
+import android.system.ErrnoException
+import android.system.OsConstants
+import android.util.Pair
+import androidx.annotation.RequiresApi
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.C.ContentType
+import com.google.android.exoplayer2.ExoPlaybackException
+import com.google.android.exoplayer2.ExoPlayerLibraryInfo
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.ParserException
+import com.google.android.exoplayer2.PlaybackException
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.Timeline
+import com.google.android.exoplayer2.Tracks
+import com.google.android.exoplayer2.audio.AudioSink
+import com.google.android.exoplayer2.decoder.DecoderCounters
+import com.google.android.exoplayer2.drm.DefaultDrmSessionManager
+import com.google.android.exoplayer2.drm.DrmInitData
+import com.google.android.exoplayer2.drm.DrmSession
+import com.google.android.exoplayer2.drm.UnsupportedDrmException
+import com.google.android.exoplayer2.mediacodec.MediaCodecDecoderException
+import com.google.android.exoplayer2.mediacodec.MediaCodecRenderer
+import com.google.android.exoplayer2.source.LoadEventInfo
+import com.google.android.exoplayer2.source.MediaLoadData
+import com.google.android.exoplayer2.source.MediaSource
+import com.google.android.exoplayer2.upstream.FileDataSource
+import com.google.android.exoplayer2.upstream.HttpDataSource
+import com.google.android.exoplayer2.upstream.UdpDataSource
+import com.google.android.exoplayer2.util.NetworkTypeObserver
+import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.video.VideoSize
+import com.google.common.collect.ImmutableList
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import java.util.HashMap
 
 /**
- * An {@link AnalyticsListener} that interacts with the Android {@link MediaMetricsManager}.
+ * An [AnalyticsListener] that interacts with the Android [MediaMetricsManager].
  *
- * <p>It listens to playback events and forwards them to a {@link PlaybackSession}. The {@link
- * LogSessionId} of the playback session can be obtained with {@link #getLogSessionId()}.
+ * It listens to playback events and forwards them to a [PlaybackSession]. The [LogSessionId] of
+ * the playback session can be obtained with [getLogSessionId].
  */
 @RequiresApi(31)
-public final class MediaMetricsListener
-    implements AnalyticsListener, PlaybackSessionManager.Listener {
+class MediaMetricsListener private constructor(
+    context: Context,
+    private val playbackSession: PlaybackSession
+) : AnalyticsListener, PlaybackSessionManager.Listener {
 
-  /**
-   * Creates a media metrics listener.
-   *
-   * @param context A context.
-   * @return The {@link MediaMetricsListener}, or null if the {@link Context#MEDIA_METRICS_SERVICE
-   *     media metrics service} isn't available.
-   */
-  @Nullable
-  public static MediaMetricsListener create(Context context) {
-    @Nullable
-    MediaMetricsManager mediaMetricsManager =
-        (MediaMetricsManager) context.getSystemService(Context.MEDIA_METRICS_SERVICE);
-    return mediaMetricsManager == null
-        ? null
-        : new MediaMetricsListener(context, mediaMetricsManager.createPlaybackSession());
+  private val context: Context = context.applicationContext
+  private val sessionManager: PlaybackSessionManager
+  private val startTimeMs: Long
+  private val window: Timeline.Window = Timeline.Window()
+  private val period: Timeline.Period = Timeline.Period()
+  private val bandwidthTimeMs: HashMap<String, Long> = HashMap()
+  private val bandwidthBytes: HashMap<String, Long> = HashMap()
+
+  private var activeSessionId: String? = null
+  private var metricsBuilder: PlaybackMetrics.Builder? = null
+  @Player.DiscontinuityReason private var discontinuityReason: Int = 0
+  private var currentPlaybackState: Int = PlaybackStateEvent.STATE_NOT_STARTED
+  private var currentNetworkType: Int = NetworkEvent.NETWORK_TYPE_UNKNOWN
+  private var pendingPlayerError: PlaybackException? = null
+  private var pendingVideoFormat: PendingFormatUpdate? = null
+  private var pendingAudioFormat: PendingFormatUpdate? = null
+  private var pendingTextFormat: PendingFormatUpdate? = null
+  private var currentVideoFormat: Format? = null
+  private var currentAudioFormat: Format? = null
+  private var currentTextFormat: Format? = null
+  private var isSeeking: Boolean = false
+  private var ioErrorType: Int = 0
+  private var hasFatalError: Boolean = false
+  private var droppedFrames: Int = 0
+  private var playedFrames: Int = 0
+  private var audioUnderruns: Int = 0
+  private var reportedEventsForCurrentSession: Boolean = false
+
+  init {
+    startTimeMs = SystemClock.elapsedRealtime()
+    sessionManager = DefaultPlaybackSessionManager()
+    sessionManager.setListener(this)
   }
 
-  private final Context context;
-  private final PlaybackSessionManager sessionManager;
-  private final PlaybackSession playbackSession;
-  private final long startTimeMs;
-  private final Timeline.Window window;
-  private final Timeline.Period period;
-  private final HashMap<String, Long> bandwidthTimeMs;
-  private final HashMap<String, Long> bandwidthBytes;
-
-  @Nullable private String activeSessionId;
-  @Nullable private PlaybackMetrics.Builder metricsBuilder;
-  private @Player.DiscontinuityReason int discontinuityReason;
-  private int currentPlaybackState;
-  private int currentNetworkType;
-  @Nullable private PlaybackException pendingPlayerError;
-  @Nullable private PendingFormatUpdate pendingVideoFormat;
-  @Nullable private PendingFormatUpdate pendingAudioFormat;
-  @Nullable private PendingFormatUpdate pendingTextFormat;
-  @Nullable private Format currentVideoFormat;
-  @Nullable private Format currentAudioFormat;
-  @Nullable private Format currentTextFormat;
-  private boolean isSeeking;
-  private int ioErrorType;
-  private boolean hasFatalError;
-  private int droppedFrames;
-  private int playedFrames;
-  private int audioUnderruns;
-  private boolean reportedEventsForCurrentSession;
-
-  /**
-   * Creates the listener.
-   *
-   * @param context A {@link Context}.
-   */
-  private MediaMetricsListener(Context context, PlaybackSession playbackSession) {
-    context = context.getApplicationContext();
-    this.context = context;
-    this.playbackSession = playbackSession;
-    window = new Timeline.Window();
-    period = new Timeline.Period();
-    bandwidthBytes = new HashMap<>();
-    bandwidthTimeMs = new HashMap<>();
-    startTimeMs = SystemClock.elapsedRealtime();
-    currentPlaybackState = PlaybackStateEvent.STATE_NOT_STARTED;
-    currentNetworkType = NetworkEvent.NETWORK_TYPE_UNKNOWN;
-    sessionManager = new DefaultPlaybackSessionManager();
-    sessionManager.setListener(this);
-  }
-
-  /** Returns the {@link LogSessionId} used by this listener. */
-  public LogSessionId getLogSessionId() {
-    return playbackSession.getSessionId();
+  /** Returns the [LogSessionId] used by this listener. */
+  fun getLogSessionId(): LogSessionId {
+    return playbackSession.sessionId
   }
 
   // PlaybackSessionManager.Listener implementation.
 
-  @Override
-  public void onSessionCreated(EventTime eventTime, String sessionId) {}
+  override fun onSessionCreated(eventTime: AnalyticsListener.EventTime?, sessionId: String?) {}
 
-  @Override
-  public void onSessionActive(EventTime eventTime, String sessionId) {
-    if (eventTime.mediaPeriodId != null && eventTime.mediaPeriodId.isAd()) {
-      // Ignore ad sessions.
-      return;
+  override fun onSessionActive(eventTime: AnalyticsListener.EventTime?, sessionId: String?) {
+    if (eventTime == null || sessionId == null) {
+      return
     }
-    finishCurrentSession();
-    activeSessionId = sessionId;
+    if (eventTime.mediaPeriodId != null && eventTime.mediaPeriodId!!.isAd) {
+      // Ignore ad sessions.
+      return
+    }
+    finishCurrentSession()
+    activeSessionId = sessionId
     metricsBuilder =
-        new PlaybackMetrics.Builder()
+        PlaybackMetrics.Builder()
             .setPlayerName(ExoPlayerLibraryInfo.TAG)
-            .setPlayerVersion(ExoPlayerLibraryInfo.VERSION);
-    maybeUpdateTimelineMetadata(eventTime.timeline, eventTime.mediaPeriodId);
+            .setPlayerVersion(ExoPlayerLibraryInfo.VERSION)
+    if (eventTime.timeline != null) {
+      maybeUpdateTimelineMetadata(eventTime.timeline, eventTime.mediaPeriodId)
+    }
   }
 
-  @Override
-  public void onAdPlaybackStarted(
-      EventTime eventTime, String contentSessionId, String adSessionId) {}
+  override fun onAdPlaybackStarted(
+      eventTime: AnalyticsListener.EventTime?,
+      contentSessionId: String?,
+      adSessionId: String?
+  ) {}
 
-  @Override
-  public void onSessionFinished(
-      EventTime eventTime, String sessionId, boolean automaticTransitionToNextPlayback) {
-    if ((eventTime.mediaPeriodId != null && eventTime.mediaPeriodId.isAd())
-        || !sessionId.equals(activeSessionId)) {
+  override fun onSessionFinished(
+      eventTime: AnalyticsListener.EventTime?,
+      sessionId: String?,
+      automaticTransitionToNextPlayback: Boolean
+  ) {
+    if (eventTime == null || sessionId == null) {
+      return
+    }
+    if ((eventTime.mediaPeriodId != null && eventTime.mediaPeriodId!!.isAd) ||
+        sessionId != activeSessionId) {
       // Ignore ad sessions and other sessions that are finished before becoming active.
     } else {
-      finishCurrentSession();
+      finishCurrentSession()
     }
-    bandwidthTimeMs.remove(sessionId);
-    bandwidthBytes.remove(sessionId);
+    bandwidthTimeMs.remove(sessionId)
+    bandwidthBytes.remove(sessionId)
   }
 
   // AnalyticsListener implementation.
 
-  @Override
-  public void onPositionDiscontinuity(
-      EventTime eventTime,
-      Player.PositionInfo oldPosition,
-      Player.PositionInfo newPosition,
-      @Player.DiscontinuityReason int reason) {
+  override fun onPositionDiscontinuity(
+      eventTime: AnalyticsListener.EventTime?,
+      oldPosition: Player.PositionInfo?,
+      newPosition: Player.PositionInfo?,
+      reason: Int
+  ) {
     if (reason == Player.DISCONTINUITY_REASON_SEEK) {
-      isSeeking = true;
+      isSeeking = true
     }
-    discontinuityReason = reason;
+    discontinuityReason = reason
   }
 
-  @Override
-  public void onVideoDisabled(EventTime eventTime, DecoderCounters decoderCounters) {
-    // TODO(b/181122234): DecoderCounters are not re-reported at period boundaries.
-    droppedFrames += decoderCounters.droppedBufferCount;
-    playedFrames += decoderCounters.renderedOutputBufferCount;
+  override fun onVideoDisabled(
+      eventTime: AnalyticsListener.EventTime?,
+      decoderCounters: DecoderCounters?
+  ) {
+    if (decoderCounters != null) {
+      // TODO(b/181122234): DecoderCounters are not re-reported at period boundaries.
+      droppedFrames += decoderCounters.droppedBufferCount
+      playedFrames += decoderCounters.renderedOutputBufferCount
+    }
   }
 
-  @Override
-  public void onBandwidthEstimate(
-      EventTime eventTime, int totalLoadTimeMs, long totalBytesLoaded, long bitrateEstimate) {
-    if (eventTime.mediaPeriodId != null) {
-      String sessionId =
+  override fun onBandwidthEstimate(
+      eventTime: AnalyticsListener.EventTime?,
+      totalLoadTimeMs: Int,
+      totalBytesLoaded: Long,
+      bitrateEstimate: Long
+  ) {
+    if (eventTime != null && eventTime.mediaPeriodId != null && eventTime.timeline != null) {
+      val sessionId =
           sessionManager.getSessionForMediaPeriodId(
-              eventTime.timeline, checkNotNull(eventTime.mediaPeriodId));
-      @Nullable Long prevBandwidthBytes = bandwidthBytes.get(sessionId);
-      @Nullable Long prevBandwidthTimeMs = bandwidthTimeMs.get(sessionId);
-      bandwidthBytes.put(
-          sessionId, (prevBandwidthBytes == null ? 0 : prevBandwidthBytes) + totalBytesLoaded);
-      bandwidthTimeMs.put(
-          sessionId, (prevBandwidthTimeMs == null ? 0 : prevBandwidthTimeMs) + totalLoadTimeMs);
+              eventTime.timeline, eventTime.mediaPeriodId!!)
+      if (sessionId != null) {
+        val prevBandwidthBytes = bandwidthBytes[sessionId]
+        val prevBandwidthTimeMs = bandwidthTimeMs[sessionId]
+        bandwidthBytes[sessionId] = (prevBandwidthBytes ?: 0) + totalBytesLoaded
+        bandwidthTimeMs[sessionId] = (prevBandwidthTimeMs ?: 0) + totalLoadTimeMs.toLong()
+      }
     }
   }
 
-  @Override
-  public void onDownstreamFormatChanged(EventTime eventTime, MediaLoadData mediaLoadData) {
-    if (eventTime.mediaPeriodId == null) {
+  override fun onDownstreamFormatChanged(
+      eventTime: AnalyticsListener.EventTime?,
+      mediaLoadData: MediaLoadData?
+  ) {
+    if (eventTime == null || eventTime.mediaPeriodId == null || mediaLoadData == null || mediaLoadData.trackFormat == null || eventTime.timeline == null) {
       // This event arrived after the media has been removed from the playlist or a custom
       // MediaSource forgot to set the right id. Ignore the track change in these cases.
-      return;
+      return
     }
-    PendingFormatUpdate update =
-        new PendingFormatUpdate(
-            checkNotNull(mediaLoadData.trackFormat),
+    val sessionId =
+        sessionManager.getSessionForMediaPeriodId(
+            eventTime.timeline, eventTime.mediaPeriodId!!) ?: return
+    val update =
+        PendingFormatUpdate(
+            mediaLoadData.trackFormat,
             mediaLoadData.trackSelectionReason,
-            sessionManager.getSessionForMediaPeriodId(
-                eventTime.timeline, checkNotNull(eventTime.mediaPeriodId)));
-    switch (mediaLoadData.trackType) {
-      case C.TRACK_TYPE_VIDEO:
-      case C.TRACK_TYPE_DEFAULT:
-        pendingVideoFormat = update;
-        break;
-      case C.TRACK_TYPE_AUDIO:
-        pendingAudioFormat = update;
-        break;
-      case C.TRACK_TYPE_TEXT:
-        pendingTextFormat = update;
-        break;
-      default:
-        // Other track type. Ignore.
+            sessionId)
+    when (mediaLoadData.trackType) {
+      C.TRACK_TYPE_VIDEO, C.TRACK_TYPE_DEFAULT -> pendingVideoFormat = update
+      C.TRACK_TYPE_AUDIO -> pendingAudioFormat = update
+      C.TRACK_TYPE_TEXT -> pendingTextFormat = update
+      else -> {} // Other track type. Ignore.
     }
   }
 
-  @Override
-  public void onVideoSizeChanged(EventTime eventTime, VideoSize videoSize) {
-    @Nullable PendingFormatUpdate pendingVideoFormat = this.pendingVideoFormat;
-    if (pendingVideoFormat != null && pendingVideoFormat.format.height == Format.NO_VALUE) {
-      Format formatWithHeightAndWidth =
+  override fun onVideoSizeChanged(
+      eventTime: AnalyticsListener.EventTime?,
+      videoSize: VideoSize?
+  ) {
+    val pendingVideoFormat = this.pendingVideoFormat
+    if (pendingVideoFormat != null && pendingVideoFormat.format.height == Format.NO_VALUE && videoSize != null) {
+      val formatWithHeightAndWidth =
           pendingVideoFormat
               .format
               .buildUpon()
               .setWidth(videoSize.width)
               .setHeight(videoSize.height)
-              .build();
+              .build()
       this.pendingVideoFormat =
-          new PendingFormatUpdate(
+          PendingFormatUpdate(
               formatWithHeightAndWidth,
               pendingVideoFormat.selectionReason,
-              pendingVideoFormat.sessionId);
+              pendingVideoFormat.sessionId)
     }
   }
 
-  @Override
-  public void onLoadError(
-      EventTime eventTime,
-      LoadEventInfo loadEventInfo,
-      MediaLoadData mediaLoadData,
-      IOException error,
-      boolean wasCanceled) {
-    ioErrorType = mediaLoadData.dataType;
-  }
-
-  @Override
-  public void onPlayerError(EventTime eventTime, PlaybackException error) {
-    pendingPlayerError = error;
-  }
-
-  @Override
-  public void onEvents(Player player, Events events) {
-    if (events.size() == 0) {
-      return;
+  override fun onLoadError(
+      eventTime: AnalyticsListener.EventTime?,
+      loadEventInfo: LoadEventInfo?,
+      mediaLoadData: MediaLoadData?,
+      error: IOException?,
+      wasCanceled: Boolean
+  ) {
+    if (mediaLoadData != null) {
+      ioErrorType = mediaLoadData.dataType
     }
-    maybeAddSessions(events);
+  }
 
-    long realtimeMs = SystemClock.elapsedRealtime();
-    maybeUpdateMetricsBuilderValues(player, events);
-    maybeReportPlaybackError(realtimeMs);
-    maybeReportTrackChanges(player, events, realtimeMs);
-    maybeReportNetworkChange(realtimeMs);
-    maybeReportPlaybackStateChange(player, events, realtimeMs);
+  override fun onPlayerError(
+      eventTime: AnalyticsListener.EventTime?,
+      error: PlaybackException?
+  ) {
+    pendingPlayerError = error
+  }
+
+  override fun onEvents(player: Player?, events: AnalyticsListener.Events?) {
+    if (player == null || events == null || events.size() == 0) {
+      return
+    }
+    maybeAddSessions(events)
+
+    val realtimeMs = SystemClock.elapsedRealtime()
+    maybeUpdateMetricsBuilderValues(player, events)
+    maybeReportPlaybackError(realtimeMs)
+    maybeReportTrackChanges(player, events, realtimeMs)
+    maybeReportNetworkChange(realtimeMs)
+    maybeReportPlaybackStateChange(player, events, realtimeMs)
 
     if (events.contains(AnalyticsListener.EVENT_PLAYER_RELEASED)) {
-      sessionManager.finishAllSessions(events.getEventTime(EVENT_PLAYER_RELEASED));
+      sessionManager.finishAllSessions(events.getEventTime(AnalyticsListener.EVENT_PLAYER_RELEASED))
     }
   }
 
-  private void maybeAddSessions(Events events) {
-    for (int i = 0; i < events.size(); i++) {
-      @EventFlags int event = events.get(i);
-      EventTime eventTime = events.getEventTime(event);
-      if (event == EVENT_TIMELINE_CHANGED) {
-        sessionManager.updateSessionsWithTimelineChange(eventTime);
-      } else if (event == EVENT_POSITION_DISCONTINUITY) {
-        sessionManager.updateSessionsWithDiscontinuity(eventTime, discontinuityReason);
+  private fun maybeAddSessions(events: AnalyticsListener.Events) {
+    for (i in 0 until events.size()) {
+      @AnalyticsListener.EventFlags val event = events.get(i)
+      val eventTime = events.getEventTime(event)
+      if (event == AnalyticsListener.EVENT_TIMELINE_CHANGED) {
+        sessionManager.updateSessionsWithTimelineChange(eventTime)
+      } else if (event == AnalyticsListener.EVENT_POSITION_DISCONTINUITY) {
+        sessionManager.updateSessionsWithDiscontinuity(eventTime, discontinuityReason)
       } else {
-        sessionManager.updateSessions(eventTime);
+        sessionManager.updateSessions(eventTime)
       }
     }
   }
 
-  private void maybeUpdateMetricsBuilderValues(Player player, Events events) {
-    if (events.contains(EVENT_TIMELINE_CHANGED)) {
-      EventTime eventTime = events.getEventTime(EVENT_TIMELINE_CHANGED);
-      if (metricsBuilder != null) {
-        maybeUpdateTimelineMetadata(eventTime.timeline, eventTime.mediaPeriodId);
+  private fun maybeUpdateMetricsBuilderValues(player: Player, events: AnalyticsListener.Events) {
+    if (events.contains(AnalyticsListener.EVENT_TIMELINE_CHANGED)) {
+      val eventTime = events.getEventTime(AnalyticsListener.EVENT_TIMELINE_CHANGED)
+      if (metricsBuilder != null && eventTime.timeline != null) {
+        maybeUpdateTimelineMetadata(eventTime.timeline, eventTime.mediaPeriodId)
       }
     }
-    if (events.contains(EVENT_TRACKS_CHANGED) && metricsBuilder != null) {
-      @Nullable DrmInitData drmInitData = getDrmInitData(player.getCurrentTracks().getGroups());
-      if (drmInitData != null) {
-        castNonNull(metricsBuilder).setDrmType(getDrmType(drmInitData));
+    if (events.contains(AnalyticsListener.EVENT_TRACKS_CHANGED) && metricsBuilder != null) {
+      val tracks = player.getCurrentTracks()
+      if (tracks != null) {
+        val drmInitData = getDrmInitData(tracks.groups)
+        if (drmInitData != null) {
+          metricsBuilder!!.setDrmType(getDrmType(drmInitData))
+        }
       }
     }
-    if (events.contains(EVENT_AUDIO_UNDERRUN)) {
-      audioUnderruns++;
+    if (events.contains(AnalyticsListener.EVENT_AUDIO_UNDERRUN)) {
+      audioUnderruns++
     }
   }
 
-  private void maybeReportPlaybackError(long realtimeMs) {
-    @Nullable PlaybackException error = pendingPlayerError;
-    if (error == null) {
-      return;
-    }
-    ErrorInfo errorInfo =
+  private fun maybeReportPlaybackError(realtimeMs: Long) {
+    val error = pendingPlayerError ?: return
+    val errorInfo =
         getErrorInfo(
-            error, context, /* lastIoErrorForManifest= */ ioErrorType == C.DATA_TYPE_MANIFEST);
+            error, context, /* lastIoErrorForManifest= */ ioErrorType == C.DATA_TYPE_MANIFEST)
     playbackSession.reportPlaybackErrorEvent(
-        new PlaybackErrorEvent.Builder()
+        PlaybackErrorEvent.Builder()
             .setTimeSinceCreatedMillis(realtimeMs - startTimeMs)
             .setErrorCode(errorInfo.errorCode)
             .setSubErrorCode(errorInfo.subErrorCode)
             .setException(error)
-            .build());
-    reportedEventsForCurrentSession = true;
-    pendingPlayerError = null;
+            .build())
+    reportedEventsForCurrentSession = true
+    pendingPlayerError = null
   }
 
-  private void maybeReportTrackChanges(Player player, Events events, long realtimeMs) {
-    if (events.contains(EVENT_TRACKS_CHANGED)) {
-      Tracks tracks = player.getCurrentTracks();
-      boolean isVideoSelected = tracks.isTypeSelected(C.TRACK_TYPE_VIDEO);
-      boolean isAudioSelected = tracks.isTypeSelected(C.TRACK_TYPE_AUDIO);
-      boolean isTextSelected = tracks.isTypeSelected(C.TRACK_TYPE_TEXT);
-      if (isVideoSelected || isAudioSelected || isTextSelected) {
-        // Ignore updates with insufficient information where no tracks are selected.
-        if (!isVideoSelected) {
-          maybeUpdateVideoFormat(realtimeMs, /* videoFormat= */ null, C.SELECTION_REASON_UNKNOWN);
-        }
-        if (!isAudioSelected) {
-          maybeUpdateAudioFormat(realtimeMs, /* audioFormat= */ null, C.SELECTION_REASON_UNKNOWN);
-        }
-        if (!isTextSelected) {
-          maybeUpdateTextFormat(realtimeMs, /* textFormat= */ null, C.SELECTION_REASON_UNKNOWN);
+  private fun maybeReportTrackChanges(
+      player: Player,
+      events: AnalyticsListener.Events,
+      realtimeMs: Long
+  ) {
+    if (events.contains(AnalyticsListener.EVENT_TRACKS_CHANGED)) {
+      val tracks = player.getCurrentTracks()
+      if (tracks != null) {
+        val isVideoSelected = tracks.isTypeSelected(C.TRACK_TYPE_VIDEO)
+        val isAudioSelected = tracks.isTypeSelected(C.TRACK_TYPE_AUDIO)
+        val isTextSelected = tracks.isTypeSelected(C.TRACK_TYPE_TEXT)
+        if (isVideoSelected || isAudioSelected || isTextSelected) {
+          // Ignore updates with insufficient information where no tracks are selected.
+          if (!isVideoSelected) {
+            maybeUpdateVideoFormat(realtimeMs, /* videoFormat= */ null, C.SELECTION_REASON_UNKNOWN)
+          }
+          if (!isAudioSelected) {
+            maybeUpdateAudioFormat(realtimeMs, /* audioFormat= */ null, C.SELECTION_REASON_UNKNOWN)
+          }
+          if (!isTextSelected) {
+            maybeUpdateTextFormat(realtimeMs, /* textFormat= */ null, C.SELECTION_REASON_UNKNOWN)
+          }
         }
       }
     }
-    if (canReportPendingFormatUpdate(pendingVideoFormat)
-        && pendingVideoFormat.format.height != Format.NO_VALUE) {
+    val pendingVideoFormat = pendingVideoFormat
+    if (canReportPendingFormatUpdate(pendingVideoFormat) &&
+        pendingVideoFormat!!.format.height != Format.NO_VALUE) {
       maybeUpdateVideoFormat(
-          realtimeMs, pendingVideoFormat.format, pendingVideoFormat.selectionReason);
-      pendingVideoFormat = null;
+          realtimeMs, pendingVideoFormat.format, pendingVideoFormat.selectionReason)
+      this.pendingVideoFormat = null
     }
+    val pendingAudioFormat = pendingAudioFormat
     if (canReportPendingFormatUpdate(pendingAudioFormat)) {
       maybeUpdateAudioFormat(
-          realtimeMs, pendingAudioFormat.format, pendingAudioFormat.selectionReason);
-      pendingAudioFormat = null;
+          realtimeMs, pendingAudioFormat!!.format, pendingAudioFormat.selectionReason)
+      this.pendingAudioFormat = null
     }
+    val pendingTextFormat = pendingTextFormat
     if (canReportPendingFormatUpdate(pendingTextFormat)) {
       maybeUpdateTextFormat(
-          realtimeMs, pendingTextFormat.format, pendingTextFormat.selectionReason);
-      pendingTextFormat = null;
+          realtimeMs, pendingTextFormat!!.format, pendingTextFormat.selectionReason)
+      this.pendingTextFormat = null
     }
   }
 
-  @EnsuresNonNullIf(result = true, expression = "#1")
-  private boolean canReportPendingFormatUpdate(@Nullable PendingFormatUpdate pendingFormatUpdate) {
-    return pendingFormatUpdate != null
-        && pendingFormatUpdate.sessionId.equals(sessionManager.getActiveSessionId());
+  private fun canReportPendingFormatUpdate(pendingFormatUpdate: PendingFormatUpdate?): Boolean {
+    return pendingFormatUpdate != null &&
+        pendingFormatUpdate.sessionId == sessionManager.getActiveSessionId()
   }
 
-  private void maybeReportNetworkChange(long realtimeMs) {
-    int networkType = getNetworkType(context);
+  private fun maybeReportNetworkChange(realtimeMs: Long) {
+    val networkType = getNetworkType(context)
     if (networkType != currentNetworkType) {
-      currentNetworkType = networkType;
+      currentNetworkType = networkType
       playbackSession.reportNetworkEvent(
-          new NetworkEvent.Builder()
+          NetworkEvent.Builder()
               .setNetworkType(networkType)
               .setTimeSinceCreatedMillis(realtimeMs - startTimeMs)
-              .build());
+              .build())
     }
   }
 
-  private void maybeReportPlaybackStateChange(Player player, Events events, long realtimeMs) {
+  private fun maybeReportPlaybackStateChange(
+      player: Player,
+      events: AnalyticsListener.Events,
+      realtimeMs: Long
+  ) {
     if (player.getPlaybackState() != Player.STATE_BUFFERING) {
-      isSeeking = false;
+      isSeeking = false
     }
     if (player.getPlayerError() == null) {
-      hasFatalError = false;
-    } else if (events.contains(EVENT_PLAYER_ERROR)) {
-      hasFatalError = true;
+      hasFatalError = false
+    } else if (events.contains(AnalyticsListener.EVENT_PLAYER_ERROR)) {
+      hasFatalError = true
     }
-    int newPlaybackState = resolveNewPlaybackState(player);
+    val newPlaybackState = resolveNewPlaybackState(player)
     if (currentPlaybackState != newPlaybackState) {
-      currentPlaybackState = newPlaybackState;
-      reportedEventsForCurrentSession = true;
+      currentPlaybackState = newPlaybackState
+      reportedEventsForCurrentSession = true
       playbackSession.reportPlaybackStateEvent(
-          new PlaybackStateEvent.Builder()
+          PlaybackStateEvent.Builder()
               .setState(currentPlaybackState)
               .setTimeSinceCreatedMillis(realtimeMs - startTimeMs)
-              .build());
+              .build())
     }
   }
 
-  private int resolveNewPlaybackState(Player player) {
-    @Player.State int playerPlaybackState = player.getPlaybackState();
+  private fun resolveNewPlaybackState(player: Player): Int {
+    @Player.State val playerPlaybackState = player.getPlaybackState()
     if (isSeeking) {
       // Seeking takes precedence over errors such that we report a seek while in error state.
-      return PlaybackStateEvent.STATE_SEEKING;
+      return PlaybackStateEvent.STATE_SEEKING
     } else if (hasFatalError) {
-      return PlaybackStateEvent.STATE_FAILED;
+      return PlaybackStateEvent.STATE_FAILED
     } else if (playerPlaybackState == Player.STATE_ENDED) {
-      return PlaybackStateEvent.STATE_ENDED;
+      return PlaybackStateEvent.STATE_ENDED
     } else if (playerPlaybackState == Player.STATE_BUFFERING) {
-      if (currentPlaybackState == PlaybackStateEvent.STATE_NOT_STARTED
-          || currentPlaybackState == PlaybackStateEvent.STATE_JOINING_FOREGROUND) {
-        return PlaybackStateEvent.STATE_JOINING_FOREGROUND;
+      if (currentPlaybackState == PlaybackStateEvent.STATE_NOT_STARTED ||
+          currentPlaybackState == PlaybackStateEvent.STATE_JOINING_FOREGROUND) {
+        return PlaybackStateEvent.STATE_JOINING_FOREGROUND
       }
       if (!player.getPlayWhenReady()) {
-        return PlaybackStateEvent.STATE_PAUSED_BUFFERING;
+        return PlaybackStateEvent.STATE_PAUSED_BUFFERING
       }
-      return player.getPlaybackSuppressionReason() != Player.PLAYBACK_SUPPRESSION_REASON_NONE
-          ? PlaybackStateEvent.STATE_SUPPRESSED_BUFFERING
-          : PlaybackStateEvent.STATE_BUFFERING;
+      return if (player.getPlaybackSuppressionReason() != Player.PLAYBACK_SUPPRESSION_REASON_NONE)
+        PlaybackStateEvent.STATE_SUPPRESSED_BUFFERING
+      else
+        PlaybackStateEvent.STATE_BUFFERING
     } else if (playerPlaybackState == Player.STATE_READY) {
       if (!player.getPlayWhenReady()) {
-        return PlaybackStateEvent.STATE_PAUSED;
+        return PlaybackStateEvent.STATE_PAUSED
       }
-      return player.getPlaybackSuppressionReason() != Player.PLAYBACK_SUPPRESSION_REASON_NONE
-          ? PlaybackStateEvent.STATE_SUPPRESSED
-          : PlaybackStateEvent.STATE_PLAYING;
-    } else if (playerPlaybackState == Player.STATE_IDLE
-        && currentPlaybackState != PlaybackStateEvent.STATE_NOT_STARTED) {
+      return if (player.getPlaybackSuppressionReason() != Player.PLAYBACK_SUPPRESSION_REASON_NONE)
+        PlaybackStateEvent.STATE_SUPPRESSED
+      else
+        PlaybackStateEvent.STATE_PLAYING
+    } else if (playerPlaybackState == Player.STATE_IDLE &&
+        currentPlaybackState != PlaybackStateEvent.STATE_NOT_STARTED) {
       // This case only applies for calls to player.stop(). All other IDLE cases are handled by
       // !isForeground, hasFatalError or isSuspended. NOT_STARTED is deliberately ignored.
-      return PlaybackStateEvent.STATE_STOPPED;
+      return PlaybackStateEvent.STATE_STOPPED
     }
-    return currentPlaybackState;
+    return currentPlaybackState
   }
 
-  private void maybeUpdateVideoFormat(
-      long realtimeMs, @Nullable Format videoFormat, @C.SelectionReason int trackSelectionReason) {
+  private fun maybeUpdateVideoFormat(
+      realtimeMs: Long,
+      videoFormat: Format?,
+      trackSelectionReason: Int
+  ) {
+    var reason = trackSelectionReason
     if (Util.areEqual(currentVideoFormat, videoFormat)) {
-      return;
+      return
     }
-    if (currentVideoFormat == null && trackSelectionReason == C.SELECTION_REASON_UNKNOWN) {
-      trackSelectionReason = C.SELECTION_REASON_INITIAL;
+    if (currentVideoFormat == null && reason == C.SELECTION_REASON_UNKNOWN) {
+      reason = C.SELECTION_REASON_INITIAL
     }
-    currentVideoFormat = videoFormat;
+    currentVideoFormat = videoFormat
     reportTrackChangeEvent(
-        TrackChangeEvent.TRACK_TYPE_VIDEO, realtimeMs, videoFormat, trackSelectionReason);
+        TrackChangeEvent.TRACK_TYPE_VIDEO, realtimeMs, videoFormat, reason)
   }
 
-  private void maybeUpdateAudioFormat(
-      long realtimeMs, @Nullable Format audioFormat, @C.SelectionReason int trackSelectionReason) {
+  private fun maybeUpdateAudioFormat(
+      realtimeMs: Long,
+      audioFormat: Format?,
+      trackSelectionReason: Int
+  ) {
+    var reason = trackSelectionReason
     if (Util.areEqual(currentAudioFormat, audioFormat)) {
-      return;
+      return
     }
-    if (currentAudioFormat == null && trackSelectionReason == C.SELECTION_REASON_UNKNOWN) {
-      trackSelectionReason = C.SELECTION_REASON_INITIAL;
+    if (currentAudioFormat == null && reason == C.SELECTION_REASON_UNKNOWN) {
+      reason = C.SELECTION_REASON_INITIAL
     }
-    currentAudioFormat = audioFormat;
+    currentAudioFormat = audioFormat
     reportTrackChangeEvent(
-        TrackChangeEvent.TRACK_TYPE_AUDIO, realtimeMs, audioFormat, trackSelectionReason);
+        TrackChangeEvent.TRACK_TYPE_AUDIO, realtimeMs, audioFormat, reason)
   }
 
-  private void maybeUpdateTextFormat(
-      long realtimeMs, @Nullable Format textFormat, @C.SelectionReason int trackSelectionReason) {
+  private fun maybeUpdateTextFormat(
+      realtimeMs: Long,
+      textFormat: Format?,
+      trackSelectionReason: Int
+  ) {
+    var reason = trackSelectionReason
     if (Util.areEqual(currentTextFormat, textFormat)) {
-      return;
+      return
     }
-    if (currentTextFormat == null && trackSelectionReason == C.SELECTION_REASON_UNKNOWN) {
-      trackSelectionReason = C.SELECTION_REASON_INITIAL;
+    if (currentTextFormat == null && reason == C.SELECTION_REASON_UNKNOWN) {
+      reason = C.SELECTION_REASON_INITIAL
     }
-    currentTextFormat = textFormat;
+    currentTextFormat = textFormat
     reportTrackChangeEvent(
-        TrackChangeEvent.TRACK_TYPE_TEXT, realtimeMs, textFormat, trackSelectionReason);
+        TrackChangeEvent.TRACK_TYPE_TEXT, realtimeMs, textFormat, reason)
   }
 
-  private void reportTrackChangeEvent(
-      int type,
-      long realtimeMs,
-      @Nullable Format format,
-      @C.SelectionReason int trackSelectionReason) {
-    TrackChangeEvent.Builder builder =
-        new TrackChangeEvent.Builder(type).setTimeSinceCreatedMillis(realtimeMs - startTimeMs);
+  private fun reportTrackChangeEvent(
+      type: Int,
+      realtimeMs: Long,
+      format: Format?,
+      trackSelectionReason: Int
+  ) {
+    val builder =
+        TrackChangeEvent.Builder(type).setTimeSinceCreatedMillis(realtimeMs - startTimeMs)
     if (format != null) {
-      builder.setTrackState(TrackChangeEvent.TRACK_STATE_ON);
-      builder.setTrackChangeReason(getTrackChangeReason(trackSelectionReason));
+      builder.setTrackState(TrackChangeEvent.TRACK_STATE_ON)
+      builder.setTrackChangeReason(getTrackChangeReason(trackSelectionReason))
       if (format.containerMimeType != null) {
         // TODO(b/181121074): Progressive container mime type is not filled in by MediaSource.
-        builder.setContainerMimeType(format.containerMimeType);
+        builder.setContainerMimeType(format.containerMimeType)
       }
       if (format.sampleMimeType != null) {
-        builder.setSampleMimeType(format.sampleMimeType);
+        builder.setSampleMimeType(format.sampleMimeType)
       }
       if (format.codecs != null) {
-        builder.setCodecName(format.codecs);
+        builder.setCodecName(format.codecs)
       }
       if (format.bitrate != Format.NO_VALUE) {
-        builder.setBitrate(format.bitrate);
+        builder.setBitrate(format.bitrate)
       }
       if (format.width != Format.NO_VALUE) {
-        builder.setWidth(format.width);
+        builder.setWidth(format.width)
       }
       if (format.height != Format.NO_VALUE) {
-        builder.setHeight(format.height);
+        builder.setHeight(format.height)
       }
       if (format.channelCount != Format.NO_VALUE) {
-        builder.setChannelCount(format.channelCount);
+        builder.setChannelCount(format.channelCount)
       }
       if (format.sampleRate != Format.NO_VALUE) {
-        builder.setAudioSampleRate(format.sampleRate);
+        builder.setAudioSampleRate(format.sampleRate)
       }
       if (format.language != null) {
-        Pair<String, @NullableType String> languageAndRegion =
-            getLanguageAndRegion(format.language);
-        builder.setLanguage(languageAndRegion.first);
+        val languageAndRegion = getLanguageAndRegion(format.language!!)
+        builder.setLanguage(languageAndRegion.first)
         if (languageAndRegion.second != null) {
-          builder.setLanguageRegion(languageAndRegion.second);
+          builder.setLanguageRegion(languageAndRegion.second)
         }
       }
-      if (format.frameRate != Format.NO_VALUE) {
-        builder.setVideoFrameRate(format.frameRate);
+      if (format.frameRate != Format.NO_VALUE.toFloat()) {
+        builder.setVideoFrameRate(format.frameRate)
       }
     } else {
-      builder.setTrackState(TrackChangeEvent.TRACK_STATE_OFF);
+      builder.setTrackState(TrackChangeEvent.TRACK_STATE_OFF)
     }
-    reportedEventsForCurrentSession = true;
-    playbackSession.reportTrackChangeEvent(builder.build());
+    reportedEventsForCurrentSession = true
+    playbackSession.reportTrackChangeEvent(builder.build())
   }
 
-  @RequiresNonNull("metricsBuilder")
-  private void maybeUpdateTimelineMetadata(
-      Timeline timeline, @Nullable MediaSource.MediaPeriodId mediaPeriodId) {
-    PlaybackMetrics.Builder metricsBuilder = this.metricsBuilder;
+  private fun maybeUpdateTimelineMetadata(
+      timeline: Timeline,
+      mediaPeriodId: MediaSource.MediaPeriodId?
+  ) {
+    val metricsBuilder = this.metricsBuilder ?: return
     if (mediaPeriodId == null) {
-      return;
+      return
     }
-    int periodIndex = timeline.getIndexOfPeriod(mediaPeriodId.periodUid);
+    val periodIndex = timeline.getIndexOfPeriod(mediaPeriodId.periodUid)
     if (periodIndex == C.INDEX_UNSET) {
-      return;
+      return
     }
-    timeline.getPeriod(periodIndex, period);
-    timeline.getWindow(period.windowIndex, window);
-    metricsBuilder.setStreamType(getStreamType(window.mediaItem));
-    if (window.durationUs != C.TIME_UNSET
-        && !window.isPlaceholder
-        && !window.isDynamic
-        && !window.isLive()) {
-      metricsBuilder.setMediaDurationMillis(window.getDurationMs());
+    timeline.getPeriod(periodIndex, period)
+    timeline.getWindow(period.windowIndex, window)
+    if (window.mediaItem != null) {
+      metricsBuilder.setStreamType(getStreamType(window.mediaItem!!))
+    }
+    if (window.durationUs != C.TIME_UNSET &&
+        !window.isPlaceholder &&
+        !window.isDynamic &&
+        !window.isLive()) {
+      metricsBuilder.setMediaDurationMillis(window.durationMs)
     }
     metricsBuilder.setPlaybackType(
-        window.isLive() ? PlaybackMetrics.PLAYBACK_TYPE_LIVE : PlaybackMetrics.PLAYBACK_TYPE_VOD);
-    reportedEventsForCurrentSession = true;
+        if (window.isLive()) PlaybackMetrics.PLAYBACK_TYPE_LIVE else PlaybackMetrics.PLAYBACK_TYPE_VOD)
+    reportedEventsForCurrentSession = true
   }
 
-  private void finishCurrentSession() {
+  private fun finishCurrentSession() {
+    val metricsBuilder = this.metricsBuilder
     if (metricsBuilder != null && reportedEventsForCurrentSession) {
-      metricsBuilder.setAudioUnderrunCount(audioUnderruns);
-      metricsBuilder.setVideoFramesDropped(droppedFrames);
-      metricsBuilder.setVideoFramesPlayed(playedFrames);
-      @Nullable Long networkTimeMs = bandwidthTimeMs.get(activeSessionId);
-      metricsBuilder.setNetworkTransferDurationMillis(networkTimeMs == null ? 0 : networkTimeMs);
+      metricsBuilder.setAudioUnderrunCount(audioUnderruns)
+      metricsBuilder.setVideoFramesDropped(droppedFrames)
+      metricsBuilder.setVideoFramesPlayed(playedFrames)
+      val networkTimeMs = bandwidthTimeMs[activeSessionId]
+      metricsBuilder.setNetworkTransferDurationMillis(networkTimeMs ?: 0)
       // TODO(b/181121847): Report localBytesRead. This requires additional callbacks or plumbing.
-      @Nullable Long networkBytes = bandwidthBytes.get(activeSessionId);
-      metricsBuilder.setNetworkBytesRead(networkBytes == null ? 0 : networkBytes);
+      val networkBytes = bandwidthBytes[activeSessionId]
+      metricsBuilder.setNetworkBytesRead(networkBytes ?: 0)
       // TODO(b/181121847): Detect stream sources mixed and local depending on localBytesRead.
       metricsBuilder.setStreamSource(
-          networkBytes != null && networkBytes > 0
-              ? PlaybackMetrics.STREAM_SOURCE_NETWORK
-              : PlaybackMetrics.STREAM_SOURCE_UNKNOWN);
-      playbackSession.reportPlaybackMetrics(metricsBuilder.build());
+          if (networkBytes != null && networkBytes > 0)
+            PlaybackMetrics.STREAM_SOURCE_NETWORK
+          else
+            PlaybackMetrics.STREAM_SOURCE_UNKNOWN)
+      playbackSession.reportPlaybackMetrics(metricsBuilder.build())
     }
-    metricsBuilder = null;
-    activeSessionId = null;
-    audioUnderruns = 0;
-    droppedFrames = 0;
-    playedFrames = 0;
-    currentVideoFormat = null;
-    currentAudioFormat = null;
-    currentTextFormat = null;
-    reportedEventsForCurrentSession = false;
+    this.metricsBuilder = null
+    activeSessionId = null
+    audioUnderruns = 0
+    droppedFrames = 0
+    playedFrames = 0
+    currentVideoFormat = null
+    currentAudioFormat = null
+    currentTextFormat = null
+    reportedEventsForCurrentSession = false
   }
 
-  private static int getTrackChangeReason(@C.SelectionReason int trackSelectionReason) {
-    switch (trackSelectionReason) {
-      case C.SELECTION_REASON_INITIAL:
-        return TrackChangeEvent.TRACK_CHANGE_REASON_INITIAL;
-      case C.SELECTION_REASON_ADAPTIVE:
-        return TrackChangeEvent.TRACK_CHANGE_REASON_ADAPTIVE;
-      case C.SELECTION_REASON_MANUAL:
-        return TrackChangeEvent.TRACK_CHANGE_REASON_MANUAL;
-      case C.SELECTION_REASON_TRICK_PLAY:
-      case C.SELECTION_REASON_UNKNOWN:
-      default:
-        return TrackChangeEvent.TRACK_CHANGE_REASON_OTHER;
-    }
-  }
+  private class ErrorInfo(val errorCode: Int, val subErrorCode: Int)
 
-  private static Pair<String, @NullableType String> getLanguageAndRegion(String languageCode) {
-    String[] parts = Util.split(languageCode, "-");
-    return Pair.create(parts[0], parts.length >= 2 ? parts[1] : null);
-  }
+  private class PendingFormatUpdate(
+      val format: Format,
+      val selectionReason: Int,
+      val sessionId: String
+  )
 
-  private static int getNetworkType(Context context) {
-    switch (NetworkTypeObserver.getInstance(context).getNetworkType()) {
-      case C.NETWORK_TYPE_WIFI:
-        return NetworkEvent.NETWORK_TYPE_WIFI;
-      case C.NETWORK_TYPE_2G:
-        return NetworkEvent.NETWORK_TYPE_2G;
-      case C.NETWORK_TYPE_3G:
-        return NetworkEvent.NETWORK_TYPE_3G;
-      case C.NETWORK_TYPE_4G:
-        return NetworkEvent.NETWORK_TYPE_4G;
-      case C.NETWORK_TYPE_5G_SA:
-        return NetworkEvent.NETWORK_TYPE_5G_SA;
-      case C.NETWORK_TYPE_5G_NSA:
-        return NetworkEvent.NETWORK_TYPE_5G_NSA;
-      case C.NETWORK_TYPE_ETHERNET:
-        return NetworkEvent.NETWORK_TYPE_ETHERNET;
-      case C.NETWORK_TYPE_OFFLINE:
-        return NetworkEvent.NETWORK_TYPE_OFFLINE;
-      case C.NETWORK_TYPE_UNKNOWN:
-        return NetworkEvent.NETWORK_TYPE_UNKNOWN;
-      default:
-        return NetworkEvent.NETWORK_TYPE_OTHER;
+  companion object {
+    /**
+     * Creates a media metrics listener.
+     *
+     * @param context A context.
+     * @return The [MediaMetricsListener], or null if the [Context.MEDIA_METRICS_SERVICE
+     *     media metrics service] isn't available.
+     */
+    @JvmStatic
+    fun create(context: Context): MediaMetricsListener? {
+      val mediaMetricsManager =
+          context.getSystemService(Context.MEDIA_METRICS_SERVICE) as MediaMetricsManager?
+      return if (mediaMetricsManager == null) null
+      else MediaMetricsListener(context, mediaMetricsManager.createPlaybackSession())
     }
-  }
 
-  private static int getStreamType(MediaItem mediaItem) {
-    if (mediaItem.localConfiguration == null) {
-      return PlaybackMetrics.STREAM_TYPE_UNKNOWN;
+    private fun getTrackChangeReason(trackSelectionReason: Int): Int {
+      return when (trackSelectionReason) {
+        C.SELECTION_REASON_INITIAL -> TrackChangeEvent.TRACK_CHANGE_REASON_INITIAL
+        C.SELECTION_REASON_ADAPTIVE -> TrackChangeEvent.TRACK_CHANGE_REASON_ADAPTIVE
+        C.SELECTION_REASON_MANUAL -> TrackChangeEvent.TRACK_CHANGE_REASON_MANUAL
+        C.SELECTION_REASON_TRICK_PLAY, C.SELECTION_REASON_UNKNOWN ->
+          TrackChangeEvent.TRACK_CHANGE_REASON_OTHER
+        else -> TrackChangeEvent.TRACK_CHANGE_REASON_OTHER
+      }
     }
-    @ContentType
-    int contentType =
-        Util.inferContentTypeForUriAndMimeType(
-            mediaItem.localConfiguration.uri, mediaItem.localConfiguration.mimeType);
-    switch (contentType) {
-      case C.CONTENT_TYPE_HLS:
-        return PlaybackMetrics.STREAM_TYPE_HLS;
-      case C.CONTENT_TYPE_DASH:
-        return PlaybackMetrics.STREAM_TYPE_DASH;
-      case C.CONTENT_TYPE_SS:
-        return PlaybackMetrics.STREAM_TYPE_SS;
-      case C.CONTENT_TYPE_RTSP:
-      default:
-        return PlaybackMetrics.STREAM_TYPE_OTHER;
-    }
-  }
 
-  private static ErrorInfo getErrorInfo(
-      PlaybackException error, Context context, boolean lastIoErrorForManifest) {
-    if (error.errorCode == PlaybackException.ERROR_CODE_REMOTE_ERROR) {
-      return new ErrorInfo(PlaybackErrorEvent.ERROR_PLAYER_REMOTE, /* subErrorCode= */ 0);
+    private fun getLanguageAndRegion(languageCode: String): Pair<String, String?> {
+      val parts = Util.split(languageCode, "-")
+      return Pair.create(parts[0], if (parts.size >= 2) parts[1] else null)
     }
-    // Unpack the PlaybackException.
-    // TODO(b/190203080): Use error codes instead of the Exception's cause where possible.
-    boolean isRendererExoPlaybackException = false;
-    int rendererFormatSupport = C.FORMAT_UNSUPPORTED_TYPE;
-    if (error instanceof ExoPlaybackException) {
-      ExoPlaybackException exoPlaybackException = (ExoPlaybackException) error;
-      isRendererExoPlaybackException =
-          exoPlaybackException.type == ExoPlaybackException.TYPE_RENDERER;
-      rendererFormatSupport = exoPlaybackException.rendererFormatSupport;
+
+    private fun getNetworkType(context: Context): Int {
+      val networkTypeObserver = NetworkTypeObserver.getInstance(context)
+      return when (networkTypeObserver!!.getNetworkType()) {
+        C.NETWORK_TYPE_WIFI -> NetworkEvent.NETWORK_TYPE_WIFI
+        C.NETWORK_TYPE_2G -> NetworkEvent.NETWORK_TYPE_2G
+        C.NETWORK_TYPE_3G -> NetworkEvent.NETWORK_TYPE_3G
+        C.NETWORK_TYPE_4G -> NetworkEvent.NETWORK_TYPE_4G
+        C.NETWORK_TYPE_5G_SA -> NetworkEvent.NETWORK_TYPE_5G_SA
+        C.NETWORK_TYPE_5G_NSA -> NetworkEvent.NETWORK_TYPE_5G_NSA
+        C.NETWORK_TYPE_ETHERNET -> NetworkEvent.NETWORK_TYPE_ETHERNET
+        C.NETWORK_TYPE_OFFLINE -> NetworkEvent.NETWORK_TYPE_OFFLINE
+        C.NETWORK_TYPE_UNKNOWN -> NetworkEvent.NETWORK_TYPE_UNKNOWN
+        else -> NetworkEvent.NETWORK_TYPE_OTHER
+      }
     }
-    Throwable cause = checkNotNull(error.getCause());
-    if (cause instanceof IOException) {
-      if (cause instanceof HttpDataSource.InvalidResponseCodeException) {
-        int responseCode = ((HttpDataSource.InvalidResponseCodeException) cause).responseCode;
-        return new ErrorInfo(
-            PlaybackErrorEvent.ERROR_IO_BAD_HTTP_STATUS, /* subErrorCode= */ responseCode);
-      } else if (cause instanceof HttpDataSource.InvalidContentTypeException
-          || cause instanceof ParserException) {
-        return new ErrorInfo(
-            lastIoErrorForManifest
-                ? PlaybackErrorEvent.ERROR_PARSING_MANIFEST_MALFORMED
-                : PlaybackErrorEvent.ERROR_PARSING_CONTAINER_MALFORMED,
-            /* subErrorCode= */ 0);
-      } else if (cause instanceof HttpDataSource.HttpDataSourceException
-          || cause instanceof UdpDataSource.UdpDataSourceException) {
-        if (NetworkTypeObserver.getInstance(context).getNetworkType() == C.NETWORK_TYPE_OFFLINE) {
-          return new ErrorInfo(
-              PlaybackErrorEvent.ERROR_IO_NETWORK_UNAVAILABLE, /* subErrorCode= */ 0);
-        } else {
-          @Nullable Throwable detailedCause = cause.getCause();
-          if (detailedCause instanceof UnknownHostException) {
-            return new ErrorInfo(PlaybackErrorEvent.ERROR_IO_DNS_FAILED, /* subErrorCode= */ 0);
-          } else if (detailedCause instanceof SocketTimeoutException) {
-            return new ErrorInfo(
-                PlaybackErrorEvent.ERROR_IO_CONNECTION_TIMEOUT, /* subErrorCode= */ 0);
-          } else if (cause instanceof HttpDataSource.HttpDataSourceException
-              && ((HttpDataSource.HttpDataSourceException) cause).type
-                  == HttpDataSource.HttpDataSourceException.TYPE_OPEN) {
-            return new ErrorInfo(
-                PlaybackErrorEvent.ERROR_IO_NETWORK_CONNECTION_FAILED, /* subErrorCode= */ 0);
+
+    private fun getStreamType(mediaItem: MediaItem): Int {
+      val localConfiguration = mediaItem.localConfiguration
+          ?: return PlaybackMetrics.STREAM_TYPE_UNKNOWN
+      @ContentType
+      val contentType =
+          Util.inferContentTypeForUriAndMimeType(
+              localConfiguration.uri, localConfiguration.mimeType)
+      return when (contentType) {
+        C.CONTENT_TYPE_HLS -> PlaybackMetrics.STREAM_TYPE_HLS
+        C.CONTENT_TYPE_DASH -> PlaybackMetrics.STREAM_TYPE_DASH
+        C.CONTENT_TYPE_SS -> PlaybackMetrics.STREAM_TYPE_SS
+        C.CONTENT_TYPE_RTSP -> PlaybackMetrics.STREAM_TYPE_OTHER
+        else -> PlaybackMetrics.STREAM_TYPE_OTHER
+      }
+    }
+
+    private fun getErrorInfo(
+        error: PlaybackException,
+        context: Context,
+        lastIoErrorForManifest: Boolean
+    ): ErrorInfo {
+      if (error.errorCode == PlaybackException.ERROR_CODE_REMOTE_ERROR) {
+        return ErrorInfo(PlaybackErrorEvent.ERROR_PLAYER_REMOTE, /* subErrorCode= */ 0)
+      }
+      // Unpack the PlaybackException.
+      // TODO(b/190203080): Use error codes instead of the Exception's cause where possible.
+      var isRendererExoPlaybackException = false
+      var rendererFormatSupport = C.FORMAT_UNSUPPORTED_TYPE
+      if (error is ExoPlaybackException) {
+        isRendererExoPlaybackException =
+            error.type == ExoPlaybackException.TYPE_RENDERER
+        rendererFormatSupport = error.rendererFormatSupport
+      }
+      var cause: Throwable = error.cause ?: return ErrorInfo(PlaybackErrorEvent.ERROR_PLAYER_OTHER, 0)
+      if (cause is IOException) {
+        if (cause is HttpDataSource.InvalidResponseCodeException) {
+          val responseCode = cause.responseCode
+          return ErrorInfo(
+              PlaybackErrorEvent.ERROR_IO_BAD_HTTP_STATUS, /* subErrorCode= */ responseCode)
+        } else if (cause is HttpDataSource.InvalidContentTypeException || cause is ParserException) {
+          return ErrorInfo(
+              if (lastIoErrorForManifest)
+                PlaybackErrorEvent.ERROR_PARSING_MANIFEST_MALFORMED
+              else
+                PlaybackErrorEvent.ERROR_PARSING_CONTAINER_MALFORMED,
+              /* subErrorCode= */ 0)
+        } else if (cause is HttpDataSource.HttpDataSourceException ||
+            cause is UdpDataSource.UdpDataSourceException) {
+          if (NetworkTypeObserver.getInstance(context)!!.getNetworkType() == C.NETWORK_TYPE_OFFLINE) {
+            return ErrorInfo(
+                PlaybackErrorEvent.ERROR_IO_NETWORK_UNAVAILABLE, /* subErrorCode= */ 0)
           } else {
-            return new ErrorInfo(
-                PlaybackErrorEvent.ERROR_IO_CONNECTION_CLOSED, /* subErrorCode= */ 0);
+            val detailedCause = cause.cause
+            if (detailedCause is UnknownHostException) {
+              return ErrorInfo(PlaybackErrorEvent.ERROR_IO_DNS_FAILED, /* subErrorCode= */ 0)
+            } else if (detailedCause is SocketTimeoutException) {
+              return ErrorInfo(
+                  PlaybackErrorEvent.ERROR_IO_CONNECTION_TIMEOUT, /* subErrorCode= */ 0)
+            } else if (cause is HttpDataSource.HttpDataSourceException &&
+                cause.type == HttpDataSource.HttpDataSourceException.TYPE_OPEN) {
+              return ErrorInfo(
+                  PlaybackErrorEvent.ERROR_IO_NETWORK_CONNECTION_FAILED, /* subErrorCode= */ 0)
+            } else {
+              return ErrorInfo(
+                  PlaybackErrorEvent.ERROR_IO_CONNECTION_CLOSED, /* subErrorCode= */ 0)
+            }
           }
-        }
-      } else if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
-        return new ErrorInfo(
-            PlaybackErrorEvent.ERROR_PLAYER_BEHIND_LIVE_WINDOW, /* subErrorCode= */ 0);
-      } else if (cause instanceof DrmSession.DrmSessionException) {
-        // Unpack DrmSessionException.
-        cause = checkNotNull(cause.getCause());
-        if (Util.SDK_INT >= 21 && cause instanceof MediaDrm.MediaDrmStateException) {
-          String diagnosticsInfo = ((MediaDrm.MediaDrmStateException) cause).getDiagnosticInfo();
-          int subErrorCode = Util.getErrorCodeFromPlatformDiagnosticsInfo(diagnosticsInfo);
-          int errorCode = getDrmErrorCode(subErrorCode);
-          return new ErrorInfo(errorCode, subErrorCode);
-        } else if (Util.SDK_INT >= 23 && cause instanceof MediaDrmResetException) {
-          return new ErrorInfo(PlaybackErrorEvent.ERROR_DRM_SYSTEM_ERROR, /* subErrorCode= */ 0);
-        } else if (Util.SDK_INT >= 18 && cause instanceof NotProvisionedException) {
-          return new ErrorInfo(
-              PlaybackErrorEvent.ERROR_DRM_PROVISIONING_FAILED, /* subErrorCode= */ 0);
-        } else if (Util.SDK_INT >= 18 && cause instanceof DeniedByServerException) {
-          return new ErrorInfo(PlaybackErrorEvent.ERROR_DRM_DEVICE_REVOKED, /* subErrorCode= */ 0);
-        } else if (cause instanceof UnsupportedDrmException) {
-          return new ErrorInfo(
-              PlaybackErrorEvent.ERROR_DRM_SCHEME_UNSUPPORTED, /* subErrorCode= */ 0);
-        } else if (cause instanceof DefaultDrmSessionManager.MissingSchemeDataException) {
-          return new ErrorInfo(PlaybackErrorEvent.ERROR_DRM_CONTENT_ERROR, /* subErrorCode= */ 0);
+        } else if (error.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+          return ErrorInfo(
+              PlaybackErrorEvent.ERROR_PLAYER_BEHIND_LIVE_WINDOW, /* subErrorCode= */ 0)
+        } else if (cause is DrmSession.DrmSessionException) {
+          // Unpack DrmSessionException.
+          cause = cause.cause ?: return ErrorInfo(PlaybackErrorEvent.ERROR_DRM_OTHER, 0)
+          if (Util.SDK_INT >= 21 && cause is MediaDrm.MediaDrmStateException) {
+            val diagnosticsInfo = cause.diagnosticInfo
+            val subErrorCode = Util.getErrorCodeFromPlatformDiagnosticsInfo(diagnosticsInfo)
+            val errorCode = getDrmErrorCode(subErrorCode)
+            return ErrorInfo(errorCode, subErrorCode)
+          } else if (Util.SDK_INT >= 23 && cause is MediaDrmResetException) {
+            return ErrorInfo(PlaybackErrorEvent.ERROR_DRM_SYSTEM_ERROR, /* subErrorCode= */ 0)
+          } else if (Util.SDK_INT >= 18 && cause is NotProvisionedException) {
+            return ErrorInfo(
+                PlaybackErrorEvent.ERROR_DRM_PROVISIONING_FAILED, /* subErrorCode= */ 0)
+          } else if (Util.SDK_INT >= 18 && cause is DeniedByServerException) {
+            return ErrorInfo(PlaybackErrorEvent.ERROR_DRM_DEVICE_REVOKED, /* subErrorCode= */ 0)
+          } else if (cause is UnsupportedDrmException) {
+            return ErrorInfo(
+                PlaybackErrorEvent.ERROR_DRM_SCHEME_UNSUPPORTED, /* subErrorCode= */ 0)
+          } else if (cause is DefaultDrmSessionManager.MissingSchemeDataException) {
+            return ErrorInfo(PlaybackErrorEvent.ERROR_DRM_CONTENT_ERROR, /* subErrorCode= */ 0)
+          } else {
+            return ErrorInfo(PlaybackErrorEvent.ERROR_DRM_OTHER, /* subErrorCode= */ 0)
+          }
+        } else if (cause is FileDataSource.FileDataSourceException &&
+            cause.cause is FileNotFoundException) {
+          val fileNotFoundException = cause.cause as FileNotFoundException
+          val notFoundCause = fileNotFoundException.cause
+          if (Util.SDK_INT >= 21 &&
+              notFoundCause is ErrnoException &&
+              notFoundCause.errno == OsConstants.EACCES) {
+            return ErrorInfo(PlaybackErrorEvent.ERROR_IO_NO_PERMISSION, /* subErrorCode= */ 0)
+          } else {
+            return ErrorInfo(PlaybackErrorEvent.ERROR_IO_FILE_NOT_FOUND, /* subErrorCode= */ 0)
+          }
         } else {
-          return new ErrorInfo(PlaybackErrorEvent.ERROR_DRM_OTHER, /* subErrorCode= */ 0);
+          return ErrorInfo(PlaybackErrorEvent.ERROR_IO_OTHER, /* subErrorCode= */ 0)
         }
-      } else if (cause instanceof FileDataSource.FileDataSourceException
-          && cause.getCause() instanceof FileNotFoundException) {
-        @Nullable Throwable notFoundCause = checkNotNull(cause.getCause()).getCause();
-        if (Util.SDK_INT >= 21
-            && notFoundCause instanceof ErrnoException
-            && ((ErrnoException) notFoundCause).errno == OsConstants.EACCES) {
-          return new ErrorInfo(PlaybackErrorEvent.ERROR_IO_NO_PERMISSION, /* subErrorCode= */ 0);
-        } else {
-          return new ErrorInfo(PlaybackErrorEvent.ERROR_IO_FILE_NOT_FOUND, /* subErrorCode= */ 0);
-        }
+      } else if (isRendererExoPlaybackException &&
+          (rendererFormatSupport == C.FORMAT_UNSUPPORTED_TYPE ||
+              rendererFormatSupport == C.FORMAT_UNSUPPORTED_SUBTYPE)) {
+        return ErrorInfo(
+            PlaybackErrorEvent.ERROR_DECODING_FORMAT_UNSUPPORTED, /* subErrorCode= */ 0)
+      } else if (isRendererExoPlaybackException &&
+          rendererFormatSupport == C.FORMAT_EXCEEDS_CAPABILITIES) {
+        return ErrorInfo(
+            PlaybackErrorEvent.ERROR_DECODING_FORMAT_EXCEEDS_CAPABILITIES, /* subErrorCode= */ 0)
+      } else if (isRendererExoPlaybackException &&
+          rendererFormatSupport == C.FORMAT_UNSUPPORTED_DRM) {
+        return ErrorInfo(PlaybackErrorEvent.ERROR_DRM_SCHEME_UNSUPPORTED, /* subErrorCode= */ 0)
+      } else if (cause is MediaCodecRenderer.DecoderInitializationException) {
+        val diagnosticsInfo = cause.diagnosticInfo
+        val subErrorCode = Util.getErrorCodeFromPlatformDiagnosticsInfo(diagnosticsInfo)
+        return ErrorInfo(PlaybackErrorEvent.ERROR_DECODER_INIT_FAILED, subErrorCode)
+      } else if (cause is MediaCodecDecoderException) {
+        val diagnosticsInfo = cause.diagnosticInfo
+        val subErrorCode = Util.getErrorCodeFromPlatformDiagnosticsInfo(diagnosticsInfo)
+        return ErrorInfo(PlaybackErrorEvent.ERROR_DECODING_FAILED, subErrorCode)
+      } else if (cause is OutOfMemoryError) {
+        return ErrorInfo(PlaybackErrorEvent.ERROR_DECODING_FAILED, /* subErrorCode= */ 0)
+      } else if (cause is AudioSink.InitializationException) {
+        val subErrorCode = cause.audioTrackState
+        return ErrorInfo(PlaybackErrorEvent.ERROR_AUDIO_TRACK_INIT_FAILED, subErrorCode)
+      } else if (cause is AudioSink.WriteException) {
+        val subErrorCode = cause.errorCode
+        return ErrorInfo(PlaybackErrorEvent.ERROR_AUDIO_TRACK_WRITE_FAILED, subErrorCode)
+      } else if (Util.SDK_INT >= 16 && cause is MediaCodec.CryptoException) {
+        val subErrorCode = cause.errorCode
+        val errorCode = getDrmErrorCode(subErrorCode)
+        return ErrorInfo(errorCode, subErrorCode)
       } else {
-        return new ErrorInfo(PlaybackErrorEvent.ERROR_IO_OTHER, /* subErrorCode= */ 0);
+        return ErrorInfo(PlaybackErrorEvent.ERROR_PLAYER_OTHER, /* subErrorCode= */ 0)
       }
-    } else if (isRendererExoPlaybackException
-        && (rendererFormatSupport == C.FORMAT_UNSUPPORTED_TYPE
-            || rendererFormatSupport == C.FORMAT_UNSUPPORTED_SUBTYPE)) {
-      return new ErrorInfo(
-          PlaybackErrorEvent.ERROR_DECODING_FORMAT_UNSUPPORTED, /* subErrorCode= */ 0);
-    } else if (isRendererExoPlaybackException
-        && rendererFormatSupport == C.FORMAT_EXCEEDS_CAPABILITIES) {
-      return new ErrorInfo(
-          PlaybackErrorEvent.ERROR_DECODING_FORMAT_EXCEEDS_CAPABILITIES, /* subErrorCode= */ 0);
-    } else if (isRendererExoPlaybackException
-        && rendererFormatSupport == C.FORMAT_UNSUPPORTED_DRM) {
-      return new ErrorInfo(PlaybackErrorEvent.ERROR_DRM_SCHEME_UNSUPPORTED, /* subErrorCode= */ 0);
-    } else if (cause instanceof MediaCodecRenderer.DecoderInitializationException) {
-      @Nullable
-      String diagnosticsInfo =
-          ((MediaCodecRenderer.DecoderInitializationException) cause).diagnosticInfo;
-      int subErrorCode = Util.getErrorCodeFromPlatformDiagnosticsInfo(diagnosticsInfo);
-      return new ErrorInfo(PlaybackErrorEvent.ERROR_DECODER_INIT_FAILED, subErrorCode);
-    } else if (cause instanceof MediaCodecDecoderException) {
-      @Nullable String diagnosticsInfo = ((MediaCodecDecoderException) cause).diagnosticInfo;
-      int subErrorCode = Util.getErrorCodeFromPlatformDiagnosticsInfo(diagnosticsInfo);
-      return new ErrorInfo(PlaybackErrorEvent.ERROR_DECODING_FAILED, subErrorCode);
-    } else if (cause instanceof OutOfMemoryError) {
-      return new ErrorInfo(PlaybackErrorEvent.ERROR_DECODING_FAILED, /* subErrorCode= */ 0);
-    } else if (cause instanceof AudioSink.InitializationException) {
-      int subErrorCode = ((AudioSink.InitializationException) cause).audioTrackState;
-      return new ErrorInfo(PlaybackErrorEvent.ERROR_AUDIO_TRACK_INIT_FAILED, subErrorCode);
-    } else if (cause instanceof AudioSink.WriteException) {
-      int subErrorCode = ((AudioSink.WriteException) cause).errorCode;
-      return new ErrorInfo(PlaybackErrorEvent.ERROR_AUDIO_TRACK_WRITE_FAILED, subErrorCode);
-    } else if (Util.SDK_INT >= 16 && cause instanceof MediaCodec.CryptoException) {
-      int subErrorCode = ((MediaCodec.CryptoException) cause).getErrorCode();
-      int errorCode = getDrmErrorCode(subErrorCode);
-      return new ErrorInfo(errorCode, subErrorCode);
-    } else {
-      return new ErrorInfo(PlaybackErrorEvent.ERROR_PLAYER_OTHER, /* subErrorCode= */ 0);
     }
-  }
 
-  @Nullable
-  private static DrmInitData getDrmInitData(ImmutableList<Tracks.Group> trackGroups) {
-    for (Tracks.Group trackGroup : trackGroups) {
-      for (int trackIndex = 0; trackIndex < trackGroup.length; trackIndex++) {
-        if (trackGroup.isTrackSelected(trackIndex)) {
-          @Nullable DrmInitData drmInitData = trackGroup.getTrackFormat(trackIndex).drmInitData;
-          if (drmInitData != null) {
-            return drmInitData;
+    private fun getDrmInitData(trackGroups: ImmutableList<Tracks.Group>): DrmInitData? {
+      for (trackGroup in trackGroups) {
+        for (trackIndex in 0 until trackGroup.length) {
+          if (trackGroup.isTrackSelected(trackIndex)) {
+            val trackFormat = trackGroup.getTrackFormat(trackIndex)
+            val drmInitData = trackFormat?.drmInitData
+            if (drmInitData != null) {
+              return drmInitData
+            }
           }
         }
       }
+      return null
     }
-    return null;
-  }
 
-  private static int getDrmType(DrmInitData drmInitData) {
-    for (int i = 0; i < drmInitData.schemeDataCount; i++) {
-      UUID uuid = drmInitData.get(i).uuid;
-      if (uuid.equals(C.WIDEVINE_UUID)) {
-        // TODO(b/77625596): Forward MediaDrm metrics to distinguish between L1 and L3 and to set
-        //  the drm session id.
-        return PlaybackMetrics.DRM_TYPE_WIDEVINE_L1;
+    private fun getDrmType(drmInitData: DrmInitData): Int {
+      for (i in 0 until drmInitData.schemeDataCount) {
+        val uuid = drmInitData.get(i).uuid
+        if (uuid == C.WIDEVINE_UUID) {
+          // TODO(b/77625596): Forward MediaDrm metrics to distinguish between L1 and L3 and to set
+          //  the drm session id.
+          return PlaybackMetrics.DRM_TYPE_WIDEVINE_L1
+        }
+        if (uuid == C.PLAYREADY_UUID) {
+          return PlaybackMetrics.DRM_TYPE_PLAY_READY
+        }
+        if (uuid == C.CLEARKEY_UUID) {
+          return PlaybackMetrics.DRM_TYPE_CLEARKEY
+        }
       }
-      if (uuid.equals(C.PLAYREADY_UUID)) {
-        return PlaybackMetrics.DRM_TYPE_PLAY_READY;
+      return PlaybackMetrics.DRM_TYPE_OTHER
+    }
+
+    @SuppressLint("SwitchIntDef") // Only DRM error codes are relevant here.
+    private fun getDrmErrorCode(mediaDrmErrorCode: Int): Int {
+      return when (Util.getErrorCodeForMediaDrmErrorCode(mediaDrmErrorCode)) {
+        PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED ->
+          PlaybackErrorEvent.ERROR_DRM_PROVISIONING_FAILED
+        PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED ->
+          PlaybackErrorEvent.ERROR_DRM_LICENSE_ACQUISITION_FAILED
+        PlaybackException.ERROR_CODE_DRM_DISALLOWED_OPERATION ->
+          PlaybackErrorEvent.ERROR_DRM_DISALLOWED_OPERATION
+        PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR ->
+          PlaybackErrorEvent.ERROR_DRM_CONTENT_ERROR
+        PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR ->
+          PlaybackErrorEvent.ERROR_DRM_SYSTEM_ERROR
+        else -> PlaybackErrorEvent.ERROR_DRM_SYSTEM_ERROR
       }
-      if (uuid.equals(C.CLEARKEY_UUID)) {
-        return PlaybackMetrics.DRM_TYPE_CLEARKEY;
-      }
-    }
-    return PlaybackMetrics.DRM_TYPE_OTHER;
-  }
-
-  @SuppressLint("SwitchIntDef") // Only DRM error codes are relevant here.
-  private static int getDrmErrorCode(int mediaDrmErrorCode) {
-    switch (Util.getErrorCodeForMediaDrmErrorCode(mediaDrmErrorCode)) {
-      case PlaybackException.ERROR_CODE_DRM_PROVISIONING_FAILED:
-        return PlaybackErrorEvent.ERROR_DRM_PROVISIONING_FAILED;
-      case PlaybackException.ERROR_CODE_DRM_LICENSE_ACQUISITION_FAILED:
-        return PlaybackErrorEvent.ERROR_DRM_LICENSE_ACQUISITION_FAILED;
-      case PlaybackException.ERROR_CODE_DRM_DISALLOWED_OPERATION:
-        return PlaybackErrorEvent.ERROR_DRM_DISALLOWED_OPERATION;
-      case PlaybackException.ERROR_CODE_DRM_CONTENT_ERROR:
-        return PlaybackErrorEvent.ERROR_DRM_CONTENT_ERROR;
-      case PlaybackException.ERROR_CODE_DRM_SYSTEM_ERROR:
-      default:
-        return PlaybackErrorEvent.ERROR_DRM_SYSTEM_ERROR;
-    }
-  }
-
-  private static final class ErrorInfo {
-
-    public final int errorCode;
-    public final int subErrorCode;
-
-    public ErrorInfo(int errorCode, int subErrorCode) {
-      this.errorCode = errorCode;
-      this.subErrorCode = subErrorCode;
-    }
-  }
-
-  private static final class PendingFormatUpdate {
-
-    public final Format format;
-    public final @C.SelectionReason int selectionReason;
-    public final String sessionId;
-
-    public PendingFormatUpdate(
-        Format format, @C.SelectionReason int selectionReason, String sessionId) {
-      this.format = format;
-      this.selectionReason = selectionReason;
-      this.sessionId = sessionId;
     }
   }
 }

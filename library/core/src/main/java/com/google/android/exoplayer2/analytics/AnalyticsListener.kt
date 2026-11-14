@@ -34,7 +34,7 @@ import com.google.android.exoplayer2.text.CueGroup
 import com.google.android.exoplayer2.trackselection.TrackSelectionParameters
 import com.google.android.exoplayer2.util.FlagSet
 import com.google.android.exoplayer2.video.VideoSize
-import com.google.android.exoplayer2import.DeviceInfo
+import com.google.android.exoplayer2.DeviceInfo
 import com.google.common.base.Objects
 import java.io.IOException
 import java.lang.annotation.Documented

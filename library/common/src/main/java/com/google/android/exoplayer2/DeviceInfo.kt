@@ -13,17 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2import
+package com.google.android.exoplayer2
 
 import android.os.Bundle
-import com.google.android.exoplayer2.Bundleable
-import com.google.android.exoplayer2.DeviceInfo
-import com.google.android.exoplayer2.DeviceInfo.PlaybackType
-import java.lang.annotation.Documented
-import java.lang.annotation.Retention
-import java.lang.annotation.RetentionPolicy
-
-androidx.annotation .IntDef
+import androidx.annotation.IntDef
 import com.google.android.exoplayer2.ui.AdOverlayInfo
 import android.view.ViewGroup
 import com.google.common.collect.ImmutableList
@@ -220,11 +213,10 @@ class DeviceInfo
         /** The maximum volume that the device supports.  */
         val maxVolume: Int) : Bundleable {
     /** Types of playback. One of [.PLAYBACK_TYPE_LOCAL] or [.PLAYBACK_TYPE_REMOTE].  */
-    @Documented
-    @Retention(RetentionPolicy.SOURCE)
-    @Target(TYPE_USE)
-    @IntDef([DeviceInfo.Companion.PLAYBACK_TYPE_LOCAL, DeviceInfo.Companion.PLAYBACK_TYPE_REMOTE])
-    annotation class PlaybackType constructor()
+    @Retention(AnnotationRetention.SOURCE)
+    @Target(AnnotationTarget.TYPE_PARAMETER, AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER)
+    @IntDef(PLAYBACK_TYPE_LOCAL, PLAYBACK_TYPE_REMOTE)
+    annotation class PlaybackType
 
     public override fun equals(obj: Any?): Boolean {
         if (this === obj) {

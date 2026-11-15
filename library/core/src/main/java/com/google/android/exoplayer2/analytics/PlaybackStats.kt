@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2019 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 ( his "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -13,167 +13,241 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.analytics;
+package com.google.android.exoplayer2.analytics
 
-import static java.lang.Math.max;
-import static java.lang.Math.min;
-import static java.lang.annotation.ElementType.TYPE_USE;
-
-import android.os.SystemClock;
-import androidx.annotation.IntDef;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.analytics.AnalyticsListener.EventTime;
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-import java.util.Collections;
-import java.util.List;
+import android.os.SystemClock
+import androidx.annotation.IntDef
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.analytics.AnalyticsListener.EventTime
+import kotlin.math.max
+import kotlin.math.min
 
 /** Statistics about playbacks. */
-public final class PlaybackStats {
+class PlaybackStats internal constructor(
+  /** The number of individual playbacks for which these stats were collected. */
+  @JvmField val playbackCount: Int,
+  private val playbackStateDurationsMs: LongArray,
+  /**
+   * The playback state history as [EventTimeAndPlaybackState]
+   * ordered by `EventTime.realTimeMs`.
+   */
+  @JvmField val playbackStateHistory: List<EventTimeAndPlaybackState>,
+  /**
+   * The media time history as an ordered list of long[2] arrays with [0] being the realtime as
+   * returned by `SystemClock.elapsedRealtime()` and [1] being the media time at this
+   * realtime, in milliseconds.
+   */
+  @JvmField val mediaTimeHistory: List<LongArray>,
+  /**
+   * The elapsed real-time as returned by `SystemClock.elapsedRealtime()` of the first
+   * reported playback event, or [C.TIME_UNSET] if no event has been reported.
+   */
+  @JvmField val firstReportedTimeMs: Long,
+  /** The number of playbacks which were the active foreground playback at some point. */
+  @JvmField val foregroundPlaybackCount: Int,
+  /** The number of playbacks which were abandoned before they were ready to play. */
+  @JvmField val abandonedBeforeReadyCount: Int,
+  /** The number of playbacks which reached the ended state at least once. */
+  @JvmField val endedCount: Int,
+  /** The number of playbacks which were pre-buffered in the background. */
+  @JvmField val backgroundJoiningCount: Int,
+  /**
+   * The total time spent joining the playback, in milliseconds, or [C.TIME_UNSET] if no valid
+   * join time could be determined.
+   *
+   * Note that this does not include background joining time. A join time may be invalid if the
+   * playback never reached [PLAYBACK_STATE_PLAYING] or [PLAYBACK_STATE_PAUSED], or
+   * joining was interrupted by a seek, stop, or error state.
+   */
+  @JvmField val totalValidJoinTimeMs: Long,
+  /**
+   * The number of playbacks with a valid join time as documented in [totalValidJoinTimeMs].
+   */
+  @JvmField val validJoinTimeCount: Int,
+  /** The total number of times a playback has been paused. */
+  @JvmField val totalPauseCount: Int,
+  /** The total number of times a playback has been paused while rebuffering. */
+  @JvmField val totalPauseBufferCount: Int,
+  /**
+   * The total number of times a seek occurred. This includes seeks happening before playback
+   * resumed after another seek.
+   */
+  @JvmField val totalSeekCount: Int,
+  /**
+   * The total number of times a rebuffer occurred. This excludes initial joining and buffering
+   * after seek.
+   */
+  @JvmField val totalRebufferCount: Int,
+  /**
+   * The maximum time spent during a single rebuffer, in milliseconds, or [C.TIME_UNSET] if no
+   * rebuffer occurred.
+   */
+  @JvmField val maxRebufferTimeMs: Long,
+  /** The number of ad playbacks. */
+  @JvmField val adPlaybackCount: Int,
+  /**
+   * The video format history as [EventTimeAndFormat] ordered by `EventTime.realTimeMs`.
+   * The [Format] may be null if no video format was used.
+   */
+  @JvmField val videoFormatHistory: List<EventTimeAndFormat>,
+  /**
+   * The audio format history as [EventTimeAndFormat] ordered by `EventTime.realTimeMs`.
+   * The [Format] may be null if no audio format was used.
+   */
+  @JvmField val audioFormatHistory: List<EventTimeAndFormat>,
+  /** The total media time for which video format height data is available, in milliseconds. */
+  @JvmField val totalVideoFormatHeightTimeMs: Long,
+  /**
+   * The accumulated sum of all video format heights, in pixels, times the time the format was used
+   * for playback, in milliseconds.
+   */
+  @JvmField val totalVideoFormatHeightTimeProduct: Long,
+  /** The total media time for which video format bitrate data is available, in milliseconds. */
+  @JvmField val totalVideoFormatBitrateTimeMs: Long,
+  /**
+   * The accumulated sum of all video format bitrates, in bits per second, times the time the format
+   * was used for playback, in milliseconds.
+   */
+  @JvmField val totalVideoFormatBitrateTimeProduct: Long,
+  /** The total media time for which audio format data is available, in milliseconds. */
+  @JvmField val totalAudioFormatTimeMs: Long,
+  /**
+   * The accumulated sum of all audio format bitrates, in bits per second, times the time the format
+   * was used for playback, in milliseconds.
+   */
+  @JvmField val totalAudioFormatBitrateTimeProduct: Long,
+  /** The number of playbacks with initial video format height data. */
+  @JvmField val initialVideoFormatHeightCount: Int,
+  /** The number of playbacks with initial video format bitrate data. */
+  @JvmField val initialVideoFormatBitrateCount: Int,
+  /**
+   * The total initial video format height for all playbacks, in pixels, or [C.LENGTH_UNSET]
+   * if no initial video format data is available.
+   */
+  @JvmField val totalInitialVideoFormatHeight: Int,
+  /**
+   * The total initial video format bitrate for all playbacks, in bits per second, or
+   * [C.LENGTH_UNSET] if no initial video format data is available.
+   */
+  @JvmField val totalInitialVideoFormatBitrate: Long,
+  /** The number of playbacks with initial audio format bitrate data. */
+  @JvmField val initialAudioFormatBitrateCount: Int,
+  /**
+   * The total initial audio format bitrate for all playbacks, in bits per second, or
+   * [C.LENGTH_UNSET] if no initial audio format data is available.
+   */
+  @JvmField val totalInitialAudioFormatBitrate: Long,
+  /** The total time for which bandwidth measurement data is available, in milliseconds. */
+  @JvmField val totalBandwidthTimeMs: Long,
+  /** The total bytes transferred during [totalBandwidthTimeMs]. */
+  @JvmField val totalBandwidthBytes: Long,
+  /** The total number of dropped video frames. */
+  @JvmField val totalDroppedFrames: Long,
+  /** The total number of audio underruns. */
+  @JvmField val totalAudioUnderruns: Long,
+  /**
+   * The total number of playback with at least one fatal error. Errors are fatal if playback
+   * stopped due to this error.
+   */
+  @JvmField val fatalErrorPlaybackCount: Int,
+  /** The total number of fatal errors. Errors are fatal if playback stopped due to this error. */
+  @JvmField val fatalErrorCount: Int,
+  /**
+   * The total number of non-fatal errors. Error are non-fatal if playback can recover from the
+   * error without stopping.
+   */
+  @JvmField val nonFatalErrorCount: Int,
+  /**
+   * The history of fatal errors as [EventTimeAndException] ordered by `EventTime.realTimeMs`.
+   * Errors are fatal if playback stopped due to this error.
+   */
+  @JvmField val fatalErrorHistory: List<EventTimeAndException>,
+  /**
+   * The history of non-fatal errors as [EventTimeAndException] ordered by `EventTime.realTimeMs`.
+   * Errors are non-fatal if playback can recover from the error without stopping.
+   */
+  @JvmField val nonFatalErrorHistory: List<EventTimeAndException>
+) {
 
   /** Stores a playback state with the event time at which it became active. */
-  public static final class EventTimeAndPlaybackState {
+  class EventTimeAndPlaybackState(
     /** The event time at which the playback state became active. */
-    public final EventTime eventTime;
+    @JvmField val eventTime: EventTime,
     /** The playback state that became active. */
-    public final @PlaybackState int playbackState;
-
-    /**
-     * Creates a new timed playback state event.
-     *
-     * @param eventTime The event time at which the playback state became active.
-     * @param playbackState The playback state that became active.
-     */
-    public EventTimeAndPlaybackState(EventTime eventTime, @PlaybackState int playbackState) {
-      this.eventTime = eventTime;
-      this.playbackState = playbackState;
+    @JvmField @field:PlaybackState val playbackState: Int
+  ) {
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is EventTimeAndPlaybackState) return false
+      return playbackState == other.playbackState && eventTime == other.eventTime
     }
 
-    @Override
-    public boolean equals(@Nullable Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      EventTimeAndPlaybackState that = (EventTimeAndPlaybackState) o;
-      if (playbackState != that.playbackState) {
-        return false;
-      }
-      return eventTime.equals(that.eventTime);
-    }
-
-    @Override
-    public int hashCode() {
-      int result = eventTime.hashCode();
-      result = 31 * result + playbackState;
-      return result;
+    override fun hashCode(): Int {
+      var result = eventTime.hashCode()
+      result = 31 * result + playbackState
+      return result
     }
   }
 
   /**
-   * Stores a format with the event time at which it started being used, or {@code null} to indicate
+   * Stores a format with the event time at which it started being used, or `null` to indicate
    * that no format was used.
    */
-  public static final class EventTimeAndFormat {
-    /** The event time associated with {@link #format}. */
-    public final EventTime eventTime;
-    /** The format that started being used, or {@code null} if no format was used. */
-    @Nullable public final Format format;
-
-    /**
-     * Creates a new timed format event.
-     *
-     * @param eventTime The event time associated with {@code format}.
-     * @param format The format that started being used, or {@code null} if no format was used.
-     */
-    public EventTimeAndFormat(EventTime eventTime, @Nullable Format format) {
-      this.eventTime = eventTime;
-      this.format = format;
+  class EventTimeAndFormat(
+    /** The event time associated with [format]. */
+    @JvmField val eventTime: EventTime,
+    /** The format that started being used, or `null` if no format was used. */
+    @JvmField val format: Format?
+  ) {
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is EventTimeAndFormat) return false
+      if (eventTime != other.eventTime) return false
+      return format == other.format
     }
 
-    @Override
-    public boolean equals(@Nullable Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      EventTimeAndFormat that = (EventTimeAndFormat) o;
-      if (!eventTime.equals(that.eventTime)) {
-        return false;
-      }
-      return format != null ? format.equals(that.format) : that.format == null;
-    }
-
-    @Override
-    public int hashCode() {
-      int result = eventTime.hashCode();
-      result = 31 * result + (format != null ? format.hashCode() : 0);
-      return result;
+    override fun hashCode(): Int {
+      var result = eventTime.hashCode()
+      result = 31 * result + (format?.hashCode() ?: 0)
+      return result
     }
   }
 
   /** Stores an exception with the event time at which it occurred. */
-  public static final class EventTimeAndException {
+  class EventTimeAndException(
     /** The event time at which the exception occurred. */
-    public final EventTime eventTime;
+    @JvmField val eventTime: EventTime,
     /** The exception that was thrown. */
-    public final Exception exception;
-
-    /**
-     * Creates a new timed exception event.
-     *
-     * @param eventTime The event time at which the exception occurred.
-     * @param exception The exception that was thrown.
-     */
-    public EventTimeAndException(EventTime eventTime, Exception exception) {
-      this.eventTime = eventTime;
-      this.exception = exception;
+    @JvmField val exception: Exception
+  ) {
+    override fun equals(other: Any?): Boolean {
+      if (this === other) return true
+      if (other !is EventTimeAndException) return false
+      if (eventTime != other.eventTime) return false
+      return exception == other.exception
     }
 
-    @Override
-    public boolean equals(@Nullable Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      EventTimeAndException that = (EventTimeAndException) o;
-      if (!eventTime.equals(that.eventTime)) {
-        return false;
-      }
-      return exception.equals(that.exception);
-    }
-
-    @Override
-    public int hashCode() {
-      int result = eventTime.hashCode();
-      result = 31 * result + exception.hashCode();
-      return result;
+    override fun hashCode(): Int {
+      var result = eventTime.hashCode()
+      result = 31 * result + exception.hashCode()
+      return result
     }
   }
 
   /**
-   * State of a playback. One of {@link #PLAYBACK_STATE_NOT_STARTED}, {@link
-   * #PLAYBACK_STATE_JOINING_FOREGROUND}, {@link #PLAYBACK_STATE_JOINING_BACKGROUND}, {@link
-   * #PLAYBACK_STATE_PLAYING}, {@link #PLAYBACK_STATE_PAUSED}, {@link #PLAYBACK_STATE_SEEKING},
-   * {@link #PLAYBACK_STATE_BUFFERING}, {@link #PLAYBACK_STATE_PAUSED_BUFFERING}, {@link
-   * #PLAYBACK_STATE_SUPPRESSED}, {@link #PLAYBACK_STATE_SUPPRESSED_BUFFERING}, {@link
-   * #PLAYBACK_STATE_ENDED}, {@link #PLAYBACK_STATE_STOPPED}, {@link #PLAYBACK_STATE_FAILED}, {@link
-   * #PLAYBACK_STATE_INTERRUPTED_BY_AD} or {@link #PLAYBACK_STATE_ABANDONED}.
+   * State of a playback. One of [PLAYBACK_STATE_NOT_STARTED],
+   * [PLAYBACK_STATE_JOINING_FOREGROUND], [PLAYBACK_STATE_JOINING_BACKGROUND],
+   * [PLAYBACK_STATE_PLAYING], [PLAYBACK_STATE_PAUSED], [PLAYBACK_STATE_SEEKING],
+   * [PLAYBACK_STATE_BUFFERING], [PLAYBACK_STATE_PAUSED_BUFFERING],
+   * [PLAYBACK_STATE_SUPPRESSED], [PLAYBACK_STATE_SUPPRESSED_BUFFERING],
+   * [PLAYBACK_STATE_ENDED], [PLAYBACK_STATE_STOPPED], [PLAYBACK_STATE_FAILED],
+   * [PLAYBACK_STATE_INTERRUPTED_BY_AD] or [PLAYBACK_STATE_ABANDONED].
    */
-  @Documented
-  @Retention(RetentionPolicy.SOURCE)
-  @Target(TYPE_USE)
-  @IntDef({
+  @Target(AnnotationTarget.TYPE, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FIELD, AnnotationTarget.PROPERTY, AnnotationTarget.FUNCTION)
+  @Retention(AnnotationRetention.SOURCE)
+  @MustBeDocumented
+  @IntDef(
     PLAYBACK_STATE_NOT_STARTED,
     PLAYBACK_STATE_JOINING_BACKGROUND,
     PLAYBACK_STATE_JOINING_FOREGROUND,
@@ -189,604 +263,374 @@ public final class PlaybackStats {
     PLAYBACK_STATE_FAILED,
     PLAYBACK_STATE_INTERRUPTED_BY_AD,
     PLAYBACK_STATE_ABANDONED
-  })
-  @interface PlaybackState {}
-  /** Playback has not started (initial state). */
-  public static final int PLAYBACK_STATE_NOT_STARTED = 0;
-  /** Playback is buffering in the background for initial playback start. */
-  public static final int PLAYBACK_STATE_JOINING_BACKGROUND = 1;
-  /** Playback is buffering in the foreground for initial playback start. */
-  public static final int PLAYBACK_STATE_JOINING_FOREGROUND = 2;
-  /** Playback is actively playing. */
-  public static final int PLAYBACK_STATE_PLAYING = 3;
-  /** Playback is paused but ready to play. */
-  public static final int PLAYBACK_STATE_PAUSED = 4;
-  /** Playback is handling a seek. */
-  public static final int PLAYBACK_STATE_SEEKING = 5;
-  /** Playback is buffering to resume active playback. */
-  public static final int PLAYBACK_STATE_BUFFERING = 6;
-  /** Playback is buffering while paused. */
-  public static final int PLAYBACK_STATE_PAUSED_BUFFERING = 7;
-  /** Playback is suppressed (e.g. due to audio focus loss). */
-  public static final int PLAYBACK_STATE_SUPPRESSED = 9;
-  /** Playback is suppressed (e.g. due to audio focus loss) while buffering to resume a playback. */
-  public static final int PLAYBACK_STATE_SUPPRESSED_BUFFERING = 10;
-  /** Playback has reached the end of the media. */
-  public static final int PLAYBACK_STATE_ENDED = 11;
-  /** Playback is stopped and can be restarted. */
-  public static final int PLAYBACK_STATE_STOPPED = 12;
-  /** Playback is stopped due a fatal error and can be retried. */
-  public static final int PLAYBACK_STATE_FAILED = 13;
-  /** Playback is interrupted by an ad. */
-  public static final int PLAYBACK_STATE_INTERRUPTED_BY_AD = 14;
-  /** Playback is abandoned before reaching the end of the media. */
-  public static final int PLAYBACK_STATE_ABANDONED = 15;
-  /** Total number of playback states. */
-  /* package */ static final int PLAYBACK_STATE_COUNT = 16;
+  )
+  annotation class PlaybackState
 
-  /** Empty playback stats. */
-  public static final PlaybackStats EMPTY = merge(/* nothing */ );
+  companion object {
+    /** Playback has not started (initial state). */
+    const val PLAYBACK_STATE_NOT_STARTED = 0
 
-  /**
-   * Returns the combined {@link PlaybackStats} for all input {@link PlaybackStats}.
-   *
-   * <p>Note that the full history of events is not kept as the history only makes sense in the
-   * context of a single playback.
-   *
-   * @param playbackStats Array of {@link PlaybackStats} to combine.
-   * @return The combined {@link PlaybackStats}.
-   */
-  public static PlaybackStats merge(PlaybackStats... playbackStats) {
-    int playbackCount = 0;
-    long[] playbackStateDurationsMs = new long[PLAYBACK_STATE_COUNT];
-    long firstReportedTimeMs = C.TIME_UNSET;
-    int foregroundPlaybackCount = 0;
-    int abandonedBeforeReadyCount = 0;
-    int endedCount = 0;
-    int backgroundJoiningCount = 0;
-    long totalValidJoinTimeMs = C.TIME_UNSET;
-    int validJoinTimeCount = 0;
-    int totalPauseCount = 0;
-    int totalPauseBufferCount = 0;
-    int totalSeekCount = 0;
-    int totalRebufferCount = 0;
-    long maxRebufferTimeMs = C.TIME_UNSET;
-    int adPlaybackCount = 0;
-    long totalVideoFormatHeightTimeMs = 0;
-    long totalVideoFormatHeightTimeProduct = 0;
-    long totalVideoFormatBitrateTimeMs = 0;
-    long totalVideoFormatBitrateTimeProduct = 0;
-    long totalAudioFormatTimeMs = 0;
-    long totalAudioFormatBitrateTimeProduct = 0;
-    int initialVideoFormatHeightCount = 0;
-    int initialVideoFormatBitrateCount = 0;
-    int totalInitialVideoFormatHeight = C.LENGTH_UNSET;
-    long totalInitialVideoFormatBitrate = C.LENGTH_UNSET;
-    int initialAudioFormatBitrateCount = 0;
-    long totalInitialAudioFormatBitrate = C.LENGTH_UNSET;
-    long totalBandwidthTimeMs = 0;
-    long totalBandwidthBytes = 0;
-    long totalDroppedFrames = 0;
-    long totalAudioUnderruns = 0;
-    int fatalErrorPlaybackCount = 0;
-    int fatalErrorCount = 0;
-    int nonFatalErrorCount = 0;
-    for (PlaybackStats stats : playbackStats) {
-      playbackCount += stats.playbackCount;
-      for (int i = 0; i < PLAYBACK_STATE_COUNT; i++) {
-        playbackStateDurationsMs[i] += stats.playbackStateDurationsMs[i];
+    /** Playback is buffering in the background for initial playback start. */
+    const val PLAYBACK_STATE_JOINING_BACKGROUND = 1
+
+    /** Playback is buffering in the foreground for initial playback start. */
+    const val PLAYBACK_STATE_JOINING_FOREGROUND = 2
+
+    /** Playback is actively playing. */
+    const val PLAYBACK_STATE_PLAYING = 3
+
+    /** Playback is paused but ready to play. */
+    const val PLAYBACK_STATE_PAUSED = 4
+
+    /** Playback is handling a seek. */
+    const val PLAYBACK_STATE_SEEKING = 5
+
+    /** Playback is buffering to resume active playback. */
+    const val PLAYBACK_STATE_BUFFERING = 6
+
+    /** Playback is buffering while paused. */
+    const val PLAYBACK_STATE_PAUSED_BUFFERING = 7
+
+    /** Playback is suppressed (e.g. due to audio focus loss). */
+    const val PLAYBACK_STATE_SUPPRESSED = 9
+
+    /** Playback is suppressed (e.g. due to audio focus loss) while buffering to resume a playback. */
+    const val PLAYBACK_STATE_SUPPRESSED_BUFFERING = 10
+
+    /** Playback has reached the end of the media. */
+    const val PLAYBACK_STATE_ENDED = 11
+
+    /** Playback is stopped and can be restarted. */
+    const val PLAYBACK_STATE_STOPPED = 12
+
+    /** Playback is stopped due a fatal error and can be retried. */
+    const val PLAYBACK_STATE_FAILED = 13
+
+    /** Playback is interrupted by an ad. */
+    const val PLAYBACK_STATE_INTERRUPTED_BY_AD = 14
+
+    /** Playback is abandoned before reaching the end of the media. */
+    const val PLAYBACK_STATE_ABANDONED = 15
+
+    /** Total number of playback states. */
+    internal const val PLAYBACK_STATE_COUNT = 16
+
+    /** Empty playback stats. */
+    @JvmField
+    val EMPTY: PlaybackStats = merge()
+
+    /**
+     * Returns the combined [PlaybackStats] for all input [PlaybackStats].
+     *
+     * Note that the full history of events is not kept as the history only makes sense in the
+     * context of a single playback.
+     *
+     * @param playbackStats Array of [PlaybackStats] to combine.
+     * @return The combined [PlaybackStats].
+     */
+    @JvmStatic
+    fun merge(vararg playbackStats: PlaybackStats): PlaybackStats {
+      var playbackCount = 0
+      val playbackStateDurationsMs = LongArray(PLAYBACK_STATE_COUNT)
+      var firstReportedTimeMs = C.TIME_UNSET
+      var foregroundPlaybackCount = 0
+      var abandonedBeforeReadyCount = 0
+      var endedCount = 0
+      var backgroundJoiningCount = 0
+      var totalValidJoinTimeMs = C.TIME_UNSET
+      var validJoinTimeCount = 0
+      var totalPauseCount = 0
+      var totalPauseBufferCount = 0
+      var totalSeekCount = 0
+      var totalRebufferCount = 0
+      var maxRebufferTimeMs = C.TIME_UNSET
+      var adPlaybackCount = 0
+      var totalVideoFormatHeightTimeMs = 0L
+      var totalVideoFormatHeightTimeProduct = 0L
+      var totalVideoFormatBitrateTimeMs = 0L
+      var totalVideoFormatBitrateTimeProduct = 0L
+      var totalAudioFormatTimeMs = 0L
+      var totalAudioFormatBitrateTimeProduct = 0L
+      var initialVideoFormatHeightCount = 0
+      var initialVideoFormatBitrateCount = 0
+      var totalInitialVideoFormatHeight = C.LENGTH_UNSET
+      var totalInitialVideoFormatBitrate = C.LENGTH_UNSET.toLong()
+      var initialAudioFormatBitrateCount = 0
+      var totalInitialAudioFormatBitrate = C.LENGTH_UNSET.toLong()
+      var totalBandwidthTimeMs = 0L
+      var totalBandwidthBytes = 0L
+      var totalDroppedFrames = 0L
+      var totalAudioUnderruns = 0L
+      var fatalErrorPlaybackCount = 0
+      var fatalErrorCount = 0
+      var nonFatalErrorCount = 0
+      for (stats in playbackStats) {
+        playbackCount += stats.playbackCount
+        for (i in 0 until PLAYBACK_STATE_COUNT) {
+          playbackStateDurationsMs[i] += stats.playbackStateDurationsMs[i]
+        }
+        if (firstReportedTimeMs == C.TIME_UNSET) {
+          firstReportedTimeMs = stats.firstReportedTimeMs
+        } else if (stats.firstReportedTimeMs != C.TIME_UNSET) {
+          firstReportedTimeMs = min(firstReportedTimeMs, stats.firstReportedTimeMs)
+        }
+        foregroundPlaybackCount += stats.foregroundPlaybackCount
+        abandonedBeforeReadyCount += stats.abandonedBeforeReadyCount
+        endedCount += stats.endedCount
+        backgroundJoiningCount += stats.backgroundJoiningCount
+        if (totalValidJoinTimeMs == C.TIME_UNSET) {
+          totalValidJoinTimeMs = stats.totalValidJoinTimeMs
+        } else if (stats.totalValidJoinTimeMs != C.TIME_UNSET) {
+          totalValidJoinTimeMs += stats.totalValidJoinTimeMs
+        }
+        validJoinTimeCount += stats.validJoinTimeCount
+        totalPauseCount += stats.totalPauseCount
+        totalPauseBufferCount += stats.totalPauseBufferCount
+        totalSeekCount += stats.totalSeekCount
+        totalRebufferCount += stats.totalRebufferCount
+        if (maxRebufferTimeMs == C.TIME_UNSET) {
+          maxRebufferTimeMs = stats.maxRebufferTimeMs
+        } else if (stats.maxRebufferTimeMs != C.TIME_UNSET) {
+          maxRebufferTimeMs = max(maxRebufferTimeMs, stats.maxRebufferTimeMs)
+        }
+        adPlaybackCount += stats.adPlaybackCount
+        totalVideoFormatHeightTimeMs += stats.totalVideoFormatHeightTimeMs
+        totalVideoFormatHeightTimeProduct += stats.totalVideoFormatHeightTimeProduct
+        totalVideoFormatBitrateTimeMs += stats.totalVideoFormatBitrateTimeMs
+        totalVideoFormatBitrateTimeProduct += stats.totalVideoFormatBitrateTimeProduct
+        totalAudioFormatTimeMs += stats.totalAudioFormatTimeMs
+        totalAudioFormatBitrateTimeProduct += stats.totalAudioFormatBitrateTimeProduct
+        initialVideoFormatHeightCount += stats.initialVideoFormatHeightCount
+        initialVideoFormatBitrateCount += stats.initialVideoFormatBitrateCount
+        if (totalInitialVideoFormatHeight == C.LENGTH_UNSET) {
+          totalInitialVideoFormatHeight = stats.totalInitialVideoFormatHeight
+        } else if (stats.totalInitialVideoFormatHeight != C.LENGTH_UNSET) {
+          totalInitialVideoFormatHeight += stats.totalInitialVideoFormatHeight
+        }
+        if (totalInitialVideoFormatBitrate == C.LENGTH_UNSET.toLong()) {
+          totalInitialVideoFormatBitrate = stats.totalInitialVideoFormatBitrate
+        } else if (stats.totalInitialVideoFormatBitrate != C.LENGTH_UNSET.toLong()) {
+          totalInitialVideoFormatBitrate += stats.totalInitialVideoFormatBitrate
+        }
+        initialAudioFormatBitrateCount += stats.initialAudioFormatBitrateCount
+        if (totalInitialAudioFormatBitrate == C.LENGTH_UNSET.toLong()) {
+          totalInitialAudioFormatBitrate = stats.totalInitialAudioFormatBitrate
+        } else if (stats.totalInitialAudioFormatBitrate != C.LENGTH_UNSET.toLong()) {
+          totalInitialAudioFormatBitrate += stats.totalInitialAudioFormatBitrate
+        }
+        totalBandwidthTimeMs += stats.totalBandwidthTimeMs
+        totalBandwidthBytes += stats.totalBandwidthBytes
+        totalDroppedFrames += stats.totalDroppedFrames
+        totalAudioUnderruns += stats.totalAudioUnderruns
+        fatalErrorPlaybackCount += stats.fatalErrorPlaybackCount
+        fatalErrorCount += stats.fatalErrorCount
+        nonFatalErrorCount += stats.nonFatalErrorCount
       }
-      if (firstReportedTimeMs == C.TIME_UNSET) {
-        firstReportedTimeMs = stats.firstReportedTimeMs;
-      } else if (stats.firstReportedTimeMs != C.TIME_UNSET) {
-        firstReportedTimeMs = min(firstReportedTimeMs, stats.firstReportedTimeMs);
-      }
-      foregroundPlaybackCount += stats.foregroundPlaybackCount;
-      abandonedBeforeReadyCount += stats.abandonedBeforeReadyCount;
-      endedCount += stats.endedCount;
-      backgroundJoiningCount += stats.backgroundJoiningCount;
-      if (totalValidJoinTimeMs == C.TIME_UNSET) {
-        totalValidJoinTimeMs = stats.totalValidJoinTimeMs;
-      } else if (stats.totalValidJoinTimeMs != C.TIME_UNSET) {
-        totalValidJoinTimeMs += stats.totalValidJoinTimeMs;
-      }
-      validJoinTimeCount += stats.validJoinTimeCount;
-      totalPauseCount += stats.totalPauseCount;
-      totalPauseBufferCount += stats.totalPauseBufferCount;
-      totalSeekCount += stats.totalSeekCount;
-      totalRebufferCount += stats.totalRebufferCount;
-      if (maxRebufferTimeMs == C.TIME_UNSET) {
-        maxRebufferTimeMs = stats.maxRebufferTimeMs;
-      } else if (stats.maxRebufferTimeMs != C.TIME_UNSET) {
-        maxRebufferTimeMs = max(maxRebufferTimeMs, stats.maxRebufferTimeMs);
-      }
-      adPlaybackCount += stats.adPlaybackCount;
-      totalVideoFormatHeightTimeMs += stats.totalVideoFormatHeightTimeMs;
-      totalVideoFormatHeightTimeProduct += stats.totalVideoFormatHeightTimeProduct;
-      totalVideoFormatBitrateTimeMs += stats.totalVideoFormatBitrateTimeMs;
-      totalVideoFormatBitrateTimeProduct += stats.totalVideoFormatBitrateTimeProduct;
-      totalAudioFormatTimeMs += stats.totalAudioFormatTimeMs;
-      totalAudioFormatBitrateTimeProduct += stats.totalAudioFormatBitrateTimeProduct;
-      initialVideoFormatHeightCount += stats.initialVideoFormatHeightCount;
-      initialVideoFormatBitrateCount += stats.initialVideoFormatBitrateCount;
-      if (totalInitialVideoFormatHeight == C.LENGTH_UNSET) {
-        totalInitialVideoFormatHeight = stats.totalInitialVideoFormatHeight;
-      } else if (stats.totalInitialVideoFormatHeight != C.LENGTH_UNSET) {
-        totalInitialVideoFormatHeight += stats.totalInitialVideoFormatHeight;
-      }
-      if (totalInitialVideoFormatBitrate == C.LENGTH_UNSET) {
-        totalInitialVideoFormatBitrate = stats.totalInitialVideoFormatBitrate;
-      } else if (stats.totalInitialVideoFormatBitrate != C.LENGTH_UNSET) {
-        totalInitialVideoFormatBitrate += stats.totalInitialVideoFormatBitrate;
-      }
-      initialAudioFormatBitrateCount += stats.initialAudioFormatBitrateCount;
-      if (totalInitialAudioFormatBitrate == C.LENGTH_UNSET) {
-        totalInitialAudioFormatBitrate = stats.totalInitialAudioFormatBitrate;
-      } else if (stats.totalInitialAudioFormatBitrate != C.LENGTH_UNSET) {
-        totalInitialAudioFormatBitrate += stats.totalInitialAudioFormatBitrate;
-      }
-      totalBandwidthTimeMs += stats.totalBandwidthTimeMs;
-      totalBandwidthBytes += stats.totalBandwidthBytes;
-      totalDroppedFrames += stats.totalDroppedFrames;
-      totalAudioUnderruns += stats.totalAudioUnderruns;
-      fatalErrorPlaybackCount += stats.fatalErrorPlaybackCount;
-      fatalErrorCount += stats.fatalErrorCount;
-      nonFatalErrorCount += stats.nonFatalErrorCount;
+      return PlaybackStats(
+        playbackCount = playbackCount,
+        playbackStateDurationsMs = playbackStateDurationsMs,
+        playbackStateHistory = emptyList(),
+        mediaTimeHistory = emptyList(),
+        firstReportedTimeMs = firstReportedTimeMs,
+        foregroundPlaybackCount = foregroundPlaybackCount,
+        abandonedBeforeReadyCount = abandonedBeforeReadyCount,
+        endedCount = endedCount,
+        backgroundJoiningCount = backgroundJoiningCount,
+        totalValidJoinTimeMs = totalValidJoinTimeMs,
+        validJoinTimeCount = validJoinTimeCount,
+        totalPauseCount = totalPauseCount,
+        totalPauseBufferCount = totalPauseBufferCount,
+        totalSeekCount = totalSeekCount,
+        totalRebufferCount = totalRebufferCount,
+        maxRebufferTimeMs = maxRebufferTimeMs,
+        adPlaybackCount = adPlaybackCount,
+        videoFormatHistory = emptyList(),
+        audioFormatHistory = emptyList(),
+        totalVideoFormatHeightTimeMs = totalVideoFormatHeightTimeMs,
+        totalVideoFormatHeightTimeProduct = totalVideoFormatHeightTimeProduct,
+        totalVideoFormatBitrateTimeMs = totalVideoFormatBitrateTimeMs,
+        totalVideoFormatBitrateTimeProduct = totalVideoFormatBitrateTimeProduct,
+        totalAudioFormatTimeMs = totalAudioFormatTimeMs,
+        totalAudioFormatBitrateTimeProduct = totalAudioFormatBitrateTimeProduct,
+        initialVideoFormatHeightCount = initialVideoFormatHeightCount,
+        initialVideoFormatBitrateCount = initialVideoFormatBitrateCount,
+        totalInitialVideoFormatHeight = totalInitialVideoFormatHeight,
+        totalInitialVideoFormatBitrate = totalInitialVideoFormatBitrate,
+        initialAudioFormatBitrateCount = initialAudioFormatBitrateCount,
+        totalInitialAudioFormatBitrate = totalInitialAudioFormatBitrate,
+        totalBandwidthTimeMs = totalBandwidthTimeMs,
+        totalBandwidthBytes = totalBandwidthBytes,
+        totalDroppedFrames = totalDroppedFrames,
+        totalAudioUnderruns = totalAudioUnderruns,
+        fatalErrorPlaybackCount = fatalErrorPlaybackCount,
+        fatalErrorCount = fatalErrorCount,
+        nonFatalErrorCount = nonFatalErrorCount,
+        fatalErrorHistory = emptyList(),
+        nonFatalErrorHistory = emptyList()
+      )
     }
-    return new PlaybackStats(
-        playbackCount,
-        playbackStateDurationsMs,
-        /* playbackStateHistory */ Collections.emptyList(),
-        /* mediaTimeHistory= */ Collections.emptyList(),
-        firstReportedTimeMs,
-        foregroundPlaybackCount,
-        abandonedBeforeReadyCount,
-        endedCount,
-        backgroundJoiningCount,
-        totalValidJoinTimeMs,
-        validJoinTimeCount,
-        totalPauseCount,
-        totalPauseBufferCount,
-        totalSeekCount,
-        totalRebufferCount,
-        maxRebufferTimeMs,
-        adPlaybackCount,
-        /* videoFormatHistory= */ Collections.emptyList(),
-        /* audioFormatHistory= */ Collections.emptyList(),
-        totalVideoFormatHeightTimeMs,
-        totalVideoFormatHeightTimeProduct,
-        totalVideoFormatBitrateTimeMs,
-        totalVideoFormatBitrateTimeProduct,
-        totalAudioFormatTimeMs,
-        totalAudioFormatBitrateTimeProduct,
-        initialVideoFormatHeightCount,
-        initialVideoFormatBitrateCount,
-        totalInitialVideoFormatHeight,
-        totalInitialVideoFormatBitrate,
-        initialAudioFormatBitrateCount,
-        totalInitialAudioFormatBitrate,
-        totalBandwidthTimeMs,
-        totalBandwidthBytes,
-        totalDroppedFrames,
-        totalAudioUnderruns,
-        fatalErrorPlaybackCount,
-        fatalErrorCount,
-        nonFatalErrorCount,
-        /* fatalErrorHistory= */ Collections.emptyList(),
-        /* nonFatalErrorHistory= */ Collections.emptyList());
-  }
-
-  /** The number of individual playbacks for which these stats were collected. */
-  public final int playbackCount;
-
-  // Playback state stats.
-
-  /**
-   * The playback state history as {@link EventTimeAndPlaybackState EventTimeAndPlaybackStates}
-   * ordered by {@code EventTime.realTimeMs}.
-   */
-  public final List<EventTimeAndPlaybackState> playbackStateHistory;
-  /**
-   * The media time history as an ordered list of long[2] arrays with [0] being the realtime as
-   * returned by {@code SystemClock.elapsedRealtime()} and [1] being the media time at this
-   * realtime, in milliseconds.
-   */
-  public final List<long[]> mediaTimeHistory;
-  /**
-   * The elapsed real-time as returned by {@code SystemClock.elapsedRealtime()} of the first
-   * reported playback event, or {@link C#TIME_UNSET} if no event has been reported.
-   */
-  public final long firstReportedTimeMs;
-  /** The number of playbacks which were the active foreground playback at some point. */
-  public final int foregroundPlaybackCount;
-  /** The number of playbacks which were abandoned before they were ready to play. */
-  public final int abandonedBeforeReadyCount;
-  /** The number of playbacks which reached the ended state at least once. */
-  public final int endedCount;
-  /** The number of playbacks which were pre-buffered in the background. */
-  public final int backgroundJoiningCount;
-  /**
-   * The total time spent joining the playback, in milliseconds, or {@link C#TIME_UNSET} if no valid
-   * join time could be determined.
-   *
-   * <p>Note that this does not include background joining time. A join time may be invalid if the
-   * playback never reached {@link #PLAYBACK_STATE_PLAYING} or {@link #PLAYBACK_STATE_PAUSED}, or
-   * joining was interrupted by a seek, stop, or error state.
-   */
-  public final long totalValidJoinTimeMs;
-  /**
-   * The number of playbacks with a valid join time as documented in {@link #totalValidJoinTimeMs}.
-   */
-  public final int validJoinTimeCount;
-  /** The total number of times a playback has been paused. */
-  public final int totalPauseCount;
-  /** The total number of times a playback has been paused while rebuffering. */
-  public final int totalPauseBufferCount;
-  /**
-   * The total number of times a seek occurred. This includes seeks happening before playback
-   * resumed after another seek.
-   */
-  public final int totalSeekCount;
-  /**
-   * The total number of times a rebuffer occurred. This excludes initial joining and buffering
-   * after seek.
-   */
-  public final int totalRebufferCount;
-  /**
-   * The maximum time spent during a single rebuffer, in milliseconds, or {@link C#TIME_UNSET} if no
-   * rebuffer occurred.
-   */
-  public final long maxRebufferTimeMs;
-  /** The number of ad playbacks. */
-  public final int adPlaybackCount;
-
-  // Format stats.
-
-  /**
-   * The video format history as {@link EventTimeAndFormat EventTimeAndFormats} ordered by {@code
-   * EventTime.realTimeMs}. The {@link Format} may be null if no video format was used.
-   */
-  public final List<EventTimeAndFormat> videoFormatHistory;
-  /**
-   * The audio format history as {@link EventTimeAndFormat EventTimeAndFormats} ordered by {@code
-   * EventTime.realTimeMs}. The {@link Format} may be null if no audio format was used.
-   */
-  public final List<EventTimeAndFormat> audioFormatHistory;
-  /** The total media time for which video format height data is available, in milliseconds. */
-  public final long totalVideoFormatHeightTimeMs;
-  /**
-   * The accumulated sum of all video format heights, in pixels, times the time the format was used
-   * for playback, in milliseconds.
-   */
-  public final long totalVideoFormatHeightTimeProduct;
-  /** The total media time for which video format bitrate data is available, in milliseconds. */
-  public final long totalVideoFormatBitrateTimeMs;
-  /**
-   * The accumulated sum of all video format bitrates, in bits per second, times the time the format
-   * was used for playback, in milliseconds.
-   */
-  public final long totalVideoFormatBitrateTimeProduct;
-  /** The total media time for which audio format data is available, in milliseconds. */
-  public final long totalAudioFormatTimeMs;
-  /**
-   * The accumulated sum of all audio format bitrates, in bits per second, times the time the format
-   * was used for playback, in milliseconds.
-   */
-  public final long totalAudioFormatBitrateTimeProduct;
-  /** The number of playbacks with initial video format height data. */
-  public final int initialVideoFormatHeightCount;
-  /** The number of playbacks with initial video format bitrate data. */
-  public final int initialVideoFormatBitrateCount;
-  /**
-   * The total initial video format height for all playbacks, in pixels, or {@link C#LENGTH_UNSET}
-   * if no initial video format data is available.
-   */
-  public final int totalInitialVideoFormatHeight;
-  /**
-   * The total initial video format bitrate for all playbacks, in bits per second, or {@link
-   * C#LENGTH_UNSET} if no initial video format data is available.
-   */
-  public final long totalInitialVideoFormatBitrate;
-  /** The number of playbacks with initial audio format bitrate data. */
-  public final int initialAudioFormatBitrateCount;
-  /**
-   * The total initial audio format bitrate for all playbacks, in bits per second, or {@link
-   * C#LENGTH_UNSET} if no initial audio format data is available.
-   */
-  public final long totalInitialAudioFormatBitrate;
-
-  // Bandwidth stats.
-
-  /** The total time for which bandwidth measurement data is available, in milliseconds. */
-  public final long totalBandwidthTimeMs;
-  /** The total bytes transferred during {@link #totalBandwidthTimeMs}. */
-  public final long totalBandwidthBytes;
-
-  // Renderer quality stats.
-
-  /** The total number of dropped video frames. */
-  public final long totalDroppedFrames;
-  /** The total number of audio underruns. */
-  public final long totalAudioUnderruns;
-
-  // Error stats.
-
-  /**
-   * The total number of playback with at least one fatal error. Errors are fatal if playback
-   * stopped due to this error.
-   */
-  public final int fatalErrorPlaybackCount;
-  /** The total number of fatal errors. Errors are fatal if playback stopped due to this error. */
-  public final int fatalErrorCount;
-  /**
-   * The total number of non-fatal errors. Error are non-fatal if playback can recover from the
-   * error without stopping.
-   */
-  public final int nonFatalErrorCount;
-  /**
-   * The history of fatal errors as {@link EventTimeAndException EventTimeAndExceptions} ordered by
-   * {@code EventTime.realTimeMs}. Errors are fatal if playback stopped due to this error.
-   */
-  public final List<EventTimeAndException> fatalErrorHistory;
-  /**
-   * The history of non-fatal errors as {@link EventTimeAndException EventTimeAndExceptions} ordered
-   * by {@code EventTime.realTimeMs}. Errors are non-fatal if playback can recover from the error
-   * without stopping.
-   */
-  public final List<EventTimeAndException> nonFatalErrorHistory;
-
-  private final long[] playbackStateDurationsMs;
-
-  /* package */ PlaybackStats(
-      int playbackCount,
-      long[] playbackStateDurationsMs,
-      List<EventTimeAndPlaybackState> playbackStateHistory,
-      List<long[]> mediaTimeHistory,
-      long firstReportedTimeMs,
-      int foregroundPlaybackCount,
-      int abandonedBeforeReadyCount,
-      int endedCount,
-      int backgroundJoiningCount,
-      long totalValidJoinTimeMs,
-      int validJoinTimeCount,
-      int totalPauseCount,
-      int totalPauseBufferCount,
-      int totalSeekCount,
-      int totalRebufferCount,
-      long maxRebufferTimeMs,
-      int adPlaybackCount,
-      List<EventTimeAndFormat> videoFormatHistory,
-      List<EventTimeAndFormat> audioFormatHistory,
-      long totalVideoFormatHeightTimeMs,
-      long totalVideoFormatHeightTimeProduct,
-      long totalVideoFormatBitrateTimeMs,
-      long totalVideoFormatBitrateTimeProduct,
-      long totalAudioFormatTimeMs,
-      long totalAudioFormatBitrateTimeProduct,
-      int initialVideoFormatHeightCount,
-      int initialVideoFormatBitrateCount,
-      int totalInitialVideoFormatHeight,
-      long totalInitialVideoFormatBitrate,
-      int initialAudioFormatBitrateCount,
-      long totalInitialAudioFormatBitrate,
-      long totalBandwidthTimeMs,
-      long totalBandwidthBytes,
-      long totalDroppedFrames,
-      long totalAudioUnderruns,
-      int fatalErrorPlaybackCount,
-      int fatalErrorCount,
-      int nonFatalErrorCount,
-      List<EventTimeAndException> fatalErrorHistory,
-      List<EventTimeAndException> nonFatalErrorHistory) {
-    this.playbackCount = playbackCount;
-    this.playbackStateDurationsMs = playbackStateDurationsMs;
-    this.playbackStateHistory = Collections.unmodifiableList(playbackStateHistory);
-    this.mediaTimeHistory = Collections.unmodifiableList(mediaTimeHistory);
-    this.firstReportedTimeMs = firstReportedTimeMs;
-    this.foregroundPlaybackCount = foregroundPlaybackCount;
-    this.abandonedBeforeReadyCount = abandonedBeforeReadyCount;
-    this.endedCount = endedCount;
-    this.backgroundJoiningCount = backgroundJoiningCount;
-    this.totalValidJoinTimeMs = totalValidJoinTimeMs;
-    this.validJoinTimeCount = validJoinTimeCount;
-    this.totalPauseCount = totalPauseCount;
-    this.totalPauseBufferCount = totalPauseBufferCount;
-    this.totalSeekCount = totalSeekCount;
-    this.totalRebufferCount = totalRebufferCount;
-    this.maxRebufferTimeMs = maxRebufferTimeMs;
-    this.adPlaybackCount = adPlaybackCount;
-    this.videoFormatHistory = Collections.unmodifiableList(videoFormatHistory);
-    this.audioFormatHistory = Collections.unmodifiableList(audioFormatHistory);
-    this.totalVideoFormatHeightTimeMs = totalVideoFormatHeightTimeMs;
-    this.totalVideoFormatHeightTimeProduct = totalVideoFormatHeightTimeProduct;
-    this.totalVideoFormatBitrateTimeMs = totalVideoFormatBitrateTimeMs;
-    this.totalVideoFormatBitrateTimeProduct = totalVideoFormatBitrateTimeProduct;
-    this.totalAudioFormatTimeMs = totalAudioFormatTimeMs;
-    this.totalAudioFormatBitrateTimeProduct = totalAudioFormatBitrateTimeProduct;
-    this.initialVideoFormatHeightCount = initialVideoFormatHeightCount;
-    this.initialVideoFormatBitrateCount = initialVideoFormatBitrateCount;
-    this.totalInitialVideoFormatHeight = totalInitialVideoFormatHeight;
-    this.totalInitialVideoFormatBitrate = totalInitialVideoFormatBitrate;
-    this.initialAudioFormatBitrateCount = initialAudioFormatBitrateCount;
-    this.totalInitialAudioFormatBitrate = totalInitialAudioFormatBitrate;
-    this.totalBandwidthTimeMs = totalBandwidthTimeMs;
-    this.totalBandwidthBytes = totalBandwidthBytes;
-    this.totalDroppedFrames = totalDroppedFrames;
-    this.totalAudioUnderruns = totalAudioUnderruns;
-    this.fatalErrorPlaybackCount = fatalErrorPlaybackCount;
-    this.fatalErrorCount = fatalErrorCount;
-    this.nonFatalErrorCount = nonFatalErrorCount;
-    this.fatalErrorHistory = Collections.unmodifiableList(fatalErrorHistory);
-    this.nonFatalErrorHistory = Collections.unmodifiableList(nonFatalErrorHistory);
   }
 
   /**
-   * Returns the total time spent in a given {@link PlaybackState}, in milliseconds.
+   * Returns the total time spent in a given [PlaybackState], in milliseconds.
    *
-   * @param playbackState A {@link PlaybackState}.
+   * @param playbackState A [PlaybackState].
    * @return Total spent in the given playback state, in milliseconds
    */
-  public long getPlaybackStateDurationMs(@PlaybackState int playbackState) {
-    return playbackStateDurationsMs[playbackState];
+  fun getPlaybackStateDurationMs(@PlaybackState playbackState: Int): Long {
+    return playbackStateDurationsMs[playbackState]
   }
 
   /**
-   * Returns the {@link PlaybackState} at the given time.
+   * Returns the [PlaybackState] at the given time.
    *
-   * @param realtimeMs The time as returned by {@link SystemClock#elapsedRealtime()}.
-   * @return The {@link PlaybackState} at that time, or {@link #PLAYBACK_STATE_NOT_STARTED} if the
+   * @param realtimeMs The time as returned by [SystemClock.elapsedRealtime].
+   * @return The [PlaybackState] at that time, or [PLAYBACK_STATE_NOT_STARTED] if the
    *     given time is before the first known playback state in the history.
    */
-  public @PlaybackState int getPlaybackStateAtTime(long realtimeMs) {
-    @PlaybackState int state = PLAYBACK_STATE_NOT_STARTED;
-    for (EventTimeAndPlaybackState timeAndState : playbackStateHistory) {
+  @PlaybackState
+  fun getPlaybackStateAtTime(realtimeMs: Long): Int {
+    var state = PLAYBACK_STATE_NOT_STARTED
+    for (timeAndState in playbackStateHistory) {
       if (timeAndState.eventTime.realtimeMs > realtimeMs) {
-        break;
+        break
       }
-      state = timeAndState.playbackState;
+      state = timeAndState.playbackState
     }
-    return state;
+    return state
   }
 
   /**
-   * Returns the estimated media time at the given realtime, in milliseconds, or {@link
-   * C#TIME_UNSET} if the media time history is unknown.
+   * Returns the estimated media time at the given realtime, in milliseconds, or [C.TIME_UNSET] if
+   * the media time history is unknown.
    *
-   * @param realtimeMs The realtime as returned by {@link SystemClock#elapsedRealtime()}.
-   * @return The estimated media time in milliseconds at this realtime, {@link C#TIME_UNSET} if no
+   * @param realtimeMs The realtime as returned by [SystemClock.elapsedRealtime].
+   * @return The estimated media time in milliseconds at this realtime, [C.TIME_UNSET] if no
    *     estimate can be given.
    */
-  public long getMediaTimeMsAtRealtimeMs(long realtimeMs) {
+  fun getMediaTimeMsAtRealtimeMs(realtimeMs: Long): Long {
     if (mediaTimeHistory.isEmpty()) {
-      return C.TIME_UNSET;
+      return C.TIME_UNSET
     }
-    int nextIndex = 0;
-    while (nextIndex < mediaTimeHistory.size()
-        && mediaTimeHistory.get(nextIndex)[0] <= realtimeMs) {
-      nextIndex++;
+    var nextIndex = 0
+    while (nextIndex < mediaTimeHistory.size && mediaTimeHistory[nextIndex][0] <= realtimeMs) {
+      nextIndex++
     }
     if (nextIndex == 0) {
-      return mediaTimeHistory.get(0)[1];
+      return mediaTimeHistory[0][1]
     }
-    if (nextIndex == mediaTimeHistory.size()) {
-      return mediaTimeHistory.get(mediaTimeHistory.size() - 1)[1];
+    if (nextIndex == mediaTimeHistory.size) {
+      return mediaTimeHistory[mediaTimeHistory.size - 1][1]
     }
-    long prevRealtimeMs = mediaTimeHistory.get(nextIndex - 1)[0];
-    long prevMediaTimeMs = mediaTimeHistory.get(nextIndex - 1)[1];
-    long nextRealtimeMs = mediaTimeHistory.get(nextIndex)[0];
-    long nextMediaTimeMs = mediaTimeHistory.get(nextIndex)[1];
-    long realtimeDurationMs = nextRealtimeMs - prevRealtimeMs;
-    if (realtimeDurationMs == 0) {
-      return prevMediaTimeMs;
+    val prevRealtimeMs = mediaTimeHistory[nextIndex - 1][0]
+    val prevMediaTimeMs = mediaTimeHistory[nextIndex - 1][1]
+    val nextRealtimeMs = mediaTimeHistory[nextIndex][0]
+    val nextMediaTimeMs = mediaTimeHistory[nextIndex][1]
+    val realtimeDurationMs = nextRealtimeMs - prevRealtimeMs
+    if (realtimeDurationMs == 0L) {
+      return prevMediaTimeMs
     }
-    float fraction = (float) (realtimeMs - prevRealtimeMs) / realtimeDurationMs;
-    return prevMediaTimeMs + (long) ((nextMediaTimeMs - prevMediaTimeMs) * fraction);
+    val fraction = (realtimeMs - prevRealtimeMs).toFloat() / realtimeDurationMs
+    return prevMediaTimeMs + ((nextMediaTimeMs - prevMediaTimeMs) * fraction).toLong()
   }
 
   /**
-   * Returns the mean time spent joining the playback, in milliseconds, or {@link C#TIME_UNSET} if
+   * Returns the mean time spent joining the playback, in milliseconds, or [C.TIME_UNSET] if
    * no valid join time is available. Only includes playbacks with valid join times as documented in
-   * {@link #totalValidJoinTimeMs}.
+   * [totalValidJoinTimeMs].
    */
-  public long getMeanJoinTimeMs() {
-    return validJoinTimeCount == 0 ? C.TIME_UNSET : totalValidJoinTimeMs / validJoinTimeCount;
+  fun getMeanJoinTimeMs(): Long {
+    return if (validJoinTimeCount == 0) C.TIME_UNSET else totalValidJoinTimeMs / validJoinTimeCount
   }
 
   /**
    * Returns the total time spent joining the playback in foreground, in milliseconds. This does
-   * include invalid join times where the playback never reached {@link #PLAYBACK_STATE_PLAYING} or
-   * {@link #PLAYBACK_STATE_PAUSED}, or joining was interrupted by a seek, stop, or error state.
+   * include invalid join times where the playback never reached [PLAYBACK_STATE_PLAYING] or
+   * [PLAYBACK_STATE_PAUSED], or joining was interrupted by a seek, stop, or error state.
    */
-  public long getTotalJoinTimeMs() {
-    return getPlaybackStateDurationMs(PLAYBACK_STATE_JOINING_FOREGROUND);
+  fun getTotalJoinTimeMs(): Long {
+    return getPlaybackStateDurationMs(PLAYBACK_STATE_JOINING_FOREGROUND)
   }
 
   /** Returns the total time spent actively playing, in milliseconds. */
-  public long getTotalPlayTimeMs() {
-    return getPlaybackStateDurationMs(PLAYBACK_STATE_PLAYING);
+  fun getTotalPlayTimeMs(): Long {
+    return getPlaybackStateDurationMs(PLAYBACK_STATE_PLAYING)
   }
 
   /**
    * Returns the mean time spent actively playing per foreground playback, in milliseconds, or
-   * {@link C#TIME_UNSET} if no playback has been in foreground.
+   * [C.TIME_UNSET] if no playback has been in foreground.
    */
-  public long getMeanPlayTimeMs() {
-    return foregroundPlaybackCount == 0
-        ? C.TIME_UNSET
-        : getTotalPlayTimeMs() / foregroundPlaybackCount;
+  fun getMeanPlayTimeMs(): Long {
+    return if (foregroundPlaybackCount == 0) C.TIME_UNSET else getTotalPlayTimeMs() / foregroundPlaybackCount
   }
 
   /** Returns the total time spent in a paused state, in milliseconds. */
-  public long getTotalPausedTimeMs() {
-    return getPlaybackStateDurationMs(PLAYBACK_STATE_PAUSED)
-        + getPlaybackStateDurationMs(PLAYBACK_STATE_PAUSED_BUFFERING);
+  fun getTotalPausedTimeMs(): Long {
+    return (getPlaybackStateDurationMs(PLAYBACK_STATE_PAUSED)
+      + getPlaybackStateDurationMs(PLAYBACK_STATE_PAUSED_BUFFERING))
   }
 
   /**
    * Returns the mean time spent in a paused state per foreground playback, in milliseconds, or
-   * {@link C#TIME_UNSET} if no playback has been in foreground.
+   * [C.TIME_UNSET] if no playback has been in foreground.
    */
-  public long getMeanPausedTimeMs() {
-    return foregroundPlaybackCount == 0
-        ? C.TIME_UNSET
-        : getTotalPausedTimeMs() / foregroundPlaybackCount;
+  fun getMeanPausedTimeMs(): Long {
+    return if (foregroundPlaybackCount == 0) C.TIME_UNSET else getTotalPausedTimeMs() / foregroundPlaybackCount
   }
 
   /**
    * Returns the total time spent rebuffering, in milliseconds. This excludes initial join times,
    * buffer times after a seek and buffering while paused.
    */
-  public long getTotalRebufferTimeMs() {
-    return getPlaybackStateDurationMs(PLAYBACK_STATE_BUFFERING);
+  fun getTotalRebufferTimeMs(): Long {
+    return getPlaybackStateDurationMs(PLAYBACK_STATE_BUFFERING)
   }
 
   /**
-   * Returns the mean time spent rebuffering per foreground playback, in milliseconds, or {@link
-   * C#TIME_UNSET} if no playback has been in foreground. This excludes initial join times, buffer
-   * times after a seek and buffering while paused.
+   * Returns the mean time spent rebuffering per foreground playback, in milliseconds, or [C.TIME_UNSET]
+   * if no playback has been in foreground. This excludes initial join times, buffer times after a seek
+   * and buffering while paused.
    */
-  public long getMeanRebufferTimeMs() {
-    return foregroundPlaybackCount == 0
-        ? C.TIME_UNSET
-        : getTotalRebufferTimeMs() / foregroundPlaybackCount;
+  fun getMeanRebufferTimeMs(): Long {
+    return if (foregroundPlaybackCount == 0) C.TIME_UNSET else getTotalRebufferTimeMs() / foregroundPlaybackCount
   }
 
   /**
-   * Returns the mean time spent during a single rebuffer, in milliseconds, or {@link C#TIME_UNSET}
+   * Returns the mean time spent during a single rebuffer, in milliseconds, or [C.TIME_UNSET]
    * if no rebuffer was recorded. This excludes initial join times and buffer times after a seek.
    */
-  public long getMeanSingleRebufferTimeMs() {
-    return totalRebufferCount == 0
-        ? C.TIME_UNSET
-        : (getPlaybackStateDurationMs(PLAYBACK_STATE_BUFFERING)
-                + getPlaybackStateDurationMs(PLAYBACK_STATE_PAUSED_BUFFERING))
-            / totalRebufferCount;
+  fun getMeanSingleRebufferTimeMs(): Long {
+    return if (totalRebufferCount == 0) {
+      C.TIME_UNSET
+    } else {
+      (getPlaybackStateDurationMs(PLAYBACK_STATE_BUFFERING)
+        + getPlaybackStateDurationMs(PLAYBACK_STATE_PAUSED_BUFFERING)) / totalRebufferCount
+    }
   }
 
   /**
    * Returns the total time spent from the start of a seek until playback is ready again, in
    * milliseconds.
    */
-  public long getTotalSeekTimeMs() {
-    return getPlaybackStateDurationMs(PLAYBACK_STATE_SEEKING);
+  fun getTotalSeekTimeMs(): Long {
+    return getPlaybackStateDurationMs(PLAYBACK_STATE_SEEKING)
   }
 
   /**
    * Returns the mean time spent per foreground playback from the start of a seek until playback is
-   * ready again, in milliseconds, or {@link C#TIME_UNSET} if no playback has been in foreground.
+   * ready again, in milliseconds, or [C.TIME_UNSET] if no playback has been in foreground.
    */
-  public long getMeanSeekTimeMs() {
-    return foregroundPlaybackCount == 0
-        ? C.TIME_UNSET
-        : getTotalSeekTimeMs() / foregroundPlaybackCount;
+  fun getMeanSeekTimeMs(): Long {
+    return if (foregroundPlaybackCount == 0) C.TIME_UNSET else getTotalSeekTimeMs() / foregroundPlaybackCount
   }
 
   /**
    * Returns the mean time spent from the start of a single seek until playback is ready again, in
-   * milliseconds, or {@link C#TIME_UNSET} if no seek occurred.
+   * milliseconds, or [C.TIME_UNSET] if no seek occurred.
    */
-  public long getMeanSingleSeekTimeMs() {
-    return totalSeekCount == 0 ? C.TIME_UNSET : getTotalSeekTimeMs() / totalSeekCount;
+  fun getMeanSingleSeekTimeMs(): Long {
+    return if (totalSeekCount == 0) C.TIME_UNSET else getTotalSeekTimeMs() / totalSeekCount
   }
 
   /**
@@ -794,309 +638,316 @@ public final class PlaybackStats {
    * join times, rebuffer times and seek times, but excludes times without user intention to play,
    * e.g. all paused states.
    */
-  public long getTotalWaitTimeMs() {
-    return getPlaybackStateDurationMs(PLAYBACK_STATE_JOINING_FOREGROUND)
-        + getPlaybackStateDurationMs(PLAYBACK_STATE_BUFFERING)
-        + getPlaybackStateDurationMs(PLAYBACK_STATE_SEEKING);
+  fun getTotalWaitTimeMs(): Long {
+    return (getPlaybackStateDurationMs(PLAYBACK_STATE_JOINING_FOREGROUND)
+      + getPlaybackStateDurationMs(PLAYBACK_STATE_BUFFERING)
+      + getPlaybackStateDurationMs(PLAYBACK_STATE_SEEKING))
   }
 
   /**
    * Returns the mean time spent actively waiting for playback per foreground playback, in
-   * milliseconds, or {@link C#TIME_UNSET} if no playback has been in foreground. This includes all
+   * milliseconds, or [C.TIME_UNSET] if no playback has been in foreground. This includes all
    * join times, rebuffer times and seek times, but excludes times without user intention to play,
    * e.g. all paused states.
    */
-  public long getMeanWaitTimeMs() {
-    return foregroundPlaybackCount == 0
-        ? C.TIME_UNSET
-        : getTotalWaitTimeMs() / foregroundPlaybackCount;
+  fun getMeanWaitTimeMs(): Long {
+    return if (foregroundPlaybackCount == 0) C.TIME_UNSET else getTotalWaitTimeMs() / foregroundPlaybackCount
   }
 
   /** Returns the total time spent playing or actively waiting for playback, in milliseconds. */
-  public long getTotalPlayAndWaitTimeMs() {
-    return getTotalPlayTimeMs() + getTotalWaitTimeMs();
+  fun getTotalPlayAndWaitTimeMs(): Long {
+    return getTotalPlayTimeMs() + getTotalWaitTimeMs()
   }
 
   /**
    * Returns the mean time spent playing or actively waiting for playback per foreground playback,
-   * in milliseconds, or {@link C#TIME_UNSET} if no playback has been in foreground.
+   * in milliseconds, or [C.TIME_UNSET] if no playback has been in foreground.
    */
-  public long getMeanPlayAndWaitTimeMs() {
-    return foregroundPlaybackCount == 0
-        ? C.TIME_UNSET
-        : getTotalPlayAndWaitTimeMs() / foregroundPlaybackCount;
+  fun getMeanPlayAndWaitTimeMs(): Long {
+    return if (foregroundPlaybackCount == 0) C.TIME_UNSET else getTotalPlayAndWaitTimeMs() / foregroundPlaybackCount
   }
 
   /** Returns the total time covered by any playback state, in milliseconds. */
-  public long getTotalElapsedTimeMs() {
-    long totalTimeMs = 0;
-    for (int i = 0; i < PLAYBACK_STATE_COUNT; i++) {
-      totalTimeMs += playbackStateDurationsMs[i];
+  fun getTotalElapsedTimeMs(): Long {
+    var totalTimeMs = 0L
+    for (i in 0 until PLAYBACK_STATE_COUNT) {
+      totalTimeMs += playbackStateDurationsMs[i]
     }
-    return totalTimeMs;
+    return totalTimeMs
   }
 
   /**
-   * Returns the mean time covered by any playback state per playback, in milliseconds, or {@link
-   * C#TIME_UNSET} if no playback was recorded.
+   * Returns the mean time covered by any playback state per playback, in milliseconds, or [C.TIME_UNSET]
+   * if no playback was recorded.
    */
-  public long getMeanElapsedTimeMs() {
-    return playbackCount == 0 ? C.TIME_UNSET : getTotalElapsedTimeMs() / playbackCount;
+  fun getMeanElapsedTimeMs(): Long {
+    return if (playbackCount == 0) C.TIME_UNSET else getTotalElapsedTimeMs() / playbackCount
   }
 
   /**
    * Returns the ratio of foreground playbacks which were abandoned before they were ready to play,
-   * or {@code 0.0} if no playback has been in foreground.
+   * or `0.0` if no playback has been in foreground.
    */
-  public float getAbandonedBeforeReadyRatio() {
-    int foregroundAbandonedBeforeReady =
-        abandonedBeforeReadyCount - (playbackCount - foregroundPlaybackCount);
-    return foregroundPlaybackCount == 0
-        ? 0f
-        : (float) foregroundAbandonedBeforeReady / foregroundPlaybackCount;
+  fun getAbandonedBeforeReadyRatio(): Float {
+    val foregroundAbandonedBeforeReady = abandonedBeforeReadyCount - (playbackCount - foregroundPlaybackCount)
+    return if (foregroundPlaybackCount == 0) {
+      0f
+    } else {
+      foregroundAbandonedBeforeReady.toFloat() / foregroundPlaybackCount
+    }
   }
 
   /**
    * Returns the ratio of foreground playbacks which reached the ended state at least once, or
-   * {@code 0.0} if no playback has been in foreground.
+   * `0.0` if no playback has been in foreground.
    */
-  public float getEndedRatio() {
-    return foregroundPlaybackCount == 0 ? 0f : (float) endedCount / foregroundPlaybackCount;
+  fun getEndedRatio(): Float {
+    return if (foregroundPlaybackCount == 0) 0f else endedCount.toFloat() / foregroundPlaybackCount
   }
 
   /**
-   * Returns the mean number of times a playback has been paused per foreground playback, or {@code
-   * 0.0} if no playback has been in foreground.
+   * Returns the mean number of times a playback has been paused per foreground playback, or `0.0`
+   * if no playback has been in foreground.
    */
-  public float getMeanPauseCount() {
-    return foregroundPlaybackCount == 0 ? 0f : (float) totalPauseCount / foregroundPlaybackCount;
+  fun getMeanPauseCount(): Float {
+    return if (foregroundPlaybackCount == 0) 0f else totalPauseCount.toFloat() / foregroundPlaybackCount
   }
 
   /**
    * Returns the mean number of times a playback has been paused while rebuffering per foreground
-   * playback, or {@code 0.0} if no playback has been in foreground.
+   * playback, or `0.0` if no playback has been in foreground.
    */
-  public float getMeanPauseBufferCount() {
-    return foregroundPlaybackCount == 0
-        ? 0f
-        : (float) totalPauseBufferCount / foregroundPlaybackCount;
+  fun getMeanPauseBufferCount(): Float {
+    return if (foregroundPlaybackCount == 0) 0f else totalPauseBufferCount.toFloat() / foregroundPlaybackCount
   }
 
   /**
-   * Returns the mean number of times a seek occurred per foreground playback, or {@code 0.0} if no
+   * Returns the mean number of times a seek occurred per foreground playback, or `0.0` if no
    * playback has been in foreground. This includes seeks happening before playback resumed after
    * another seek.
    */
-  public float getMeanSeekCount() {
-    return foregroundPlaybackCount == 0 ? 0f : (float) totalSeekCount / foregroundPlaybackCount;
+  fun getMeanSeekCount(): Float {
+    return if (foregroundPlaybackCount == 0) 0f else totalSeekCount.toFloat() / foregroundPlaybackCount
   }
 
   /**
-   * Returns the mean number of times a rebuffer occurred per foreground playback, or {@code 0.0} if
+   * Returns the mean number of times a rebuffer occurred per foreground playback, or `0.0` if
    * no playback has been in foreground. This excludes initial joining and buffering after seek.
    */
-  public float getMeanRebufferCount() {
-    return foregroundPlaybackCount == 0 ? 0f : (float) totalRebufferCount / foregroundPlaybackCount;
+  fun getMeanRebufferCount(): Float {
+    return if (foregroundPlaybackCount == 0) 0f else totalRebufferCount.toFloat() / foregroundPlaybackCount
   }
 
   /**
-   * Returns the ratio of wait times to the total time spent playing and waiting, or {@code 0.0} if
-   * no time was spend playing or waiting. This is equivalent to {@link #getTotalWaitTimeMs()} /
-   * {@link #getTotalPlayAndWaitTimeMs()} and also to {@link #getJoinTimeRatio()} + {@link
-   * #getRebufferTimeRatio()} + {@link #getSeekTimeRatio()}.
+   * Returns the ratio of wait times to the total time spent playing and waiting, or `0.0` if
+   * no time was spend playing or waiting. This is equivalent to [getTotalWaitTimeMs] /
+   * [getTotalPlayAndWaitTimeMs] and also to [getJoinTimeRatio] + [getRebufferTimeRatio] + [getSeekTimeRatio].
    */
-  public float getWaitTimeRatio() {
-    long playAndWaitTimeMs = getTotalPlayAndWaitTimeMs();
-    return playAndWaitTimeMs == 0 ? 0f : (float) getTotalWaitTimeMs() / playAndWaitTimeMs;
+  fun getWaitTimeRatio(): Float {
+    val playAndWaitTimeMs = getTotalPlayAndWaitTimeMs()
+    return if (playAndWaitTimeMs == 0L) 0f else getTotalWaitTimeMs().toFloat() / playAndWaitTimeMs
   }
 
   /**
    * Returns the ratio of foreground join time to the total time spent playing and waiting, or
-   * {@code 0.0} if no time was spend playing or waiting. This is equivalent to {@link
-   * #getTotalJoinTimeMs()} / {@link #getTotalPlayAndWaitTimeMs()}.
+   * `0.0` if no time was spend playing or waiting. This is equivalent to [getTotalJoinTimeMs] / [getTotalPlayAndWaitTimeMs].
    */
-  public float getJoinTimeRatio() {
-    long playAndWaitTimeMs = getTotalPlayAndWaitTimeMs();
-    return playAndWaitTimeMs == 0 ? 0f : (float) getTotalJoinTimeMs() / playAndWaitTimeMs;
+  fun getJoinTimeRatio(): Float {
+    val playAndWaitTimeMs = getTotalPlayAndWaitTimeMs()
+    return if (playAndWaitTimeMs == 0L) 0f else getTotalJoinTimeMs().toFloat() / playAndWaitTimeMs
   }
 
   /**
-   * Returns the ratio of rebuffer time to the total time spent playing and waiting, or {@code 0.0}
-   * if no time was spend playing or waiting. This is equivalent to {@link
-   * #getTotalRebufferTimeMs()} / {@link #getTotalPlayAndWaitTimeMs()}.
+   * Returns the ratio of rebuffer time to the total time spent playing and waiting, or `0.0`
+   * if no time was spend playing or waiting. This is equivalent to [getTotalRebufferTimeMs] / [getTotalPlayAndWaitTimeMs].
    */
-  public float getRebufferTimeRatio() {
-    long playAndWaitTimeMs = getTotalPlayAndWaitTimeMs();
-    return playAndWaitTimeMs == 0 ? 0f : (float) getTotalRebufferTimeMs() / playAndWaitTimeMs;
+  fun getRebufferTimeRatio(): Float {
+    val playAndWaitTimeMs = getTotalPlayAndWaitTimeMs()
+    return if (playAndWaitTimeMs == 0L) 0f else getTotalRebufferTimeMs().toFloat() / playAndWaitTimeMs
   }
 
   /**
-   * Returns the ratio of seek time to the total time spent playing and waiting, or {@code 0.0} if
-   * no time was spend playing or waiting. This is equivalent to {@link #getTotalSeekTimeMs()} /
-   * {@link #getTotalPlayAndWaitTimeMs()}.
+   * Returns the ratio of seek time to the total time spent playing and waiting, or `0.0` if
+   * no time was spend playing or waiting. This is equivalent to [getTotalSeekTimeMs] / [getTotalPlayAndWaitTimeMs].
    */
-  public float getSeekTimeRatio() {
-    long playAndWaitTimeMs = getTotalPlayAndWaitTimeMs();
-    return playAndWaitTimeMs == 0 ? 0f : (float) getTotalSeekTimeMs() / playAndWaitTimeMs;
+  fun getSeekTimeRatio(): Float {
+    val playAndWaitTimeMs = getTotalPlayAndWaitTimeMs()
+    return if (playAndWaitTimeMs == 0L) 0f else getTotalSeekTimeMs().toFloat() / playAndWaitTimeMs
   }
 
   /**
-   * Returns the rate of rebuffer events, in rebuffers per play time second, or {@code 0.0} if no
-   * time was spend playing. This is equivalent to 1.0 / {@link #getMeanTimeBetweenRebuffers()}.
+   * Returns the rate of rebuffer events, in rebuffers per play time second, or `0.0` if no
+   * time was spend playing. This is equivalent to 1.0 / [getMeanTimeBetweenRebuffers].
    */
-  public float getRebufferRate() {
-    long playTimeMs = getTotalPlayTimeMs();
-    return playTimeMs == 0 ? 0f : 1000f * totalRebufferCount / playTimeMs;
+  fun getRebufferRate(): Float {
+    val playTimeMs = getTotalPlayTimeMs()
+    return if (playTimeMs == 0L) 0f else 1000f * totalRebufferCount / playTimeMs
   }
 
   /**
    * Returns the mean play time between rebuffer events, in seconds. This is equivalent to 1.0 /
-   * {@link #getRebufferRate()}. Note that this may return {@link Float#POSITIVE_INFINITY}.
+   * [getRebufferRate]. Note that this may return [Float.POSITIVE_INFINITY].
    */
-  public float getMeanTimeBetweenRebuffers() {
-    return 1f / getRebufferRate();
+  fun getMeanTimeBetweenRebuffers(): Float {
+    return 1f / getRebufferRate()
   }
 
   /**
-   * Returns the mean initial video format height, in pixels, or {@link C#LENGTH_UNSET} if no video
+   * Returns the mean initial video format height, in pixels, or [C.LENGTH_UNSET] if no video
    * format data is available.
    */
-  public int getMeanInitialVideoFormatHeight() {
-    return initialVideoFormatHeightCount == 0
-        ? C.LENGTH_UNSET
-        : totalInitialVideoFormatHeight / initialVideoFormatHeightCount;
+  fun getMeanInitialVideoFormatHeight(): Int {
+    return if (initialVideoFormatHeightCount == 0) {
+      C.LENGTH_UNSET
+    } else {
+      totalInitialVideoFormatHeight / initialVideoFormatHeightCount
+    }
   }
 
   /**
-   * Returns the mean initial video format bitrate, in bits per second, or {@link C#LENGTH_UNSET} if
+   * Returns the mean initial video format bitrate, in bits per second, or [C.LENGTH_UNSET] if
    * no video format data is available.
    */
-  public int getMeanInitialVideoFormatBitrate() {
-    return initialVideoFormatBitrateCount == 0
-        ? C.LENGTH_UNSET
-        : (int) (totalInitialVideoFormatBitrate / initialVideoFormatBitrateCount);
+  fun getMeanInitialVideoFormatBitrate(): Int {
+    return if (initialVideoFormatBitrateCount == 0) {
+      C.LENGTH_UNSET
+    } else {
+      (totalInitialVideoFormatBitrate / initialVideoFormatBitrateCount).toInt()
+    }
   }
 
   /**
-   * Returns the mean initial audio format bitrate, in bits per second, or {@link C#LENGTH_UNSET} if
+   * Returns the mean initial audio format bitrate, in bits per second, or [C.LENGTH_UNSET] if
    * no audio format data is available.
    */
-  public int getMeanInitialAudioFormatBitrate() {
-    return initialAudioFormatBitrateCount == 0
-        ? C.LENGTH_UNSET
-        : (int) (totalInitialAudioFormatBitrate / initialAudioFormatBitrateCount);
+  fun getMeanInitialAudioFormatBitrate(): Int {
+    return if (initialAudioFormatBitrateCount == 0) {
+      C.LENGTH_UNSET
+    } else {
+      (totalInitialAudioFormatBitrate / initialAudioFormatBitrateCount).toInt()
+    }
   }
 
   /**
-   * Returns the mean video format height, in pixels, or {@link C#LENGTH_UNSET} if no video format
+   * Returns the mean video format height, in pixels, or [C.LENGTH_UNSET] if no video format
    * data is available. This is a weighted average taking the time the format was used for playback
    * into account.
    */
-  public int getMeanVideoFormatHeight() {
-    return totalVideoFormatHeightTimeMs == 0
-        ? C.LENGTH_UNSET
-        : (int) (totalVideoFormatHeightTimeProduct / totalVideoFormatHeightTimeMs);
+  fun getMeanVideoFormatHeight(): Int {
+    return if (totalVideoFormatHeightTimeMs == 0L) {
+      C.LENGTH_UNSET
+    } else {
+      (totalVideoFormatHeightTimeProduct / totalVideoFormatHeightTimeMs).toInt()
+    }
   }
 
   /**
-   * Returns the mean video format bitrate, in bits per second, or {@link C#LENGTH_UNSET} if no
+   * Returns the mean video format bitrate, in bits per second, or [C.LENGTH_UNSET] if no
    * video format data is available. This is a weighted average taking the time the format was used
    * for playback into account.
    */
-  public int getMeanVideoFormatBitrate() {
-    return totalVideoFormatBitrateTimeMs == 0
-        ? C.LENGTH_UNSET
-        : (int) (totalVideoFormatBitrateTimeProduct / totalVideoFormatBitrateTimeMs);
+  fun getMeanVideoFormatBitrate(): Int {
+    return if (totalVideoFormatBitrateTimeMs == 0L) {
+      C.LENGTH_UNSET
+    } else {
+      (totalVideoFormatBitrateTimeProduct / totalVideoFormatBitrateTimeMs).toInt()
+    }
   }
 
   /**
-   * Returns the mean audio format bitrate, in bits per second, or {@link C#LENGTH_UNSET} if no
+   * Returns the mean audio format bitrate, in bits per second, or [C.LENGTH_UNSET] if no
    * audio format data is available. This is a weighted average taking the time the format was used
    * for playback into account.
    */
-  public int getMeanAudioFormatBitrate() {
-    return totalAudioFormatTimeMs == 0
-        ? C.LENGTH_UNSET
-        : (int) (totalAudioFormatBitrateTimeProduct / totalAudioFormatTimeMs);
+  fun getMeanAudioFormatBitrate(): Int {
+    return if (totalAudioFormatTimeMs == 0L) {
+      C.LENGTH_UNSET
+    } else {
+      (totalAudioFormatBitrateTimeProduct / totalAudioFormatTimeMs).toInt()
+    }
   }
 
   /**
    * Returns the mean network bandwidth based on transfer measurements, in bits per second, or
-   * {@link C#LENGTH_UNSET} if no transfer data is available.
+   * [C.LENGTH_UNSET] if no transfer data is available.
    */
-  public int getMeanBandwidth() {
-    return totalBandwidthTimeMs == 0
-        ? C.LENGTH_UNSET
-        : (int) (totalBandwidthBytes * 8000 / totalBandwidthTimeMs);
+  fun getMeanBandwidth(): Int {
+    return if (totalBandwidthTimeMs == 0L) {
+      C.LENGTH_UNSET
+    } else {
+      (totalBandwidthBytes * 8000 / totalBandwidthTimeMs).toInt()
+    }
   }
 
   /**
    * Returns the mean rate at which video frames are dropped, in dropped frames per play time
-   * second, or {@code 0.0} if no time was spent playing.
+   * second, or `0.0` if no time was spent playing.
    */
-  public float getDroppedFramesRate() {
-    long playTimeMs = getTotalPlayTimeMs();
-    return playTimeMs == 0 ? 0f : 1000f * totalDroppedFrames / playTimeMs;
+  fun getDroppedFramesRate(): Float {
+    val playTimeMs = getTotalPlayTimeMs()
+    return if (playTimeMs == 0L) 0f else 1000f * totalDroppedFrames / playTimeMs
   }
 
   /**
    * Returns the mean rate at which audio underruns occurred, in underruns per play time second, or
-   * {@code 0.0} if no time was spent playing.
+   * `0.0` if no time was spent playing.
    */
-  public float getAudioUnderrunRate() {
-    long playTimeMs = getTotalPlayTimeMs();
-    return playTimeMs == 0 ? 0f : 1000f * totalAudioUnderruns / playTimeMs;
+  fun getAudioUnderrunRate(): Float {
+    val playTimeMs = getTotalPlayTimeMs()
+    return if (playTimeMs == 0L) 0f else 1000f * totalAudioUnderruns / playTimeMs
   }
 
   /**
-   * Returns the ratio of foreground playbacks which experienced fatal errors, or {@code 0.0} if no
+   * Returns the ratio of foreground playbacks which experienced fatal errors, or `0.0` if no
    * playback has been in foreground.
    */
-  public float getFatalErrorRatio() {
-    return foregroundPlaybackCount == 0
-        ? 0f
-        : (float) fatalErrorPlaybackCount / foregroundPlaybackCount;
+  fun getFatalErrorRatio(): Float {
+    return if (foregroundPlaybackCount == 0) {
+      0f
+    } else {
+      fatalErrorPlaybackCount.toFloat() / foregroundPlaybackCount
+    }
   }
 
   /**
-   * Returns the rate of fatal errors, in errors per play time second, or {@code 0.0} if no time was
-   * spend playing. This is equivalent to 1.0 / {@link #getMeanTimeBetweenFatalErrors()}.
+   * Returns the rate of fatal errors, in errors per play time second, or `0.0` if no time was
+   * spend playing. This is equivalent to 1.0 / [getMeanTimeBetweenFatalErrors].
    */
-  public float getFatalErrorRate() {
-    long playTimeMs = getTotalPlayTimeMs();
-    return playTimeMs == 0 ? 0f : 1000f * fatalErrorCount / playTimeMs;
+  fun getFatalErrorRate(): Float {
+    val playTimeMs = getTotalPlayTimeMs()
+    return if (playTimeMs == 0L) 0f else 1000f * fatalErrorCount / playTimeMs
   }
 
   /**
-   * Returns the mean play time between fatal errors, in seconds. This is equivalent to 1.0 / {@link
-   * #getFatalErrorRate()}. Note that this may return {@link Float#POSITIVE_INFINITY}.
+   * Returns the mean play time between fatal errors, in seconds. This is equivalent to 1.0 /
+   * [getFatalErrorRate]. Note that this may return [Float.POSITIVE_INFINITY].
    */
-  public float getMeanTimeBetweenFatalErrors() {
-    return 1f / getFatalErrorRate();
+  fun getMeanTimeBetweenFatalErrors(): Float {
+    return 1f / getFatalErrorRate()
   }
 
   /**
-   * Returns the mean number of non-fatal errors per foreground playback, or {@code 0.0} if no
+   * Returns the mean number of non-fatal errors per foreground playback, or `0.0` if no
    * playback has been in foreground.
    */
-  public float getMeanNonFatalErrorCount() {
-    return foregroundPlaybackCount == 0 ? 0f : (float) nonFatalErrorCount / foregroundPlaybackCount;
+  fun getMeanNonFatalErrorCount(): Float {
+    return if (foregroundPlaybackCount == 0) 0f else nonFatalErrorCount.toFloat() / foregroundPlaybackCount
   }
 
   /**
-   * Returns the rate of non-fatal errors, in errors per play time second, or {@code 0.0} if no time
-   * was spend playing. This is equivalent to 1.0 / {@link #getMeanTimeBetweenNonFatalErrors()}.
+   * Returns the rate of non-fatal errors, in errors per play time second, or `0.0` if no time
+   * was spend playing. This is equivalent to 1.0 / [getMeanTimeBetweenNonFatalErrors].
    */
-  public float getNonFatalErrorRate() {
-    long playTimeMs = getTotalPlayTimeMs();
-    return playTimeMs == 0 ? 0f : 1000f * nonFatalErrorCount / playTimeMs;
+  fun getNonFatalErrorRate(): Float {
+    val playTimeMs = getTotalPlayTimeMs()
+    return if (playTimeMs == 0L) 0f else 1000f * nonFatalErrorCount / playTimeMs
   }
 
   /**
    * Returns the mean play time between non-fatal errors, in seconds. This is equivalent to 1.0 /
-   * {@link #getNonFatalErrorRate()}. Note that this may return {@link Float#POSITIVE_INFINITY}.
+   * [getNonFatalErrorRate]. Note that this may return [Float.POSITIVE_INFINITY].
    */
-  public float getMeanTimeBetweenNonFatalErrors() {
-    return 1f / getNonFatalErrorRate();
+  fun getMeanTimeBetweenNonFatalErrors(): Float {
+    return 1f / getNonFatalErrorRate()
   }
 }

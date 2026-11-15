@@ -13,89 +13,83 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.audio;
+package com.google.android.exoplayer2.audio
 
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.util.Assertions;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.nio.ByteBuffer;
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.audio.AudioProcessor.AudioFormat
+import com.google.android.exoplayer2.audio.AudioProcessor.UnhandledAudioFormatException
+import com.google.android.exoplayer2.util.Assertions
+import com.google.errorprone.annotations.CanIgnoreReturnValue
+import java.nio.ByteBuffer
 
 /**
- * An {@link AudioProcessor} that applies a mapping from input channels onto specified output
+ * An [AudioProcessor] that applies a mapping from input channels onto specified output
  * channels. This can be used to reorder, duplicate or discard channels.
  */
-/* package */ final class ChannelMappingAudioProcessor extends BaseAudioProcessor {
+internal class ChannelMappingAudioProcessor : BaseAudioProcessor() {
 
-  @Nullable private int[] pendingOutputChannels;
-  @Nullable private int[] outputChannels;
+  private var pendingOutputChannels: IntArray? = null
+  private var outputChannels: IntArray? = null
 
   /**
-   * Resets the channel mapping. After calling this method, call {@link #configure(AudioFormat)} to
+   * Resets the channel mapping. After calling this method, call [configure] to
    * start using the new channel map.
    *
-   * <p>See {@link AudioSink#configure(Format, int, int[])}.
+   * <p>See [AudioSink.configure].
    *
-   * @param outputChannels The mapping from input to output channel indices, or {@code null} to
+   * @param outputChannels The mapping from input to output channel indices, or `null` to
    *     leave the input unchanged.
    */
-  public void setChannelMap(@Nullable int[] outputChannels) {
-    pendingOutputChannels = outputChannels;
+  fun setChannelMap(outputChannels: IntArray?) {
+    pendingOutputChannels = outputChannels
   }
 
-  @Override
   @CanIgnoreReturnValue
-  public AudioFormat onConfigure(AudioFormat inputAudioFormat)
-      throws UnhandledAudioFormatException {
-    @Nullable int[] outputChannels = pendingOutputChannels;
-    if (outputChannels == null) {
-      return AudioFormat.NOT_SET;
-    }
+  @Throws(UnhandledAudioFormatException::class)
+  override fun onConfigure(inputAudioFormat: AudioFormat): AudioFormat {
+    val outputChannels = pendingOutputChannels ?: return AudioFormat.NOT_SET
 
     if (inputAudioFormat.encoding != C.ENCODING_PCM_16BIT) {
-      throw new UnhandledAudioFormatException(inputAudioFormat);
+      throw UnhandledAudioFormatException(inputAudioFormat)
     }
 
-    boolean active = inputAudioFormat.channelCount != outputChannels.length;
-    for (int i = 0; i < outputChannels.length; i++) {
-      int channelIndex = outputChannels[i];
+    var active = inputAudioFormat.channelCount != outputChannels.size
+    for (i in outputChannels.indices) {
+      val channelIndex = outputChannels[i]
       if (channelIndex >= inputAudioFormat.channelCount) {
-        throw new UnhandledAudioFormatException(inputAudioFormat);
+        throw UnhandledAudioFormatException(inputAudioFormat)
       }
-      active |= (channelIndex != i);
+      active = active or (channelIndex != i)
     }
-    return active
-        ? new AudioFormat(inputAudioFormat.sampleRate, outputChannels.length, C.ENCODING_PCM_16BIT)
-        : AudioFormat.NOT_SET;
+    return if (active)
+      AudioFormat(inputAudioFormat.sampleRate, outputChannels.size, C.ENCODING_PCM_16BIT)
+    else AudioFormat.NOT_SET
   }
 
-  @Override
-  public void queueInput(ByteBuffer inputBuffer) {
-    int[] outputChannels = Assertions.checkNotNull(this.outputChannels);
-    int position = inputBuffer.position();
-    int limit = inputBuffer.limit();
-    int frameCount = (limit - position) / inputAudioFormat.bytesPerFrame;
-    int outputSize = frameCount * outputAudioFormat.bytesPerFrame;
-    ByteBuffer buffer = replaceOutputBuffer(outputSize);
+  override fun queueInput(inputBuffer: ByteBuffer?) {
+    val outputChannels = Assertions.checkNotNull(this.outputChannels)!!
+    val bufferToProcess = inputBuffer!!
+    var position = bufferToProcess.position()
+    val limit = bufferToProcess.limit()
+    val frameCount = (limit - position) / inputAudioFormat.bytesPerFrame
+    val outputSize = frameCount * outputAudioFormat.bytesPerFrame
+    val buffer = replaceOutputBuffer(outputSize)
     while (position < limit) {
-      for (int channelIndex : outputChannels) {
-        buffer.putShort(inputBuffer.getShort(position + 2 * channelIndex));
+      for (channelIndex in outputChannels) {
+        buffer.putShort(bufferToProcess.getShort(position + (2 * channelIndex)))
       }
-      position += inputAudioFormat.bytesPerFrame;
+      position += inputAudioFormat.bytesPerFrame
     }
-    inputBuffer.position(limit);
-    buffer.flip();
+    bufferToProcess.position(limit)
+    buffer.flip()
   }
 
-  @Override
-  protected void onFlush() {
-    outputChannels = pendingOutputChannels;
+  override fun onFlush() {
+    outputChannels = pendingOutputChannels
   }
 
-  @Override
-  protected void onReset() {
-    outputChannels = null;
-    pendingOutputChannels = null;
+  override fun onReset() {
+    outputChannels = null
+    pendingOutputChannels = null
   }
 }

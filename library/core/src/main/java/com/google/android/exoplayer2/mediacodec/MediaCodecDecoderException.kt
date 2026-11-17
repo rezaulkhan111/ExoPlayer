@@ -13,35 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.mediacodec;
+package com.google.android.exoplayer2.mediacodec
 
-import android.media.MediaCodec;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import com.google.android.exoplayer2.decoder.DecoderException;
-import com.google.android.exoplayer2.util.Util;
+import android.annotation.SuppressLint
+import android.media.MediaCodec
+import androidx.annotation.DoNotInline
+import androidx.annotation.RequiresApi
+import com.google.android.exoplayer2.decoder.DecoderException
+import com.google.android.exoplayer2.util.Util
 
-/** Thrown when a failure occurs in a {@link MediaCodec} decoder. */
-public class MediaCodecDecoderException extends DecoderException {
-
-  /** The {@link MediaCodecInfo} of the decoder that failed. Null if unknown. */
-  @Nullable public final MediaCodecInfo codecInfo;
+/** Thrown when a failure occurs in a [MediaCodec] decoder. */
+open class MediaCodecDecoderException(
+  cause: Throwable?,
+  /** The [MediaCodecInfo] of the decoder that failed. Null if unknown. */
+  @JvmField val codecInfo: MediaCodecInfo?,
+) : DecoderException("Decoder failed: " + (codecInfo?.name), cause) {
 
   /** An optional developer-readable diagnostic information string. May be null. */
-  @Nullable public final String diagnosticInfo;
+  @JvmField
+  @field:SuppressLint("NewApi")
+  val diagnosticInfo: String? = if (Util.SDK_INT >= 21) getDiagnosticInfoV21(cause) else null
 
-  public MediaCodecDecoderException(Throwable cause, @Nullable MediaCodecInfo codecInfo) {
-    super("Decoder failed: " + (codecInfo == null ? null : codecInfo.name), cause);
-    this.codecInfo = codecInfo;
-    diagnosticInfo = Util.SDK_INT >= 21 ? getDiagnosticInfoV21(cause) : null;
-  }
-
-  @RequiresApi(21)
-  @Nullable
-  private static String getDiagnosticInfoV21(Throwable cause) {
-    if (cause instanceof MediaCodec.CodecException) {
-      return ((MediaCodec.CodecException) cause).getDiagnosticInfo();
+  private companion object {
+    @RequiresApi(21)
+    @DoNotInline
+    fun getDiagnosticInfoV21(cause: Throwable?): String? {
+      return (cause as? MediaCodec.CodecException)?.diagnosticInfo
     }
-    return null;
   }
 }

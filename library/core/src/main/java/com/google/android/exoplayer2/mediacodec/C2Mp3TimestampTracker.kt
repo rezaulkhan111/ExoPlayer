@@ -13,40 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.mediacodec;
+package com.google.android.exoplayer2.mediacodec
 
-import static java.lang.Math.max;
-
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.audio.MpegAudioUtil;
-import com.google.android.exoplayer2.decoder.DecoderInputBuffer;
-import com.google.android.exoplayer2.util.Assertions;
-import com.google.android.exoplayer2.util.Log;
-import java.nio.ByteBuffer;
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.audio.MpegAudioUtil
+import com.google.android.exoplayer2.decoder.DecoderInputBuffer
+import com.google.android.exoplayer2.util.Assertions.checkNotNull
+import com.google.android.exoplayer2.util.Log
+import kotlin.math.max
 
 /**
  * Tracks the number of processed samples to calculate an accurate current timestamp, matching the
  * calculations made in the Codec2 Mp3 decoder.
  */
-/* package */ final class C2Mp3TimestampTracker {
+internal class C2Mp3TimestampTracker {
 
-  private static final long DECODER_DELAY_FRAMES = 529;
-  private static final String TAG = "C2Mp3TimestampTracker";
-
-  private long anchorTimestampUs;
-  private long processedFrames;
-  private boolean seenInvalidMpegAudioHeader;
+  private var anchorTimestampUs: Long = 0
+  private var processedFrames: Long = 0
+  private var seenInvalidMpegAudioHeader = false
 
   /**
    * Resets the timestamp tracker.
    *
    * <p>This should be done when the codec is flushed.
    */
-  public void reset() {
-    anchorTimestampUs = 0;
-    processedFrames = 0;
-    seenInvalidMpegAudioHeader = false;
+  fun reset() {
+    anchorTimestampUs = 0
+    processedFrames = 0
+    seenInvalidMpegAudioHeader = false
   }
 
   /**
@@ -56,33 +51,33 @@ import java.nio.ByteBuffer;
    * @param buffer The current input buffer.
    * @return The expected output presentation time, in microseconds.
    */
-  public long updateAndGetPresentationTimeUs(Format format, DecoderInputBuffer buffer) {
-    if (processedFrames == 0) {
-      anchorTimestampUs = buffer.timeUs;
+  fun updateAndGetPresentationTimeUs(format: Format, buffer: DecoderInputBuffer): Long {
+    if (processedFrames == 0L) {
+      anchorTimestampUs = buffer.timeUs
     }
 
     if (seenInvalidMpegAudioHeader) {
-      return buffer.timeUs;
+      return buffer.timeUs
     }
 
-    ByteBuffer data = Assertions.checkNotNull(buffer.data);
-    int sampleHeaderData = 0;
-    for (int i = 0; i < 4; i++) {
-      sampleHeaderData <<= 8;
-      sampleHeaderData |= data.get(i) & 0xFF;
+    val data = checkNotNull(buffer.data)!!
+    var sampleHeaderData = 0
+    for (i in 0 until 4) {
+      sampleHeaderData = sampleHeaderData shl 8
+      sampleHeaderData = sampleHeaderData or (data.get(i).toInt() and 0xFF)
     }
 
-    int frameCount = MpegAudioUtil.parseMpegAudioFrameSampleCount(sampleHeaderData);
+    val frameCount = MpegAudioUtil.parseMpegAudioFrameSampleCount(sampleHeaderData)
     if (frameCount == C.LENGTH_UNSET) {
-      seenInvalidMpegAudioHeader = true;
-      processedFrames = 0;
-      anchorTimestampUs = buffer.timeUs;
-      Log.w(TAG, "MPEG audio header is invalid.");
-      return buffer.timeUs;
+      seenInvalidMpegAudioHeader = true
+      processedFrames = 0
+      anchorTimestampUs = buffer.timeUs
+      Log.w(TAG, "MPEG audio header is invalid.")
+      return buffer.timeUs
     }
-    long currentBufferTimestampUs = getBufferTimestampUs(format.sampleRate);
-    processedFrames += frameCount;
-    return currentBufferTimestampUs;
+    val currentBufferTimestampUs = getBufferTimestampUs(format.sampleRate.toLong())
+    processedFrames += frameCount
+    return currentBufferTimestampUs
   }
 
   /**
@@ -93,14 +88,19 @@ import java.nio.ByteBuffer;
    * @return The timestamp of the last buffer that will be produced if the stream ends at the
    *     current position, in microseconds.
    */
-  public long getLastOutputBufferPresentationTimeUs(Format format) {
-    return getBufferTimestampUs(format.sampleRate);
+  fun getLastOutputBufferPresentationTimeUs(format: Format): Long {
+    return getBufferTimestampUs(format.sampleRate.toLong())
   }
 
-  private long getBufferTimestampUs(long sampleRate) {
+  private fun getBufferTimestampUs(sampleRate: Long): Long {
     // This calculation matches the timestamp calculation in the Codec2 Mp3 Decoder.
     // https://cs.android.com/android/platform/superproject/+/main:frameworks/av/media/codec2/components/mp3/C2SoftMp3Dec.cpp;l=464;drc=ed134640332fea70ca4b05694289d91a5265bb46
-    return anchorTimestampUs
-        + max(0, (processedFrames - DECODER_DELAY_FRAMES) * C.MICROS_PER_SECOND / sampleRate);
+    return anchorTimestampUs +
+      max(0L, (processedFrames - DECODER_DELAY_FRAMES) * C.MICROS_PER_SECOND / sampleRate)
+  }
+
+  companion object {
+    private const val DECODER_DELAY_FRAMES: Long = 529
+    private const val TAG = "C2Mp3TimestampTracker"
   }
 }

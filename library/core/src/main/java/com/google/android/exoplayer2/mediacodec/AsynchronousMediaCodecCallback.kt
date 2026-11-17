@@ -14,300 +14,281 @@
  * limitations under the License.
  */
 
-package com.google.android.exoplayer2.mediacodec;
+package com.google.android.exoplayer2.mediacodec
 
-import static com.google.android.exoplayer2.util.Assertions.checkState;
-import static com.google.android.exoplayer2.util.Assertions.checkStateNotNull;
+import android.media.MediaCodec
+import android.media.MediaFormat
+import android.os.Handler
+import android.os.HandlerThread
+import androidx.annotation.GuardedBy
+import androidx.annotation.RequiresApi
+import com.google.android.exoplayer2.util.Assertions.checkState
+import com.google.android.exoplayer2.util.Assertions.checkStateNotNull
+import com.google.android.exoplayer2.util.Util.castNonNull
+import java.util.ArrayDeque
 
-import android.media.MediaCodec;
-import android.media.MediaFormat;
-import android.os.Handler;
-import android.os.HandlerThread;
-import androidx.annotation.GuardedBy;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import com.google.android.exoplayer2.util.Util;
-import java.util.ArrayDeque;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
-
-/** A {@link MediaCodec.Callback} that routes callbacks on a separate thread. */
+/** A [MediaCodec.Callback] that routes callbacks on a separate thread. */
 @RequiresApi(23)
-/* package */ final class AsynchronousMediaCodecCallback extends MediaCodec.Callback {
-  private final Object lock;
-  private final HandlerThread callbackThread;
+internal class AsynchronousMediaCodecCallback(
+  private val callbackThread: HandlerThread,
+) : MediaCodec.Callback() {
 
-  private @MonotonicNonNull Handler handler;
-
-  @GuardedBy("lock")
-  private final IntArrayQueue availableInputBuffers;
+  private val lock = Any()
 
   @GuardedBy("lock")
-  private final IntArrayQueue availableOutputBuffers;
+  private val availableInputBuffers: IntArrayQueue = IntArrayQueue()
 
   @GuardedBy("lock")
-  private final ArrayDeque<MediaCodec.BufferInfo> bufferInfos;
+  private val availableOutputBuffers: IntArrayQueue = IntArrayQueue()
 
   @GuardedBy("lock")
-  private final ArrayDeque<MediaFormat> formats;
+  private val bufferInfos: ArrayDeque<MediaCodec.BufferInfo> = ArrayDeque()
 
   @GuardedBy("lock")
-  @Nullable
-  private MediaFormat currentFormat;
+  private val formats: ArrayDeque<MediaFormat> = ArrayDeque()
+
+  private var handler: Handler? = null
 
   @GuardedBy("lock")
-  @Nullable
-  private MediaFormat pendingOutputFormat;
+  private var currentFormat: MediaFormat? = null
 
   @GuardedBy("lock")
-  @Nullable
-  private MediaCodec.CodecException mediaCodecException;
+  private var pendingOutputFormat: MediaFormat? = null
 
   @GuardedBy("lock")
-  private long pendingFlushCount;
+  private var mediaCodecException: MediaCodec.CodecException? = null
 
   @GuardedBy("lock")
-  private boolean shutDown;
+  private var pendingFlushCount: Long = 0
 
   @GuardedBy("lock")
-  @Nullable
-  private IllegalStateException internalException;
+  private var shutDown = false
+
+  @GuardedBy("lock")
+  private var internalException: IllegalStateException? = null
 
   /**
-   * Creates a new instance.
+   * Sets the callback on `codec` and starts the background callback thread.
    *
-   * @param callbackThread The thread that will be used for routing the {@link MediaCodec}
-   *     callbacks. The thread must not be started.
-   */
-  /* package */ AsynchronousMediaCodecCallback(HandlerThread callbackThread) {
-    this.lock = new Object();
-    this.callbackThread = callbackThread;
-    this.availableInputBuffers = new IntArrayQueue();
-    this.availableOutputBuffers = new IntArrayQueue();
-    this.bufferInfos = new ArrayDeque<>();
-    this.formats = new ArrayDeque<>();
-  }
-
-  /**
-   * Sets the callback on {@code codec} and starts the background callback thread.
-   *
-   * <p>Make sure to call {@link #shutdown()} to stop the background thread and release its
+   * <p>Make sure to call [shutdown] to stop the background thread and release its
    * resources.
    *
-   * @see MediaCodec#setCallback(MediaCodec.Callback, Handler)
+   * @see MediaCodec.setCallback
    */
-  public void initialize(MediaCodec codec) {
-    checkState(handler == null);
+  fun initialize(codec: MediaCodec) {
+    checkState(handler == null)
 
-    callbackThread.start();
-    Handler handler = new Handler(callbackThread.getLooper());
-    codec.setCallback(this, handler);
+    callbackThread.start()
+    val handler = Handler(callbackThread.looper)
+    codec.setCallback(this, handler)
     // Initialize this.handler at the very end ensuring the callback in not considered configured
     // if MediaCodec raises an exception.
-    this.handler = handler;
+    this.handler = handler
   }
 
   /**
    * Shuts down this instance.
    *
    * <p>This method will stop the callback thread. After calling it, callbacks will no longer be
-   * handled and dequeue methods will return {@link MediaCodec#INFO_TRY_AGAIN_LATER}.
+   * handled and dequeue methods will return [MediaCodec.INFO_TRY_AGAIN_LATER].
    */
-  public void shutdown() {
-    synchronized (lock) {
-      shutDown = true;
-      callbackThread.quit();
-      flushInternal();
+  fun shutdown() {
+    synchronized(lock) {
+      shutDown = true
+      callbackThread.quit()
+      flushInternal()
     }
   }
 
   /**
-   * Returns the next available input buffer index or {@link MediaCodec#INFO_TRY_AGAIN_LATER} if no
+   * Returns the next available input buffer index or [MediaCodec.INFO_TRY_AGAIN_LATER] if no
    * such buffer exists.
    */
-  public int dequeueInputBufferIndex() {
-    synchronized (lock) {
-      if (isFlushingOrShutdown()) {
-        return MediaCodec.INFO_TRY_AGAIN_LATER;
+  fun dequeueInputBufferIndex(): Int {
+    synchronized(lock) {
+      return if (isFlushingOrShutdown) {
+        MediaCodec.INFO_TRY_AGAIN_LATER
       } else {
-        maybeThrowException();
-        return availableInputBuffers.isEmpty()
-            ? MediaCodec.INFO_TRY_AGAIN_LATER
-            : availableInputBuffers.remove();
-      }
-    }
-  }
-
-  /**
-   * Returns the next available output buffer index. If the next available output is a MediaFormat
-   * change, it will return {@link MediaCodec#INFO_OUTPUT_FORMAT_CHANGED} and you should call {@link
-   * #getOutputFormat()} to get the format. If there is no available output, this method will return
-   * {@link MediaCodec#INFO_TRY_AGAIN_LATER}.
-   */
-  public int dequeueOutputBufferIndex(MediaCodec.BufferInfo bufferInfo) {
-    synchronized (lock) {
-      if (isFlushingOrShutdown()) {
-        return MediaCodec.INFO_TRY_AGAIN_LATER;
-      } else {
-        maybeThrowException();
-        if (availableOutputBuffers.isEmpty()) {
-          return MediaCodec.INFO_TRY_AGAIN_LATER;
+        maybeThrowException()
+        if (availableInputBuffers.isEmpty) {
+          MediaCodec.INFO_TRY_AGAIN_LATER
         } else {
-          int bufferIndex = availableOutputBuffers.remove();
-          if (bufferIndex >= 0) {
-            checkStateNotNull(currentFormat);
-            MediaCodec.BufferInfo nextBufferInfo = bufferInfos.remove();
-            bufferInfo.set(
-                nextBufferInfo.offset,
-                nextBufferInfo.size,
-                nextBufferInfo.presentationTimeUs,
-                nextBufferInfo.flags);
-          } else if (bufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-            currentFormat = formats.remove();
-          }
-          return bufferIndex;
+          availableInputBuffers.remove()
         }
       }
     }
   }
 
   /**
-   * Returns the {@link MediaFormat} signalled by the underlying {@link MediaCodec}.
-   *
-   * <p>Call this <b>after</b> {@link #dequeueOutputBufferIndex} returned {@link
-   * MediaCodec#INFO_OUTPUT_FORMAT_CHANGED}.
-   *
-   * @throws IllegalStateException If called before {@link #dequeueOutputBufferIndex} has returned
-   *     {@link MediaCodec#INFO_OUTPUT_FORMAT_CHANGED}.
+   * Returns the next available output buffer index. If the next available output is a MediaFormat
+   * change, it will return [MediaCodec.INFO_OUTPUT_FORMAT_CHANGED] and you should call [getOutputFormat]
+   * to get the format. If there is no available output, this method will return
+   * [MediaCodec.INFO_TRY_AGAIN_LATER].
    */
-  public MediaFormat getOutputFormat() {
-    synchronized (lock) {
-      if (currentFormat == null) {
-        throw new IllegalStateException();
+  fun dequeueOutputBufferIndex(bufferInfo: MediaCodec.BufferInfo): Int {
+    synchronized(lock) {
+      if (isFlushingOrShutdown) {
+        return MediaCodec.INFO_TRY_AGAIN_LATER
+      } else {
+        maybeThrowException()
+        if (availableOutputBuffers.isEmpty) {
+          return MediaCodec.INFO_TRY_AGAIN_LATER
+        } else {
+          val bufferIndex = availableOutputBuffers.remove()
+          if (bufferIndex >= 0) {
+            checkStateNotNull(currentFormat)
+            val nextBufferInfo = bufferInfos.remove()
+            bufferInfo.set(
+              nextBufferInfo.offset,
+              nextBufferInfo.size,
+              nextBufferInfo.presentationTimeUs,
+              nextBufferInfo.flags,
+            )
+          } else if (bufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+            currentFormat = formats.remove()
+          }
+          return bufferIndex
+        }
       }
-      return currentFormat;
+    }
+  }
+
+  /**
+   * Returns the [MediaFormat] signalled by the underlying [MediaCodec].
+   *
+   * <p>Call this <b>after</b> [dequeueOutputBufferIndex] returned [MediaCodec.INFO_OUTPUT_FORMAT_CHANGED].
+   *
+   * @throws IllegalStateException If called before [dequeueOutputBufferIndex] has returned
+   *     [MediaCodec.INFO_OUTPUT_FORMAT_CHANGED].
+   */
+  fun getOutputFormat(): MediaFormat {
+    synchronized(lock) {
+      if (currentFormat == null) {
+        throw IllegalStateException()
+      }
+      return currentFormat!!
     }
   }
 
   /**
    * Initiates a flush asynchronously, which will be completed on the callback thread. When the
-   * flush is complete, it will trigger {@code onFlushCompleted} from the callback thread.
+   * flush is complete, it will trigger `onFlushCompleted` from the callback thread.
    */
-  public void flush() {
-    synchronized (lock) {
-      ++pendingFlushCount;
-      Util.castNonNull(handler).post(this::onFlushCompleted);
+  fun flush() {
+    synchronized(lock) {
+      ++pendingFlushCount
+      castNonNull(handler)!!.post { onFlushCompleted() }
     }
   }
 
   // Called from the callback thread.
 
-  @Override
-  public void onInputBufferAvailable(MediaCodec codec, int index) {
-    synchronized (lock) {
-      availableInputBuffers.add(index);
+  override fun onInputBufferAvailable(codec: MediaCodec, index: Int) {
+    synchronized(lock) {
+      availableInputBuffers.add(index)
     }
   }
 
-  @Override
-  public void onOutputBufferAvailable(MediaCodec codec, int index, MediaCodec.BufferInfo info) {
-    synchronized (lock) {
+  override fun onOutputBufferAvailable(
+    codec: MediaCodec,
+    index: Int,
+    info: MediaCodec.BufferInfo,
+  ) {
+    synchronized(lock) {
       if (pendingOutputFormat != null) {
-        addOutputFormat(pendingOutputFormat);
-        pendingOutputFormat = null;
+        addOutputFormat(pendingOutputFormat!!)
+        pendingOutputFormat = null
       }
-      availableOutputBuffers.add(index);
-      bufferInfos.add(info);
+      availableOutputBuffers.add(index)
+      bufferInfos.add(info)
     }
   }
 
-  @Override
-  public void onError(MediaCodec codec, MediaCodec.CodecException e) {
-    synchronized (lock) {
-      mediaCodecException = e;
+  override fun onError(codec: MediaCodec, e: MediaCodec.CodecException) {
+    synchronized(lock) {
+      mediaCodecException = e
     }
   }
 
-  @Override
-  public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
-    synchronized (lock) {
-      addOutputFormat(format);
-      pendingOutputFormat = null;
+  override fun onOutputFormatChanged(codec: MediaCodec, format: MediaFormat) {
+    synchronized(lock) {
+      addOutputFormat(format)
+      pendingOutputFormat = null
     }
   }
 
-  private void onFlushCompleted() {
-    synchronized (lock) {
+  private fun onFlushCompleted() {
+    synchronized(lock) {
       if (shutDown) {
-        return;
+        return
       }
 
-      --pendingFlushCount;
+      --pendingFlushCount
       if (pendingFlushCount > 0) {
         // Another flush() has been called.
-        return;
+        return
       } else if (pendingFlushCount < 0) {
         // This should never happen.
-        setInternalException(new IllegalStateException());
-        return;
+        setInternalException(IllegalStateException())
+        return
       }
-      flushInternal();
+      flushInternal()
     }
   }
 
   /** Flushes all available input and output buffers and any error that was previously set. */
   @GuardedBy("lock")
-  private void flushInternal() {
+  private fun flushInternal() {
     if (!formats.isEmpty()) {
-      pendingOutputFormat = formats.getLast();
+      pendingOutputFormat = formats.last
     }
     // else, pendingOutputFormat may already be non-null following a previous flush, and remains
     // set in this case.
 
-    availableInputBuffers.clear();
-    availableOutputBuffers.clear();
-    bufferInfos.clear();
-    formats.clear();
-    mediaCodecException = null;
+    availableInputBuffers.clear()
+    availableOutputBuffers.clear()
+    bufferInfos.clear()
+    formats.clear()
+    mediaCodecException = null
+  }
+
+  @get:GuardedBy("lock")
+  private val isFlushingOrShutdown: Boolean
+    get() = pendingFlushCount > 0 || shutDown
+
+  @GuardedBy("lock")
+  private fun addOutputFormat(mediaFormat: MediaFormat) {
+    availableOutputBuffers.add(MediaCodec.INFO_OUTPUT_FORMAT_CHANGED)
+    formats.add(mediaFormat)
   }
 
   @GuardedBy("lock")
-  private boolean isFlushingOrShutdown() {
-    return pendingFlushCount > 0 || shutDown;
+  private fun maybeThrowException() {
+    maybeThrowInternalException()
+    maybeThrowMediaCodecException()
   }
 
   @GuardedBy("lock")
-  private void addOutputFormat(MediaFormat mediaFormat) {
-    availableOutputBuffers.add(MediaCodec.INFO_OUTPUT_FORMAT_CHANGED);
-    formats.add(mediaFormat);
-  }
-
-  @GuardedBy("lock")
-  private void maybeThrowException() {
-    maybeThrowInternalException();
-    maybeThrowMediaCodecException();
-  }
-
-  @GuardedBy("lock")
-  private void maybeThrowInternalException() {
+  private fun maybeThrowInternalException() {
     if (internalException != null) {
-      IllegalStateException e = internalException;
-      internalException = null;
-      throw e;
+      val e = internalException
+      internalException = null
+      throw e!!
     }
   }
 
   @GuardedBy("lock")
-  private void maybeThrowMediaCodecException() {
+  private fun maybeThrowMediaCodecException() {
     if (mediaCodecException != null) {
-      MediaCodec.CodecException codecException = mediaCodecException;
-      mediaCodecException = null;
-      throw codecException;
+      val codecException = mediaCodecException
+      mediaCodecException = null
+      throw codecException!!
     }
   }
 
-  private void setInternalException(IllegalStateException e) {
-    synchronized (lock) {
-      internalException = e;
+  private fun setInternalException(e: IllegalStateException) {
+    synchronized(lock) {
+      internalException = e
     }
   }
 }

@@ -13,44 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.mediacodec;
+package com.google.android.exoplayer2.mediacodec
 
-import java.util.NoSuchElementException;
+import java.util.NoSuchElementException
 
 /**
  * Array-based unbounded queue for int primitives with amortized O(1) add and remove.
  *
- * <p>Use this class instead of a {@link java.util.Deque} to avoid boxing int primitives to {@link
- * Integer} instances.
+ * <p>Use this class instead of a [java.util.Deque] to avoid boxing int primitives to [Integer] instances.
  */
-/* package */ final class IntArrayQueue {
+internal class IntArrayQueue {
 
-  /** Default capacity needs to be a power of 2. */
-  private static final int DEFAULT_INITIAL_CAPACITY = 16;
-
-  private int headIndex;
-  private int tailIndex;
-  private int size;
-  private int[] data;
-  private int wrapAroundMask;
-
-  public IntArrayQueue() {
-    headIndex = 0;
-    tailIndex = -1;
-    size = 0;
-    data = new int[DEFAULT_INITIAL_CAPACITY];
-    wrapAroundMask = data.length - 1;
-  }
+  private var headIndex = 0
+  private var tailIndex = -1
+  private var size = 0
+  private var data = IntArray(DEFAULT_INITIAL_CAPACITY)
+  private var wrapAroundMask = data.size - 1
 
   /** Add a new item to the queue. */
-  public void add(int value) {
-    if (size == data.length) {
-      doubleArraySize();
+  fun add(value: Int) {
+    if (size == data.size) {
+      doubleArraySize()
     }
 
-    tailIndex = (tailIndex + 1) & wrapAroundMask;
-    data[tailIndex] = value;
-    size++;
+    tailIndex = (tailIndex + 1) and wrapAroundMask
+    data[tailIndex] = value
+    size++
   }
 
   /**
@@ -58,55 +46,64 @@ import java.util.NoSuchElementException;
    *
    * @throws NoSuchElementException if the queue is empty.
    */
-  public int remove() {
+  fun remove(): Int {
     if (size == 0) {
-      throw new NoSuchElementException();
+      throw NoSuchElementException()
     }
 
-    int value = data[headIndex];
-    headIndex = (headIndex + 1) & wrapAroundMask;
-    size--;
+    val value = data[headIndex]
+    headIndex = (headIndex + 1) and wrapAroundMask
+    size--
 
-    return value;
+    return value
   }
 
   /** Returns the number of items in the queue. */
-  public int size() {
-    return size;
+  fun size(): Int {
+    return size
   }
 
   /** Returns whether the queue is empty. */
-  public boolean isEmpty() {
-    return size == 0;
+  val isEmpty: Boolean
+    get() = size == 0
+
+  /** Returns whether the queue is empty. */
+  fun isEmpty(): Boolean {
+    return size == 0
   }
 
   /** Clears the queue. */
-  public void clear() {
-    headIndex = 0;
-    tailIndex = -1;
-    size = 0;
+  fun clear() {
+    headIndex = 0
+    tailIndex = -1
+    size = 0
   }
 
   /** Returns the length of the backing array. */
-  public int capacity() {
-    return data.length;
+  fun capacity(): Int {
+    return data.size
   }
 
   private void doubleArraySize() {
-    int newCapacity = data.length << 1;
+    val newCapacity = data.size shl 1
     if (newCapacity < 0) {
-      throw new IllegalStateException();
+      throw IllegalStateException()
     }
 
-    int[] newData = new int[newCapacity];
-    int itemsToRight = data.length - headIndex;
-    int itemsToLeft = headIndex;
-    System.arraycopy(data, headIndex, newData, 0, itemsToRight);
-    System.arraycopy(data, 0, newData, itemsToRight, itemsToLeft);
+    val newData = IntArray(newCapacity)
+    val itemsToRight = data.size - headIndex
+    val itemsToLeft = headIndex
+    System.arraycopy(data, headIndex, newData, 0, itemsToRight)
+    System.arraycopy(data, 0, newData, itemsToRight, itemsToLeft)
 
-    headIndex = 0;
-    tailIndex = size - 1;
-    data = newData;
-    wrapAroundMask = data.length - 1;
+    headIndex = 0
+    tailIndex = size - 1
+    data = newData
+    wrapAroundMask = data.size - 1
+  }
+
+  companion object {
+    /** Default capacity needs to be a power of 2. */
+    private const val DEFAULT_INITIAL_CAPACITY = 16
   }
 }

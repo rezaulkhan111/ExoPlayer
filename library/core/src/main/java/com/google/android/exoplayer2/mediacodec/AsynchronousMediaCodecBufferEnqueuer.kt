@@ -14,335 +14,366 @@
  * limitations under the License.
  */
 
-package com.google.android.exoplayer2.mediacodec;
+package com.google.android.exoplayer2.mediacodec
 
-import static androidx.annotation.VisibleForTesting.NONE;
-import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
-import static com.google.android.exoplayer2.util.Util.castNonNull;
-
-import android.media.MediaCodec;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Message;
-import androidx.annotation.GuardedBy;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import androidx.annotation.VisibleForTesting;
-import com.google.android.exoplayer2.decoder.CryptoInfo;
-import com.google.android.exoplayer2.util.ConditionVariable;
-import com.google.android.exoplayer2.util.Util;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicReference;
-import org.checkerframework.checker.nullness.compatqual.NullableType;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
+import android.media.MediaCodec
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Message
+import androidx.annotation.GuardedBy
+import androidx.annotation.RequiresApi
+import androidx.annotation.VisibleForTesting
+import com.google.android.exoplayer2.decoder.CryptoInfo
+import com.google.android.exoplayer2.util.Assertions.checkNotNull
+import com.google.android.exoplayer2.util.ConditionVariable
+import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.util.Util.castNonNull
+import java.util.ArrayDeque
+import java.util.Arrays
+import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Performs {@link MediaCodec} input buffer queueing on a background thread.
+ * Performs [MediaCodec] input buffer queueing on a background thread.
  *
  * <p>The implementation of this class assumes that its public methods will be called from the same
  * thread.
  */
 @RequiresApi(23)
-class AsynchronousMediaCodecBufferEnqueuer {
+internal class AsynchronousMediaCodecBufferEnqueuer @VisibleForTesting internal constructor(
+  private val codec: MediaCodec,
+  private val handlerThread: HandlerThread,
+  private val conditionVariable: ConditionVariable,
+) {
 
-  private static final int MSG_QUEUE_INPUT_BUFFER = 0;
-  private static final int MSG_QUEUE_SECURE_INPUT_BUFFER = 1;
-  private static final int MSG_OPEN_CV = 2;
-
-  @GuardedBy("MESSAGE_PARAMS_INSTANCE_POOL")
-  private static final ArrayDeque<MessageParams> MESSAGE_PARAMS_INSTANCE_POOL = new ArrayDeque<>();
-
-  private static final Object QUEUE_SECURE_LOCK = new Object();
-
-  private final MediaCodec codec;
-  private final HandlerThread handlerThread;
-  private @MonotonicNonNull Handler handler;
-  private final AtomicReference<@NullableType RuntimeException> pendingRuntimeException;
-  private final ConditionVariable conditionVariable;
-  private boolean started;
+  private var handler: Handler? = null
+  private val pendingRuntimeException: AtomicReference<RuntimeException?> = AtomicReference()
+  private var started = false
 
   /**
-   * Creates a new instance that submits input buffers on the specified {@link MediaCodec}.
+   * Creates a new instance that submits input buffers on the specified [MediaCodec].
    *
-   * @param codec The {@link MediaCodec} to submit input buffers to.
-   * @param queueingThread The {@link HandlerThread} to use for queueing buffers.
+   * @param codec The [MediaCodec] to submit input buffers to.
+   * @param queueingThread The [HandlerThread] to use for queueing buffers.
    */
-  public AsynchronousMediaCodecBufferEnqueuer(MediaCodec codec, HandlerThread queueingThread) {
-    this(codec, queueingThread, /* conditionVariable= */ new ConditionVariable());
-  }
-
-  @VisibleForTesting
-  /* package */ AsynchronousMediaCodecBufferEnqueuer(
-      MediaCodec codec, HandlerThread handlerThread, ConditionVariable conditionVariable) {
-    this.codec = codec;
-    this.handlerThread = handlerThread;
-    this.conditionVariable = conditionVariable;
-    pendingRuntimeException = new AtomicReference<>();
-  }
+  constructor(codec: MediaCodec, queueingThread: HandlerThread) : this(
+    codec,
+    queueingThread,
+    ConditionVariable(),
+  )
 
   /**
    * Starts this instance.
    *
    * <p>Call this method after creating an instance and before queueing input buffers.
    */
-  public void start() {
+  fun start() {
     if (!started) {
-      handlerThread.start();
+      handlerThread.start()
       handler =
-          new Handler(handlerThread.getLooper()) {
-            @Override
-            public void handleMessage(Message msg) {
-              doHandleMessage(msg);
-            }
-          };
-      started = true;
+        object : Handler(handlerThread.looper) {
+          override fun handleMessage(msg: Message) {
+            doHandleMessage(msg)
+          }
+        }
+      started = true
     }
   }
 
   /**
    * Submits an input buffer for decoding.
    *
-   * @see android.media.MediaCodec#queueInputBuffer
+   * @see android.media.MediaCodec.queueInputBuffer
    */
-  public void queueInputBuffer(
-      int index, int offset, int size, long presentationTimeUs, int flags) {
-    maybeThrowException();
-    MessageParams messageParams = getMessageParams();
-    messageParams.setQueueParams(index, offset, size, presentationTimeUs, flags);
-    Message message = castNonNull(handler).obtainMessage(MSG_QUEUE_INPUT_BUFFER, messageParams);
-    message.sendToTarget();
+  fun queueInputBuffer(
+    index: Int,
+    offset: Int,
+    size: Int,
+    presentationTimeUs: Long,
+    flags: Int,
+  ) {
+    maybeThrowException()
+    val messageParams = getMessageParams()
+    messageParams.setQueueParams(index, offset, size, presentationTimeUs, flags)
+    val message = castNonNull(handler)!!.obtainMessage(MSG_QUEUE_INPUT_BUFFER, messageParams)
+    message.sendToTarget()
   }
 
   /**
    * Submits an input buffer that potentially contains encrypted data for decoding.
    *
-   * <p>Note: This method behaves as {@link MediaCodec#queueSecureInputBuffer} with the difference
-   * that {@code info} is of type {@link CryptoInfo} and not {@link
-   * android.media.MediaCodec.CryptoInfo}.
+   * <p>Note: This method behaves as [MediaCodec.queueSecureInputBuffer] with the difference
+   * that `info` is of type [CryptoInfo] and not [android.media.MediaCodec.CryptoInfo].
    *
-   * @see android.media.MediaCodec#queueSecureInputBuffer
+   * @see android.media.MediaCodec.queueSecureInputBuffer
    */
-  public void queueSecureInputBuffer(
-      int index, int offset, CryptoInfo info, long presentationTimeUs, int flags) {
-    maybeThrowException();
-    MessageParams messageParams = getMessageParams();
-    messageParams.setQueueParams(index, offset, /* size= */ 0, presentationTimeUs, flags);
-    copy(info, messageParams.cryptoInfo);
-    Message message =
-        castNonNull(handler).obtainMessage(MSG_QUEUE_SECURE_INPUT_BUFFER, messageParams);
-    message.sendToTarget();
+  fun queueSecureInputBuffer(
+    index: Int,
+    offset: Int,
+    info: CryptoInfo,
+    presentationTimeUs: Long,
+    flags: Int,
+  ) {
+    maybeThrowException()
+    val messageParams = getMessageParams()
+    messageParams.setQueueParams(index, offset, /* size= */ 0, presentationTimeUs, flags)
+    copy(info, messageParams.cryptoInfo)
+    val message =
+      castNonNull(handler)!!.obtainMessage(MSG_QUEUE_SECURE_INPUT_BUFFER, messageParams)
+    message.sendToTarget()
   }
 
   /** Flushes the instance. */
-  public void flush() {
+  fun flush() {
     if (started) {
       try {
-        flushHandlerThread();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+        flushHandlerThread()
+      } catch (e: InterruptedException) {
+        Thread.currentThread().interrupt()
         // The playback thread should not be interrupted. Raising this as an
         // IllegalStateException.
-        throw new IllegalStateException(e);
+        throw IllegalStateException(e)
       }
     }
   }
 
   /** Shuts down the instance. Make sure to call this method to release its internal resources. */
-  public void shutdown() {
+  fun shutdown() {
     if (started) {
-      flush();
-      handlerThread.quit();
+      flush()
+      handlerThread.quit()
     }
-    started = false;
+    started = false
   }
 
   /** Blocks the current thread until all input buffers pending queueing are submitted. */
-  public void waitUntilQueueingComplete() throws InterruptedException {
-    blockUntilHandlerThreadIsIdle();
+  @Throws(InterruptedException::class)
+  fun waitUntilQueueingComplete() {
+    blockUntilHandlerThreadIsIdle()
   }
 
-  private void maybeThrowException() {
-    @Nullable RuntimeException exception = pendingRuntimeException.getAndSet(null);
+  private fun maybeThrowException() {
+    val exception = pendingRuntimeException.getAndSet(null)
     if (exception != null) {
-      throw exception;
+      throw exception
     }
   }
 
   /**
-   * Empties all tasks enqueued on the {@link #handlerThread} via the {@link #handler}. This method
-   * blocks until the {@link #handlerThread} is idle.
+   * Empties all tasks enqueued on the [handlerThread] via the [handler]. This method
+   * blocks until the [handlerThread] is idle.
    */
-  private void flushHandlerThread() throws InterruptedException {
-    checkNotNull(this.handler).removeCallbacksAndMessages(null);
-    blockUntilHandlerThreadIsIdle();
+  @Throws(InterruptedException::class)
+  private fun flushHandlerThread() {
+    checkNotNull(handler)!!.removeCallbacksAndMessages(null)
+    blockUntilHandlerThreadIsIdle()
   }
 
-  private void blockUntilHandlerThreadIsIdle() throws InterruptedException {
-    conditionVariable.close();
-    checkNotNull(handler).obtainMessage(MSG_OPEN_CV).sendToTarget();
-    conditionVariable.block();
+  @Throws(InterruptedException::class)
+  private fun blockUntilHandlerThreadIsIdle() {
+    conditionVariable.close()
+    checkNotNull(handler)!!.obtainMessage(MSG_OPEN_CV).sendToTarget()
+    conditionVariable.block()
   }
 
-  @VisibleForTesting(otherwise = NONE)
-  /* package */ void setPendingRuntimeException(RuntimeException exception) {
-    pendingRuntimeException.set(exception);
+  @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+  internal fun setPendingRuntimeException(exception: RuntimeException) {
+    pendingRuntimeException.set(exception)
   }
 
   // Called from the handler thread
 
-  private void doHandleMessage(Message msg) {
-    @Nullable MessageParams params = null;
-    switch (msg.what) {
-      case MSG_QUEUE_INPUT_BUFFER:
-        params = (MessageParams) msg.obj;
+  private fun doHandleMessage(msg: Message) {
+    var params: MessageParams? = null
+    when (msg.what) {
+      MSG_QUEUE_INPUT_BUFFER -> {
+        params = msg.obj as MessageParams
         doQueueInputBuffer(
-            params.index, params.offset, params.size, params.presentationTimeUs, params.flags);
-        break;
-      case MSG_QUEUE_SECURE_INPUT_BUFFER:
-        params = (MessageParams) msg.obj;
+          params.index,
+          params.offset,
+          params.size,
+          params.presentationTimeUs,
+          params.flags,
+        )
+      }
+      MSG_QUEUE_SECURE_INPUT_BUFFER -> {
+        params = msg.obj as MessageParams
         doQueueSecureInputBuffer(
-            params.index,
-            params.offset,
-            params.cryptoInfo,
-            params.presentationTimeUs,
-            params.flags);
-        break;
-      case MSG_OPEN_CV:
-        conditionVariable.open();
-        break;
-      default:
+          params.index,
+          params.offset,
+          params.cryptoInfo,
+          params.presentationTimeUs,
+          params.flags,
+        )
+      }
+      MSG_OPEN_CV -> conditionVariable.open()
+      else ->
         pendingRuntimeException.compareAndSet(
-            null, new IllegalStateException(String.valueOf(msg.what)));
+          null,
+          IllegalStateException(msg.what.toString()),
+        )
     }
     if (params != null) {
-      recycleMessageParams(params);
+      recycleMessageParams(params)
     }
   }
 
-  private void doQueueInputBuffer(
-      int index, int offset, int size, long presentationTimeUs, int flag) {
+  private fun doQueueInputBuffer(
+    index: Int,
+    offset: Int,
+    size: Int,
+    presentationTimeUs: Long,
+    flag: Int,
+  ) {
     try {
-      codec.queueInputBuffer(index, offset, size, presentationTimeUs, flag);
-    } catch (RuntimeException e) {
-      pendingRuntimeException.compareAndSet(null, e);
+      codec.queueInputBuffer(index, offset, size, presentationTimeUs, flag)
+    } catch (e: RuntimeException) {
+      pendingRuntimeException.compareAndSet(null, e)
     }
   }
 
-  private void doQueueSecureInputBuffer(
-      int index, int offset, MediaCodec.CryptoInfo info, long presentationTimeUs, int flags) {
+  private fun doQueueSecureInputBuffer(
+    index: Int,
+    offset: Int,
+    info: MediaCodec.CryptoInfo,
+    presentationTimeUs: Long,
+    flags: Int,
+  ) {
     try {
       // Synchronize calls to MediaCodec.queueSecureInputBuffer() to avoid race conditions inside
       // the crypto module when audio and video are sharing the same DRM session
       // (see [Internal: b/149908061]).
-      synchronized (QUEUE_SECURE_LOCK) {
-        codec.queueSecureInputBuffer(index, offset, info, presentationTimeUs, flags);
+      synchronized(QUEUE_SECURE_LOCK) {
+        codec.queueSecureInputBuffer(index, offset, info, presentationTimeUs, flags)
       }
-    } catch (RuntimeException e) {
-      pendingRuntimeException.compareAndSet(null, e);
-    }
-  }
-
-  private static MessageParams getMessageParams() {
-    synchronized (MESSAGE_PARAMS_INSTANCE_POOL) {
-      if (MESSAGE_PARAMS_INSTANCE_POOL.isEmpty()) {
-        return new MessageParams();
-      } else {
-        return MESSAGE_PARAMS_INSTANCE_POOL.removeFirst();
-      }
-    }
-  }
-
-  private static void recycleMessageParams(MessageParams params) {
-    synchronized (MESSAGE_PARAMS_INSTANCE_POOL) {
-      MESSAGE_PARAMS_INSTANCE_POOL.add(params);
+    } catch (e: RuntimeException) {
+      pendingRuntimeException.compareAndSet(null, e)
     }
   }
 
   /** Parameters for queue input buffer and queue secure input buffer tasks. */
-  private static class MessageParams {
-    public int index;
-    public int offset;
-    public int size;
-    public final MediaCodec.CryptoInfo cryptoInfo;
-    public long presentationTimeUs;
-    public int flags;
-
-    MessageParams() {
-      cryptoInfo = new MediaCodec.CryptoInfo();
-    }
+  private class MessageParams {
+    @JvmField var index: Int = 0
+    @JvmField var offset: Int = 0
+    @JvmField var size: Int = 0
+    @JvmField val cryptoInfo: MediaCodec.CryptoInfo = MediaCodec.CryptoInfo()
+    @JvmField var presentationTimeUs: Long = 0
+    @JvmField var flags: Int = 0
 
     /** Convenience method for setting the queueing parameters. */
-    public void setQueueParams(
-        int index, int offset, int size, long presentationTimeUs, int flags) {
-      this.index = index;
-      this.offset = offset;
-      this.size = size;
-      this.presentationTimeUs = presentationTimeUs;
-      this.flags = flags;
+    fun setQueueParams(
+      index: Int,
+      offset: Int,
+      size: Int,
+      presentationTimeUs: Long,
+      flags: Int,
+    ) {
+      this.index = index
+      this.offset = offset
+      this.size = size
+      this.presentationTimeUs = presentationTimeUs
+      this.flags = flags
     }
   }
 
-  /** Performs a deep copy of {@code cryptoInfo} to {@code frameworkCryptoInfo}. */
-  private static void copy(
-      CryptoInfo cryptoInfo, android.media.MediaCodec.CryptoInfo frameworkCryptoInfo) {
-    // Update frameworkCryptoInfo fields directly because CryptoInfo.set performs an unnecessary
-    // object allocation on Android N.
-    frameworkCryptoInfo.numSubSamples = cryptoInfo.numSubSamples;
-    frameworkCryptoInfo.numBytesOfClearData =
-        copy(cryptoInfo.numBytesOfClearData, frameworkCryptoInfo.numBytesOfClearData);
-    frameworkCryptoInfo.numBytesOfEncryptedData =
-        copy(cryptoInfo.numBytesOfEncryptedData, frameworkCryptoInfo.numBytesOfEncryptedData);
-    frameworkCryptoInfo.key = checkNotNull(copy(cryptoInfo.key, frameworkCryptoInfo.key));
-    frameworkCryptoInfo.iv = checkNotNull(copy(cryptoInfo.iv, frameworkCryptoInfo.iv));
-    frameworkCryptoInfo.mode = cryptoInfo.mode;
-    if (Util.SDK_INT >= 24) {
-      android.media.MediaCodec.CryptoInfo.Pattern pattern =
-          new android.media.MediaCodec.CryptoInfo.Pattern(
-              cryptoInfo.encryptedBlocks, cryptoInfo.clearBlocks);
-      frameworkCryptoInfo.setPattern(pattern);
-    }
-  }
+  private companion object {
+    private const val MSG_QUEUE_INPUT_BUFFER = 0
+    private const val MSG_QUEUE_SECURE_INPUT_BUFFER = 1
+    private const val MSG_OPEN_CV = 2
 
-  /**
-   * Copies {@code src}, reusing {@code dst} if it's at least as long as {@code src}.
-   *
-   * @param src The source array.
-   * @param dst The destination array, which will be reused if it's at least as long as {@code src}.
-   * @return The copy, which may be {@code dst} if it was reused.
-   */
-  @Nullable
-  private static int[] copy(@Nullable int[] src, @Nullable int[] dst) {
-    if (src == null) {
-      return dst;
+    @GuardedBy("MESSAGE_PARAMS_INSTANCE_POOL")
+    private val MESSAGE_PARAMS_INSTANCE_POOL = ArrayDeque<MessageParams>()
+
+    private val QUEUE_SECURE_LOCK = Any()
+
+    private fun getMessageParams(): MessageParams {
+      synchronized(MESSAGE_PARAMS_INSTANCE_POOL) {
+        return if (MESSAGE_PARAMS_INSTANCE_POOL.isEmpty()) {
+          MessageParams()
+        } else {
+          MESSAGE_PARAMS_INSTANCE_POOL.removeFirst()
+        }
+      }
     }
 
-    if (dst == null || dst.length < src.length) {
-      return Arrays.copyOf(src, src.length);
-    } else {
-      System.arraycopy(src, 0, dst, 0, src.length);
-      return dst;
-    }
-  }
-
-  /**
-   * Copies {@code src}, reusing {@code dst} if it's at least as long as {@code src}.
-   *
-   * @param src The source array.
-   * @param dst The destination array, which will be reused if it's at least as long as {@code src}.
-   * @return The copy, which may be {@code dst} if it was reused.
-   */
-  @Nullable
-  private static byte[] copy(@Nullable byte[] src, @Nullable byte[] dst) {
-    if (src == null) {
-      return dst;
+    private fun recycleMessageParams(params: MessageParams) {
+      synchronized(MESSAGE_PARAMS_INSTANCE_POOL) {
+        MESSAGE_PARAMS_INSTANCE_POOL.add(params)
+      }
     }
 
-    if (dst == null || dst.length < src.length) {
-      return Arrays.copyOf(src, src.length);
-    } else {
-      System.arraycopy(src, 0, dst, 0, src.length);
-      return dst;
+    /** Performs a deep copy of [cryptoInfo] to [frameworkCryptoInfo]. */
+    @android.annotation.SuppressLint("NewApi")
+    private fun copy(
+      cryptoInfo: CryptoInfo,
+      frameworkCryptoInfo: MediaCodec.CryptoInfo,
+    ) {
+      // Update frameworkCryptoInfo fields directly because CryptoInfo.set performs an unnecessary
+      // object allocation on Android N.
+      frameworkCryptoInfo.numSubSamples = cryptoInfo.numSubSamples
+      frameworkCryptoInfo.numBytesOfClearData =
+        copy(cryptoInfo.numBytesOfClearData, frameworkCryptoInfo.numBytesOfClearData)
+      frameworkCryptoInfo.numBytesOfEncryptedData =
+        copy(cryptoInfo.numBytesOfEncryptedData, frameworkCryptoInfo.numBytesOfEncryptedData)
+      frameworkCryptoInfo.key = checkNotNull(copy(cryptoInfo.key, frameworkCryptoInfo.key))!!
+      frameworkCryptoInfo.iv = checkNotNull(copy(cryptoInfo.iv, frameworkCryptoInfo.iv))!!
+      frameworkCryptoInfo.mode = cryptoInfo.mode
+      if (Util.SDK_INT >= 24) {
+        setPatternV24(cryptoInfo, frameworkCryptoInfo)
+      }
+    }
+
+    @android.annotation.SuppressLint("NewApi")
+    @RequiresApi(24)
+    private fun setPatternV24(
+      cryptoInfo: CryptoInfo,
+      frameworkCryptoInfo: MediaCodec.CryptoInfo,
+    ) {
+      val pattern =
+        MediaCodec.CryptoInfo.Pattern(
+          cryptoInfo.encryptedBlocks,
+          cryptoInfo.clearBlocks,
+        )
+      frameworkCryptoInfo.setPattern(pattern)
+    }
+
+    /**
+     * Copies [src], reusing [dst] if it's at least as long as [src].
+     *
+     * @param src The source array.
+     * @param dst The destination array, which will be reused if it's at least as long as [src].
+     * @return The copy, which may be [dst] if it was reused.
+     */
+    private fun copy(src: IntArray?, dst: IntArray?): IntArray? {
+      if (src == null) {
+        return dst
+      }
+
+      return if (dst == null || dst.size < src.size) {
+        Arrays.copyOf(src, src.size)
+      } else {
+        System.arraycopy(src, 0, dst, 0, src.size)
+        dst
+      }
+    }
+
+    /**
+     * Copies [src], reusing [dst] if it's at least as long as [src].
+     *
+     * @param src The source array.
+     * @param dst The destination array, which will be reused if it's at least as long as [src].
+     * @return The copy, which may be [dst] if it was reused.
+     */
+    private fun copy(src: ByteArray?, dst: ByteArray?): ByteArray? {
+      if (src == null) {
+        return dst
+      }
+
+      return if (dst == null || dst.size < src.size) {
+        Arrays.copyOf(src, src.size)
+      } else {
+        System.arraycopy(src, 0, dst, 0, src.size)
+        dst
+      }
     }
   }
 }

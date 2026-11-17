@@ -13,165 +13,141 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.offline;
+package com.google.android.exoplayer2.offline
 
-import static com.google.android.exoplayer2.util.Util.castNonNull;
-
-import android.net.Uri;
-import android.os.Parcel;
-import android.os.Parcelable;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.util.Assertions;
-import com.google.android.exoplayer2.util.Util;
-import com.google.common.collect.ImmutableList;
-import com.google.errorprone.annotations.CanIgnoreReturnValue;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import android.net.Uri
+import android.os.Parcel
+import android.os.Parcelable
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.util.Assertions
+import com.google.android.exoplayer2.util.Util
+import com.google.errorprone.annotations.CanIgnoreReturnValue
+import java.io.IOException
+import java.util.Arrays
+import java.util.Collections
 
 /** Defines content to be downloaded. */
-public final class DownloadRequest implements Parcelable {
+class DownloadRequest private constructor(
+    /** The unique content id. */
+    @JvmField val id: String,
+    /** The uri being downloaded. */
+    @JvmField val uri: Uri,
+    /**
+     * The MIME type of this content. Used as a hint to infer the content's type (DASH, HLS,
+     * SmoothStreaming). If null, a `DownloadService` will infer the content type from the
+     * [uri].
+     */
+    @JvmField val mimeType: String?,
+    streamKeys: List<StreamKey>,
+    keySetId: ByteArray?,
+    /**
+     * Custom key for cache indexing, or null. Must be null for DASH, HLS and SmoothStreaming
+     * downloads.
+     */
+    @JvmField val customCacheKey: String?,
+    data: ByteArray?
+) : Parcelable {
+
+  /** Stream keys to be downloaded. If empty, all streams will be downloaded. */
+  @JvmField val streamKeys: List<StreamKey>
+
+  /** The key set id of the offline licence if the content is protected with DRM. */
+  @JvmField val keySetId: ByteArray?
+
+  /** Application defined data associated with the download. May be empty. */
+  @JvmField val data: ByteArray
 
   /** Thrown when the encoded request data belongs to an unsupported request type. */
-  public static class UnsupportedRequestException extends IOException {}
+  class UnsupportedRequestException : IOException()
 
   /** A builder for download requests. */
-  public static class Builder {
-    private final String id;
-    private final Uri uri;
-    @Nullable private String mimeType;
-    @Nullable private List<StreamKey> streamKeys;
-    @Nullable private byte[] keySetId;
-    @Nullable private String customCacheKey;
-    @Nullable private byte[] data;
+  class Builder(
+      private val id: String,
+      private val uri: Uri
+  ) {
+    private var mimeType: String? = null
+    private var streamKeys: List<StreamKey>? = null
+    private var keySetId: ByteArray? = null
+    private var customCacheKey: String? = null
+    private var data: ByteArray? = null
 
-    /** Creates a new instance with the specified id and uri. */
-    public Builder(String id, Uri uri) {
-      this.id = id;
-      this.uri = uri;
-    }
-
-    /** Sets the {@link DownloadRequest#mimeType}. */
+    /** Sets the [DownloadRequest.mimeType]. */
     @CanIgnoreReturnValue
-    public Builder setMimeType(@Nullable String mimeType) {
-      this.mimeType = mimeType;
-      return this;
+    fun setMimeType(mimeType: String?): Builder {
+      this.mimeType = mimeType
+      return this
     }
 
-    /** Sets the {@link DownloadRequest#streamKeys}. */
+    /** Sets the [DownloadRequest.streamKeys]. */
     @CanIgnoreReturnValue
-    public Builder setStreamKeys(@Nullable List<StreamKey> streamKeys) {
-      this.streamKeys = streamKeys;
-      return this;
+    fun setStreamKeys(streamKeys: List<StreamKey>?): Builder {
+      this.streamKeys = streamKeys
+      return this
     }
 
-    /** Sets the {@link DownloadRequest#keySetId}. */
+    /** Sets the [DownloadRequest.keySetId]. */
     @CanIgnoreReturnValue
-    public Builder setKeySetId(@Nullable byte[] keySetId) {
-      this.keySetId = keySetId;
-      return this;
+    fun setKeySetId(keySetId: ByteArray?): Builder {
+      this.keySetId = keySetId
+      return this
     }
 
-    /** Sets the {@link DownloadRequest#customCacheKey}. */
+    /** Sets the [DownloadRequest.customCacheKey]. */
     @CanIgnoreReturnValue
-    public Builder setCustomCacheKey(@Nullable String customCacheKey) {
-      this.customCacheKey = customCacheKey;
-      return this;
+    fun setCustomCacheKey(customCacheKey: String?): Builder {
+      this.customCacheKey = customCacheKey
+      return this
     }
 
-    /** Sets the {@link DownloadRequest#data}. */
+    /** Sets the [DownloadRequest.data]. */
     @CanIgnoreReturnValue
-    public Builder setData(@Nullable byte[] data) {
-      this.data = data;
-      return this;
+    fun setData(data: ByteArray?): Builder {
+      this.data = data
+      return this
     }
 
-    public DownloadRequest build() {
-      return new DownloadRequest(
+    fun build(): DownloadRequest {
+      return DownloadRequest(
           id,
           uri,
           mimeType,
-          streamKeys != null ? streamKeys : ImmutableList.of(),
+          streamKeys ?: emptyList(),
           keySetId,
           customCacheKey,
-          data);
+          data
+      )
     }
   }
 
-  /** The unique content id. */
-  public final String id;
-  /** The uri being downloaded. */
-  public final Uri uri;
-  /**
-   * The MIME type of this content. Used as a hint to infer the content's type (DASH, HLS,
-   * SmoothStreaming). If null, a {@code DownloadService} will infer the content type from the
-   * {@link #uri}.
-   */
-  @Nullable public final String mimeType;
-  /** Stream keys to be downloaded. If empty, all streams will be downloaded. */
-  public final List<StreamKey> streamKeys;
-  /** The key set id of the offline licence if the content is protected with DRM. */
-  @Nullable public final byte[] keySetId;
-  /**
-   * Custom key for cache indexing, or null. Must be null for DASH, HLS and SmoothStreaming
-   * downloads.
-   */
-  @Nullable public final String customCacheKey;
-  /** Application defined data associated with the download. May be empty. */
-  public final byte[] data;
-
-  /**
-   * @param id See {@link #id}.
-   * @param uri See {@link #uri}.
-   * @param mimeType See {@link #mimeType}
-   * @param streamKeys See {@link #streamKeys}.
-   * @param customCacheKey See {@link #customCacheKey}.
-   * @param data See {@link #data}.
-   */
-  private DownloadRequest(
-      String id,
-      Uri uri,
-      @Nullable String mimeType,
-      List<StreamKey> streamKeys,
-      @Nullable byte[] keySetId,
-      @Nullable String customCacheKey,
-      @Nullable byte[] data) {
-    @C.ContentType int contentType = Util.inferContentTypeForUriAndMimeType(uri, mimeType);
-    if (contentType == C.CONTENT_TYPE_DASH
-        || contentType == C.CONTENT_TYPE_HLS
-        || contentType == C.CONTENT_TYPE_SS) {
+  init {
+    val contentType = Util.inferContentTypeForUriAndMimeType(uri, mimeType)
+    if ((contentType == C.CONTENT_TYPE_DASH) || (contentType == C.CONTENT_TYPE_HLS) || (contentType == C.CONTENT_TYPE_SS)) {
       Assertions.checkArgument(
-          customCacheKey == null, "customCacheKey must be null for type: " + contentType);
+          customCacheKey == null, "customCacheKey must be null for type: $contentType"
+      )
     }
-    this.id = id;
-    this.uri = uri;
-    this.mimeType = mimeType;
-    ArrayList<StreamKey> mutableKeys = new ArrayList<>(streamKeys);
-    Collections.sort(mutableKeys);
-    this.streamKeys = Collections.unmodifiableList(mutableKeys);
-    this.keySetId = keySetId != null ? Arrays.copyOf(keySetId, keySetId.length) : null;
-    this.customCacheKey = customCacheKey;
-    this.data = data != null ? Arrays.copyOf(data, data.length) : Util.EMPTY_BYTE_ARRAY;
+    val mutableKeys = ArrayList(streamKeys)
+    mutableKeys.sort()
+    this.streamKeys = Collections.unmodifiableList(mutableKeys)
+    this.keySetId = keySetId?.copyOf()
+    this.data = data?.copyOf() ?: Util.EMPTY_BYTE_ARRAY
   }
 
-  /* package */ DownloadRequest(Parcel in) {
-    id = castNonNull(in.readString());
-    uri = Uri.parse(castNonNull(in.readString()));
-    mimeType = in.readString();
-    int streamKeyCount = in.readInt();
-    ArrayList<StreamKey> mutableStreamKeys = new ArrayList<>(streamKeyCount);
-    for (int i = 0; i < streamKeyCount; i++) {
-      mutableStreamKeys.add(in.readParcelable(StreamKey.class.getClassLoader()));
-    }
-    streamKeys = Collections.unmodifiableList(mutableStreamKeys);
-    keySetId = in.createByteArray();
-    customCacheKey = in.readString();
-    data = castNonNull(in.createByteArray());
-  }
+  /* package */ internal constructor(parcel: Parcel) : this(
+      id = parcel.readString()!!,
+      uri = Uri.parse(parcel.readString()!!),
+      mimeType = parcel.readString(),
+      streamKeys = buildList {
+        val streamKeyCount = parcel.readInt()
+        for (i in 0 until streamKeyCount) {
+          add(parcel.readParcelable<StreamKey>(StreamKey::class.java.classLoader)!!)
+        }
+      },
+      keySetId = parcel.createByteArray(),
+      customCacheKey = parcel.readString(),
+      data = parcel.createByteArray()!!
+  )
 
   /**
    * Returns a copy with the specified ID.
@@ -179,8 +155,8 @@ public final class DownloadRequest implements Parcelable {
    * @param id The ID of the copy.
    * @return The copy with the specified ID.
    */
-  public DownloadRequest copyWithId(String id) {
-    return new DownloadRequest(id, uri, mimeType, streamKeys, keySetId, customCacheKey, data);
+  fun copyWithId(id: String): DownloadRequest {
+    return DownloadRequest(id, uri, mimeType, streamKeys, keySetId, customCacheKey, data)
   }
 
   /**
@@ -189,121 +165,115 @@ public final class DownloadRequest implements Parcelable {
    * @param keySetId The key set ID of the copy.
    * @return The copy with the specified key set ID.
    */
-  public DownloadRequest copyWithKeySetId(@Nullable byte[] keySetId) {
-    return new DownloadRequest(id, uri, mimeType, streamKeys, keySetId, customCacheKey, data);
+  fun copyWithKeySetId(keySetId: ByteArray?): DownloadRequest {
+    return DownloadRequest(id, uri, mimeType, streamKeys, keySetId, customCacheKey, data)
   }
 
   /**
-   * Returns the result of merging {@code newRequest} into this request. The requests must have the
-   * same {@link #id}.
+   * Returns the result of merging [newRequest] into this request. The requests must have the
+   * same [id].
    *
-   * <p>The resulting request contains the stream keys from both requests. For all other member
-   * variables, those in {@code newRequest} are preferred.
+   * The resulting request contains the stream keys from both requests. For all other member
+   * variables, those in [newRequest] are preferred.
    *
    * @param newRequest The request being merged.
    * @return The merged result.
-   * @throws IllegalArgumentException If the requests do not have the same {@link #id}.
+   * @throws IllegalArgumentException If the requests do not have the same [id].
    */
-  public DownloadRequest copyWithMergedRequest(DownloadRequest newRequest) {
-    Assertions.checkArgument(id.equals(newRequest.id));
-    List<StreamKey> mergedKeys;
+  fun copyWithMergedRequest(newRequest: DownloadRequest): DownloadRequest {
+    Assertions.checkArgument(id == newRequest.id)
+    val mergedKeys: List<StreamKey>
     if (streamKeys.isEmpty() || newRequest.streamKeys.isEmpty()) {
-      // If either streamKeys is empty then all streams should be downloaded.
-      mergedKeys = Collections.emptyList();
+      mergedKeys = emptyList()
     } else {
-      mergedKeys = new ArrayList<>(streamKeys);
-      for (int i = 0; i < newRequest.streamKeys.size(); i++) {
-        StreamKey newKey = newRequest.streamKeys.get(i);
+      mergedKeys = ArrayList(streamKeys)
+      for (i in newRequest.streamKeys.indices) {
+        val newKey = newRequest.streamKeys[i]
         if (!mergedKeys.contains(newKey)) {
-          mergedKeys.add(newKey);
+          mergedKeys.add(newKey)
         }
       }
     }
-    return new DownloadRequest(
+    return DownloadRequest(
         id,
         newRequest.uri,
         newRequest.mimeType,
         mergedKeys,
         newRequest.keySetId,
         newRequest.customCacheKey,
-        newRequest.data);
+        newRequest.data
+    )
   }
 
-  /** Returns a {@link MediaItem} for the content defined by the request. */
-  public MediaItem toMediaItem() {
-    return new MediaItem.Builder()
+  /** Returns a [MediaItem] for the content defined by the request. */
+  fun toMediaItem(): MediaItem {
+    return MediaItem.Builder()
         .setMediaId(id)
         .setUri(uri)
         .setCustomCacheKey(customCacheKey)
         .setMimeType(mimeType)
         .setStreamKeys(streamKeys)
-        .build();
+        .build()
   }
 
-  @Override
-  public String toString() {
-    return mimeType + ":" + id;
+  override fun toString(): String {
+    return "$mimeType:$id"
   }
 
-  @Override
-  public boolean equals(@Nullable Object o) {
-    if (!(o instanceof DownloadRequest)) {
-      return false;
+  override fun equals(other: Any?): Boolean {
+    if (other !is DownloadRequest) {
+      return false
     }
-    DownloadRequest that = (DownloadRequest) o;
-    return id.equals(that.id)
-        && uri.equals(that.uri)
-        && Util.areEqual(mimeType, that.mimeType)
-        && streamKeys.equals(that.streamKeys)
-        && Arrays.equals(keySetId, that.keySetId)
-        && Util.areEqual(customCacheKey, that.customCacheKey)
-        && Arrays.equals(data, that.data);
+    return id == other.id &&
+        uri == other.uri &&
+        Util.areEqual(mimeType, other.mimeType) &&
+        streamKeys == other.streamKeys &&
+        Arrays.equals(keySetId, other.keySetId) &&
+        Util.areEqual(customCacheKey, other.customCacheKey) &&
+        Arrays.equals(data, other.data)
   }
 
-  @Override
-  public final int hashCode() {
-    int result = 31 * id.hashCode();
-    result = 31 * result + uri.hashCode();
-    result = 31 * result + (mimeType != null ? mimeType.hashCode() : 0);
-    result = 31 * result + streamKeys.hashCode();
-    result = 31 * result + Arrays.hashCode(keySetId);
-    result = 31 * result + (customCacheKey != null ? customCacheKey.hashCode() : 0);
-    result = 31 * result + Arrays.hashCode(data);
-    return result;
+  override fun hashCode(): Int {
+    var result = id.hashCode()
+    result = 31 * result + uri.hashCode()
+    result = 31 * result + (mimeType?.hashCode() ?: 0)
+    result = 31 * result + streamKeys.hashCode()
+    result = 31 * result + Arrays.hashCode(keySetId)
+    result = 31 * result + (customCacheKey?.hashCode() ?: 0)
+    result = 31 * result + Arrays.hashCode(data)
+    return result
   }
 
   // Parcelable implementation.
 
-  @Override
-  public int describeContents() {
-    return 0;
+  override fun describeContents(): Int {
+    return 0
   }
 
-  @Override
-  public void writeToParcel(Parcel dest, int flags) {
-    dest.writeString(id);
-    dest.writeString(uri.toString());
-    dest.writeString(mimeType);
-    dest.writeInt(streamKeys.size());
-    for (int i = 0; i < streamKeys.size(); i++) {
-      dest.writeParcelable(streamKeys.get(i), /* parcelableFlags= */ 0);
+  override fun writeToParcel(dest: Parcel, flags: Int) {
+    dest.writeString(id)
+    dest.writeString(uri.toString())
+    dest.writeString(mimeType)
+    dest.writeInt(streamKeys.size)
+    for (i in streamKeys.indices) {
+      dest.writeParcelable(streamKeys[i], 0)
     }
-    dest.writeByteArray(keySetId);
-    dest.writeString(customCacheKey);
-    dest.writeByteArray(data);
+    dest.writeByteArray(keySetId)
+    dest.writeString(customCacheKey)
+    dest.writeByteArray(data)
   }
 
-  public static final Parcelable.Creator<DownloadRequest> CREATOR =
-      new Parcelable.Creator<DownloadRequest>() {
+  companion object {
+    @JvmField
+    val CREATOR: Parcelable.Creator<DownloadRequest> =
+        object : Parcelable.Creator<DownloadRequest> {
+          override fun createFromParcel(parcel: Parcel): DownloadRequest {
+            return DownloadRequest(parcel)
+          }
 
-        @Override
-        public DownloadRequest createFromParcel(Parcel in) {
-          return new DownloadRequest(in);
+          override fun newArray(size: Int): Array<DownloadRequest?> {
+            return arrayOfNulls(size)
+          }
         }
-
-        @Override
-        public DownloadRequest[] newArray(int size) {
-          return new DownloadRequest[size];
-        }
-      };
+  }
 }

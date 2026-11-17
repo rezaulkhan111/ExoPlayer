@@ -13,273 +13,206 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.metadata;
+package com.google.android.exoplayer2.metadata
 
-import static com.google.android.exoplayer2.util.Assertions.checkState;
-import static com.google.android.exoplayer2.util.Util.castNonNull;
-
-import android.os.Handler;
-import android.os.Handler.Callback;
-import android.os.Looper;
-import android.os.Message;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.BaseRenderer;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.Format;
-import com.google.android.exoplayer2.FormatHolder;
-import com.google.android.exoplayer2.RendererCapabilities;
-import com.google.android.exoplayer2.source.SampleStream.ReadDataResult;
-import com.google.android.exoplayer2.util.Assertions;
-import com.google.android.exoplayer2.util.Util;
-import java.util.ArrayList;
-import java.util.List;
-import org.checkerframework.dataflow.qual.SideEffectFree;
+import android.os.Handler
+import android.os.Looper
+import android.os.Message
+import com.google.android.exoplayer2.BaseRenderer
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.Format
+import com.google.android.exoplayer2.RendererCapabilities
+import com.google.android.exoplayer2.util.Assertions.checkState
+import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.util.Util.castNonNull
+import java.util.ArrayList
+import org.checkerframework.dataflow.qual.SideEffectFree
 
 /**
  * A renderer for metadata.
  *
- * <p>The renderer can be configured to render metadata as soon as they are available using {@link
- * #MetadataRenderer(MetadataOutput, Looper, MetadataDecoderFactory, boolean)}.
+ * <p>The renderer can be configured to render metadata as soon as they are available using [ ][MetadataRenderer].
  */
-public final class MetadataRenderer extends BaseRenderer implements Callback {
+class MetadataRenderer @JvmOverloads constructor(
+  private val output: MetadataOutput,
+  outputLooper: Looper?,
+  private val decoderFactory: MetadataDecoderFactory = MetadataDecoderFactory.DEFAULT,
+  private val outputMetadataEarly: Boolean = false
+) : BaseRenderer(C.TRACK_TYPE_METADATA), Handler.Callback {
 
-  private static final String TAG = "MetadataRenderer";
-  private static final int MSG_INVOKE_RENDERER = 0;
+  private val outputHandler: Handler? =
+    if (outputLooper == null) null else Util.createHandler(outputLooper, /* callback= */ this)
+  private val buffer: MetadataInputBuffer = MetadataInputBuffer()
 
-  private final MetadataDecoderFactory decoderFactory;
-  private final MetadataOutput output;
-  @Nullable private final Handler outputHandler;
-  private final MetadataInputBuffer buffer;
-  private final boolean outputMetadataEarly;
+  private var decoder: MetadataDecoder? = null
+  private var inputStreamEnded = false
+  private var outputStreamEnded = false
+  private var subsampleOffsetUs: Long = 0
+  private var pendingMetadata: Metadata? = null
+  private var outputStreamOffsetUs: Long = C.TIME_UNSET
 
-  @Nullable private MetadataDecoder decoder;
-  private boolean inputStreamEnded;
-  private boolean outputStreamEnded;
-  private long subsampleOffsetUs;
-  @Nullable private Metadata pendingMetadata;
-  private long outputStreamOffsetUs;
-
-  /**
-   * Creates an instance that uses {@link MetadataDecoderFactory#DEFAULT} to create {@link
-   * MetadataDecoder} instances.
-   *
-   * @param output The output.
-   * @param outputLooper The looper associated with the thread on which the output should be called.
-   *     If the output makes use of standard Android UI components, then this should normally be the
-   *     looper associated with the application's main thread, which can be obtained using {@link
-   *     android.app.Activity#getMainLooper()}. Null may be passed if the output should be called
-   *     directly on the player's internal rendering thread.
-   */
-  public MetadataRenderer(MetadataOutput output, @Nullable Looper outputLooper) {
-    this(output, outputLooper, MetadataDecoderFactory.DEFAULT);
+  override fun getName(): String {
+    return TAG
   }
 
-  /**
-   * Creates an instance.
-   *
-   * @param output The output.
-   * @param outputLooper The looper associated with the thread on which the output should be called.
-   *     If the output makes use of standard Android UI components, then this should normally be the
-   *     looper associated with the application's main thread, which can be obtained using {@link
-   *     android.app.Activity#getMainLooper()}. Null may be passed if the output should be called
-   *     directly on the player's internal rendering thread.
-   * @param decoderFactory A factory from which to obtain {@link MetadataDecoder} instances.
-   */
-  public MetadataRenderer(
-      MetadataOutput output, @Nullable Looper outputLooper, MetadataDecoderFactory decoderFactory) {
-    this(output, outputLooper, decoderFactory, /* outputMetadataEarly= */ false);
-  }
-
-  /**
-   * Creates an instance.
-   *
-   * @param output The output.
-   * @param outputLooper The looper associated with the thread on which the output should be called.
-   *     If the output makes use of standard Android UI components, then this should normally be the
-   *     looper associated with the application's main thread, which can be obtained using {@link
-   *     android.app.Activity#getMainLooper()}. Null may be passed if the output should be called
-   *     directly on the player's internal rendering thread.
-   * @param decoderFactory A factory from which to obtain {@link MetadataDecoder} instances.
-   * @param outputMetadataEarly Whether the renderer outputs metadata early. When {@code true},
-   *     {@link #render} will output metadata as soon as they are available to the renderer,
-   *     otherwise {@link #render} will output metadata in sync with the rendering position.
-   */
-  public MetadataRenderer(
-      MetadataOutput output,
-      @Nullable Looper outputLooper,
-      MetadataDecoderFactory decoderFactory,
-      boolean outputMetadataEarly) {
-    super(C.TRACK_TYPE_METADATA);
-    this.output = Assertions.checkNotNull(output);
-    this.outputHandler =
-        outputLooper == null ? null : Util.createHandler(outputLooper, /* callback= */ this);
-    this.decoderFactory = Assertions.checkNotNull(decoderFactory);
-    this.outputMetadataEarly = outputMetadataEarly;
-    buffer = new MetadataInputBuffer();
-    outputStreamOffsetUs = C.TIME_UNSET;
-  }
-
-  @Override
-  public String getName() {
-    return TAG;
-  }
-
-  @Override
-  public @Capabilities int supportsFormat(Format format) {
-    if (decoderFactory.supportsFormat(format)) {
-      return RendererCapabilities.create(
-          format.cryptoType == C.CRYPTO_TYPE_NONE ? C.FORMAT_HANDLED : C.FORMAT_UNSUPPORTED_DRM);
+  override fun supportsFormat(format: Format?): Int {
+    return if (format != null && decoderFactory.supportsFormat(format)) {
+      RendererCapabilities.create(
+        if (format.cryptoType == C.CRYPTO_TYPE_NONE) C.FORMAT_HANDLED else C.FORMAT_UNSUPPORTED_DRM
+      )
     } else {
-      return RendererCapabilities.create(C.FORMAT_UNSUPPORTED_TYPE);
+      RendererCapabilities.create(C.FORMAT_UNSUPPORTED_TYPE)
     }
   }
 
-  @Override
-  protected void onStreamChanged(Format[] formats, long startPositionUs, long offsetUs) {
-    decoder = decoderFactory.createDecoder(formats[0]);
-    if (pendingMetadata != null) {
+  override fun onStreamChanged(formats: Array<Format>, startPositionUs: Long, offsetUs: Long) {
+    decoder = decoderFactory.createDecoder(formats[0])
+    val currentPendingMetadata = pendingMetadata
+    if (currentPendingMetadata != null) {
       pendingMetadata =
-          pendingMetadata.copyWithPresentationTimeUs(
-              pendingMetadata.presentationTimeUs + outputStreamOffsetUs - offsetUs);
+        currentPendingMetadata.copyWithPresentationTimeUs(
+          currentPendingMetadata.presentationTimeUs + outputStreamOffsetUs - offsetUs
+        )
     }
-    outputStreamOffsetUs = offsetUs;
+    outputStreamOffsetUs = offsetUs
   }
 
-  @Override
-  protected void onPositionReset(long positionUs, boolean joining) {
-    pendingMetadata = null;
-    inputStreamEnded = false;
-    outputStreamEnded = false;
+  override fun onPositionReset(positionUs: Long, joining: Boolean) {
+    pendingMetadata = null
+    inputStreamEnded = false
+    outputStreamEnded = false
   }
 
-  @Override
-  public void render(long positionUs, long elapsedRealtimeUs) {
-    boolean working = true;
+  override fun render(positionUs: Long, elapsedRealtimeUs: Long) {
+    var working = true
     while (working) {
-      readMetadata();
-      working = outputMetadata(positionUs);
+      readMetadata()
+      working = outputMetadata(positionUs)
     }
   }
 
   /**
-   * Iterates through {@code metadata.entries} and checks each one to see if contains wrapped
+   * Iterates through `metadata.entries` and checks each one to see if contains wrapped
    * metadata. If it does, then we recursively decode the wrapped metadata. If it doesn't (recursion
-   * base-case), we add the {@link Metadata.Entry} to {@code decodedEntries} (output parameter).
+   * base-case), we add the [Metadata.Entry] to `decodedEntries` (output parameter).
    */
-  private void decodeWrappedMetadata(Metadata metadata, List<Metadata.Entry> decodedEntries) {
-    for (int i = 0; i < metadata.length(); i++) {
-      @Nullable Format wrappedMetadataFormat = metadata.get(i).getWrappedMetadataFormat();
+  private fun decodeWrappedMetadata(metadata: Metadata, decodedEntries: MutableList<Metadata.Entry>) {
+    for (i in 0 until metadata.length()) {
+      val entry = metadata[i] ?: continue
+      val wrappedMetadataFormat = entry.wrappedMetadataFormat
       if (wrappedMetadataFormat != null && decoderFactory.supportsFormat(wrappedMetadataFormat)) {
-        MetadataDecoder wrappedMetadataDecoder =
-            decoderFactory.createDecoder(wrappedMetadataFormat);
+        val wrappedMetadataDecoder = decoderFactory.createDecoder(wrappedMetadataFormat)
         // wrappedMetadataFormat != null so wrappedMetadataBytes must be non-null too.
-        byte[] wrappedMetadataBytes =
-            Assertions.checkNotNull(metadata.get(i).getWrappedMetadataBytes());
-        buffer.clear();
-        buffer.ensureSpaceForWrite(wrappedMetadataBytes.length);
-        castNonNull(buffer.data).put(wrappedMetadataBytes);
-        buffer.flip();
-        @Nullable Metadata innerMetadata = wrappedMetadataDecoder.decode(buffer);
+        val wrappedMetadataBytes = checkNotNull(entry.wrappedMetadataBytes)
+        buffer.clear()
+        buffer.ensureSpaceForWrite(wrappedMetadataBytes.size)
+        castNonNull(buffer.data)!!.put(wrappedMetadataBytes)
+        buffer.flip()
+        val innerMetadata = wrappedMetadataDecoder.decode(buffer)
         if (innerMetadata != null) {
           // The decoding succeeded, so we'll try another level of unwrapping.
-          decodeWrappedMetadata(innerMetadata, decodedEntries);
+          decodeWrappedMetadata(innerMetadata, decodedEntries)
         }
       } else {
         // Entry doesn't contain any wrapped metadata, so output it directly.
-        decodedEntries.add(metadata.get(i));
+        decodedEntries.add(entry)
       }
     }
   }
 
-  @Override
-  protected void onDisabled() {
-    pendingMetadata = null;
-    decoder = null;
-    outputStreamOffsetUs = C.TIME_UNSET;
+  override fun onDisabled() {
+    pendingMetadata = null
+    decoder = null
+    outputStreamOffsetUs = C.TIME_UNSET
   }
 
-  @Override
-  public boolean isEnded() {
-    return outputStreamEnded;
+  override fun isEnded(): Boolean {
+    return outputStreamEnded
   }
 
-  @Override
-  public boolean isReady() {
-    return true;
+  override fun isReady(): Boolean {
+    return true
   }
 
-  @Override
-  public boolean handleMessage(Message msg) {
-    switch (msg.what) {
-      case MSG_INVOKE_RENDERER:
-        invokeRendererInternal((Metadata) msg.obj);
-        return true;
-      default:
+  override fun handleMessage(msg: Message): Boolean {
+    return when (msg.what) {
+      MSG_INVOKE_RENDERER -> {
+        invokeRendererInternal(msg.obj as Metadata)
+        true
+      }
+      else -> {
         // Should never happen.
-        throw new IllegalStateException();
+        throw IllegalStateException()
+      }
     }
   }
 
-  private void readMetadata() {
+  private fun readMetadata() {
     if (!inputStreamEnded && pendingMetadata == null) {
-      buffer.clear();
-      FormatHolder formatHolder = getFormatHolder();
-      @ReadDataResult int result = readSource(formatHolder, buffer, /* readFlags= */ 0);
+      buffer.clear()
+      val formatHolder = formatHolder
+      val result = readSource(formatHolder, buffer, /* readFlags= */ 0)
       if (result == C.RESULT_BUFFER_READ) {
-        if (buffer.isEndOfStream()) {
-          inputStreamEnded = true;
+        if (buffer.isEndOfStream) {
+          inputStreamEnded = true
         } else {
-          buffer.subsampleOffsetUs = subsampleOffsetUs;
-          buffer.flip();
-          @Nullable Metadata metadata = castNonNull(decoder).decode(buffer);
+          buffer.subsampleOffsetUs = subsampleOffsetUs
+          buffer.flip()
+          val metadata = castNonNull(decoder)!!.decode(buffer)
           if (metadata != null) {
-            List<Metadata.Entry> entries = new ArrayList<>(metadata.length());
-            decodeWrappedMetadata(metadata, entries);
-            if (!entries.isEmpty()) {
-              Metadata expandedMetadata =
-                  new Metadata(getPresentationTimeUs(buffer.timeUs), entries);
-              pendingMetadata = expandedMetadata;
+            val entries = ArrayList<Metadata.Entry>(metadata.length())
+            decodeWrappedMetadata(metadata, entries)
+            if (entries.isNotEmpty()) {
+              val expandedMetadata =
+                Metadata(getPresentationTimeUs(buffer.timeUs), entries)
+              pendingMetadata = expandedMetadata
             }
           }
         }
       } else if (result == C.RESULT_FORMAT_READ) {
-        subsampleOffsetUs = Assertions.checkNotNull(formatHolder.format).subsampleOffsetUs;
+        subsampleOffsetUs = checkNotNull(formatHolder.format).subsampleOffsetUs
       }
     }
   }
 
-  private boolean outputMetadata(long positionUs) {
-    boolean didOutput = false;
-    if (pendingMetadata != null
-        && (outputMetadataEarly
-            || pendingMetadata.presentationTimeUs <= getPresentationTimeUs(positionUs))) {
-      invokeRenderer(pendingMetadata);
-      pendingMetadata = null;
-      didOutput = true;
+  private fun outputMetadata(positionUs: Long): Boolean {
+    var didOutput = false
+    val currentPendingMetadata = pendingMetadata
+    if (currentPendingMetadata != null &&
+      (outputMetadataEarly ||
+        currentPendingMetadata.presentationTimeUs <= getPresentationTimeUs(positionUs))
+    ) {
+      invokeRenderer(currentPendingMetadata)
+      pendingMetadata = null
+      didOutput = true
     }
     if (inputStreamEnded && pendingMetadata == null) {
-      outputStreamEnded = true;
+      outputStreamEnded = true
     }
-    return didOutput;
+    return didOutput
   }
 
-  private void invokeRenderer(Metadata metadata) {
+  private fun invokeRenderer(metadata: Metadata) {
     if (outputHandler != null) {
-      outputHandler.obtainMessage(MSG_INVOKE_RENDERER, metadata).sendToTarget();
+      outputHandler.obtainMessage(MSG_INVOKE_RENDERER, metadata).sendToTarget()
     } else {
-      invokeRendererInternal(metadata);
+      invokeRendererInternal(metadata)
     }
   }
 
-  private void invokeRendererInternal(Metadata metadata) {
-    output.onMetadata(metadata);
+  private fun invokeRendererInternal(metadata: Metadata) {
+    output.onMetadata(metadata)
   }
 
   @SideEffectFree
-  private long getPresentationTimeUs(long positionUs) {
-    checkState(positionUs != C.TIME_UNSET);
-    checkState(outputStreamOffsetUs != C.TIME_UNSET);
+  private fun getPresentationTimeUs(positionUs: Long): Long {
+    checkState(positionUs != C.TIME_UNSET)
+    checkState(outputStreamOffsetUs != C.TIME_UNSET)
+    return positionUs - outputStreamOffsetUs
+  }
 
-    return positionUs - outputStreamOffsetUs;
+  companion object {
+    private const val TAG = "MetadataRenderer"
+    private const val MSG_INVOKE_RENDERER = 0
   }
 }

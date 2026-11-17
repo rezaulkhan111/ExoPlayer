@@ -13,24 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.offline;
+package com.google.android.exoplayer2.offline
 
-import java.io.IOException;
+import java.io.IOException
 
-/** Thrown on an error during downloading. */
-public final class DownloadException extends IOException {
+/** Thrown on an error during downloading.  */
+class DownloadException : IOException {
+    /**
+     * @param message The message for the exception.
+     */
+    constructor(message: String?) : super(message)
 
-  /**
-   * @param message The message for the exception.
-   */
-  public DownloadException(String message) {
-    super(message);
-  }
-
-  /**
-   * @param cause The cause for the exception.
-   */
-  public DownloadException(Throwable cause) {
-    super(cause);
-  }
+    /**
+     * @param cause The cause for the exception.
+     */
+    constructor(cause: Throwable?) : super(cause)
 }

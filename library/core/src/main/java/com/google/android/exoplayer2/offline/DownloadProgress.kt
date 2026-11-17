@@ -13,16 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.offline;
+package com.google.android.exoplayer2.offline
 
-import com.google.android.exoplayer2.C;
+/** Mutable [Download] progress.  */
+class DownloadProgress {
+    /** The number of bytes that have been downloaded.  */
+    @JvmField
+    @Volatile
+    var bytesDownloaded: Long = 0
 
-/** Mutable {@link Download} progress. */
-public class DownloadProgress {
-
-  /** The number of bytes that have been downloaded. */
-  public volatile long bytesDownloaded;
-
-  /** The percentage that has been downloaded, or {@link C#PERCENTAGE_UNSET} if unknown. */
-  public volatile float percentDownloaded;
+    /** The percentage that has been downloaded, or [C.PERCENTAGE_UNSET] if unknown.  */
+    @JvmField
+    @Volatile
+    var percentDownloaded: Float = 0f
 }

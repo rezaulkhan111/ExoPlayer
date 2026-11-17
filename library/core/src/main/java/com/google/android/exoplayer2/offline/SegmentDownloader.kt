@@ -13,76 +13,59 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.offline;
+package com.google.android.exoplayer2.offline
 
-import static com.google.android.exoplayer2.util.Assertions.checkNotNull;
-
-import android.net.Uri;
-import androidx.annotation.Nullable;
-import com.google.android.exoplayer2.C;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.upstream.DataSource;
-import com.google.android.exoplayer2.upstream.DataSpec;
-import com.google.android.exoplayer2.upstream.ParsingLoadable;
-import com.google.android.exoplayer2.upstream.ParsingLoadable.Parser;
-import com.google.android.exoplayer2.upstream.cache.Cache;
-import com.google.android.exoplayer2.upstream.cache.CacheDataSource;
-import com.google.android.exoplayer2.upstream.cache.CacheKeyFactory;
-import com.google.android.exoplayer2.upstream.cache.CacheWriter;
-import com.google.android.exoplayer2.upstream.cache.ContentMetadata;
-import com.google.android.exoplayer2.util.Assertions;
-import com.google.android.exoplayer2.util.PriorityTaskManager;
-import com.google.android.exoplayer2.util.PriorityTaskManager.PriorityTooLowException;
-import com.google.android.exoplayer2.util.RunnableFutureTask;
-import com.google.android.exoplayer2.util.Util;
-import java.io.IOException;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
+import android.net.Uri
+import com.google.android.exoplayer2.C
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.upstream.DataSource
+import com.google.android.exoplayer2.upstream.DataSpec
+import com.google.android.exoplayer2.upstream.ParsingLoadable
+import com.google.android.exoplayer2.upstream.cache.Cache
+import com.google.android.exoplayer2.upstream.cache.CacheDataSource
+import com.google.android.exoplayer2.upstream.cache.CacheKeyFactory
+import com.google.android.exoplayer2.upstream.cache.CacheWriter
+import com.google.android.exoplayer2.upstream.cache.ContentMetadata
+import com.google.android.exoplayer2.util.PriorityTaskManager
+import com.google.android.exoplayer2.util.PriorityTaskManager.PriorityTooLowException
+import com.google.android.exoplayer2.util.RunnableFutureTask
+import com.google.android.exoplayer2.util.Util
+import java.io.IOException
+import java.util.ArrayDeque
+import java.util.ArrayList
+import java.util.Collections
+import java.util.HashMap
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executor
 
 /**
  * Base class for multi segment stream downloaders.
  *
  * @param <M> The type of the manifest object.
  */
-public abstract class SegmentDownloader<M extends FilterableManifest<M>> implements Downloader {
+abstract class SegmentDownloader<M : FilterableManifest<M>> : Downloader {
 
   /** Smallest unit of content to be downloaded. */
-  protected static class Segment implements Comparable<Segment> {
+  open class Segment(
+      /** The start time of the segment in microseconds. */
+      @JvmField val startTimeUs: Long,
+      /** The [DataSpec] of the segment. */
+      @JvmField val dataSpec: DataSpec
+  ) : Comparable<Segment> {
 
-    /** The start time of the segment in microseconds. */
-    public final long startTimeUs;
-
-    /** The {@link DataSpec} of the segment. */
-    public final DataSpec dataSpec;
-
-    /** Constructs a Segment. */
-    public Segment(long startTimeUs, DataSpec dataSpec) {
-      this.startTimeUs = startTimeUs;
-      this.dataSpec = dataSpec;
-    }
-
-    @Override
-    public int compareTo(Segment other) {
-      return Util.compareLong(startTimeUs, other.startTimeUs);
+    override fun compareTo(other: Segment): Int {
+      return Util.compareLong(startTimeUs, other.startTimeUs)
     }
   }
 
-  private static final int BUFFER_SIZE_BYTES = 128 * 1024;
-  private static final long MAX_MERGED_SEGMENT_START_TIME_DIFF_US = 20 * C.MICROS_PER_SECOND;
-
-  private final DataSpec manifestDataSpec;
-  private final Parser<M> manifestParser;
-  private final ArrayList<StreamKey> streamKeys;
-  private final CacheDataSource.Factory cacheDataSourceFactory;
-  private final Cache cache;
-  private final CacheKeyFactory cacheKeyFactory;
-  @Nullable private final PriorityTaskManager priorityTaskManager;
-  private final Executor executor;
+  private val manifestDataSpec: DataSpec
+  private val manifestParser: ParsingLoadable.Parser<M>
+  private val streamKeys: ArrayList<StreamKey>
+  private val cacheDataSourceFactory: CacheDataSource.Factory
+  private val cache: Cache
+  private val cacheKeyFactory: CacheKeyFactory
+  private val priorityTaskManager: PriorityTaskManager?
+  private val executor: Executor
 
   /**
    * The currently active runnables.
@@ -92,150 +75,146 @@ public abstract class SegmentDownloader<M extends FilterableManifest<M>> impleme
    * thread safety. Iterations on the {@link #download} thread do not need to be synchronized, and
    * should not be synchronized because doing so can erroneously block {@link #cancel}.
    */
-  private final ArrayList<RunnableFutureTask<?, ?>> activeRunnables;
+  private val activeRunnables: ArrayList<RunnableFutureTask<*, *>>
 
-  private volatile boolean isCanceled;
+  @Volatile private var isCanceled = false
 
   /**
-   * @param mediaItem The {@link MediaItem} to be downloaded.
+   * @param mediaItem The [MediaItem] to be downloaded.
    * @param manifestParser A parser for manifests belonging to the media to be downloaded.
-   * @param cacheDataSourceFactory A {@link CacheDataSource.Factory} for the cache into which the
+   * @param cacheDataSourceFactory A [CacheDataSource.Factory] for the cache into which the
    *     download will be written.
-   * @param executor An {@link Executor} used to make requests for the media being downloaded.
-   *     Providing an {@link Executor} that uses multiple threads will speed up the download by
+   * @param executor An [Executor] used to make requests for the media being downloaded.
+   *     Providing an [Executor] that uses multiple threads will speed up the download by
    *     allowing parts of it to be executed in parallel.
    */
-  public SegmentDownloader(
-      MediaItem mediaItem,
-      Parser<M> manifestParser,
-      CacheDataSource.Factory cacheDataSourceFactory,
-      Executor executor) {
-    checkNotNull(mediaItem.localConfiguration);
-    this.manifestDataSpec = getCompressibleDataSpec(mediaItem.localConfiguration.uri);
-    this.manifestParser = manifestParser;
-    this.streamKeys = new ArrayList<>(mediaItem.localConfiguration.streamKeys);
-    this.cacheDataSourceFactory = cacheDataSourceFactory;
-    this.executor = executor;
-    cache = Assertions.checkNotNull(cacheDataSourceFactory.getCache());
-    cacheKeyFactory = cacheDataSourceFactory.getCacheKeyFactory();
-    priorityTaskManager = cacheDataSourceFactory.getUpstreamPriorityTaskManager();
-    activeRunnables = new ArrayList<>();
+  constructor(
+      mediaItem: MediaItem,
+      manifestParser: ParsingLoadable.Parser<M>,
+      cacheDataSourceFactory: CacheDataSource.Factory,
+      executor: Executor
+  ) {
+    val localConfiguration = checkNotNull(mediaItem.localConfiguration)
+    this.manifestDataSpec = getCompressibleDataSpec(localConfiguration.uri)
+    this.manifestParser = manifestParser
+    this.streamKeys = ArrayList(localConfiguration.streamKeys)
+    this.cacheDataSourceFactory = cacheDataSourceFactory
+    this.executor = executor
+    this.cache = checkNotNull(cacheDataSourceFactory.cache)
+    this.cacheKeyFactory = cacheDataSourceFactory.cacheKeyFactory
+    this.priorityTaskManager = cacheDataSourceFactory.upstreamPriorityTaskManager
+    this.activeRunnables = ArrayList()
   }
 
-  @Override
-  public final void download(@Nullable ProgressListener progressListener)
-      throws IOException, InterruptedException {
-    ArrayDeque<Segment> pendingSegments = new ArrayDeque<>();
-    ArrayDeque<SegmentDownloadRunnable> recycledRunnables = new ArrayDeque<>();
-    if (priorityTaskManager != null) {
-      priorityTaskManager.add(C.PRIORITY_DOWNLOAD);
-    }
+  @Throws(IOException::class, InterruptedException::class)
+  override fun download(progressListener: Downloader.ProgressListener?) {
+    val pendingSegments = ArrayDeque<Segment>()
+    val recycledRunnables = ArrayDeque<SegmentDownloadRunnable>()
+    priorityTaskManager?.add(C.PRIORITY_DOWNLOAD)
     try {
-      CacheDataSource dataSource = cacheDataSourceFactory.createDataSourceForDownloading();
+      val dataSource = cacheDataSourceFactory.createDataSourceForDownloading()
       // Get the manifest and all of the segments.
-      M manifest = getManifest(dataSource, manifestDataSpec, /* removing= */ false);
-      if (!streamKeys.isEmpty()) {
-        manifest = manifest.copy(streamKeys);
+      var manifest = getManifest(dataSource, manifestDataSpec, /* removing= */ false)
+      if (streamKeys.isNotEmpty()) {
+        manifest = manifest.copy(streamKeys)
       }
-      List<Segment> segments = getSegments(dataSource, manifest, /* removing= */ false);
+      val segments = getSegments(dataSource, manifest, /* removing= */ false)
 
       // Sort the segments so that we download media in the right order from the start of the
       // content, and merge segments where possible to minimize the number of server round trips.
-      Collections.sort(segments);
-      mergeSegments(segments, cacheKeyFactory);
+      Collections.sort(segments)
+      mergeSegments(segments, cacheKeyFactory)
 
       // Scan the segments, removing any that are fully downloaded.
-      int totalSegments = segments.size();
-      int segmentsDownloaded = 0;
-      long contentLength = 0;
-      long bytesDownloaded = 0;
-      for (int i = segments.size() - 1; i >= 0; i--) {
-        DataSpec dataSpec = segments.get(i).dataSpec;
-        String cacheKey = cacheKeyFactory.buildCacheKey(dataSpec);
-        long segmentLength = dataSpec.length;
-        if (segmentLength == C.LENGTH_UNSET) {
-          long resourceLength =
-              ContentMetadata.getContentLength(cache.getContentMetadata(cacheKey));
-          if (resourceLength != C.LENGTH_UNSET) {
-            segmentLength = resourceLength - dataSpec.position;
+      val totalSegments = segments.size
+      var segmentsDownloaded = 0
+      var contentLength = 0L
+      var bytesDownloaded = 0L
+      for (i in segments.size - 1 downTo 0) {
+        val dataSpec = segments[i].dataSpec
+        val cacheKey = cacheKeyFactory.buildCacheKey(dataSpec)
+        var segmentLength = dataSpec.length
+        if (segmentLength == C.LENGTH_UNSET.toLong()) {
+          val metadata = cache.getContentMetadata(cacheKey)
+          val resourceLength = ContentMetadata.getContentLength(checkNotNull(metadata))
+          if (resourceLength != C.LENGTH_UNSET.toLong()) {
+            segmentLength = resourceLength - dataSpec.position
           }
         }
-        long segmentBytesDownloaded =
-            cache.getCachedBytes(cacheKey, dataSpec.position, segmentLength);
-        bytesDownloaded += segmentBytesDownloaded;
-        if (segmentLength != C.LENGTH_UNSET) {
+        val segmentBytesDownloaded = cache.getCachedBytes(cacheKey, dataSpec.position, segmentLength)
+        bytesDownloaded += segmentBytesDownloaded
+        if (segmentLength != C.LENGTH_UNSET.toLong()) {
           if (segmentLength == segmentBytesDownloaded) {
             // The segment is fully downloaded.
-            segmentsDownloaded++;
-            segments.remove(i);
+            segmentsDownloaded++
+            segments.removeAt(i)
           }
-          if (contentLength != C.LENGTH_UNSET) {
-            contentLength += segmentLength;
+          if (contentLength != C.LENGTH_UNSET.toLong()) {
+            contentLength += segmentLength
           }
         } else {
-          contentLength = C.LENGTH_UNSET;
+          contentLength = C.LENGTH_UNSET.toLong()
         }
       }
 
       // Download the segments.
-      @Nullable
-      ProgressNotifier progressNotifier =
-          progressListener != null
-              ? new ProgressNotifier(
-                  progressListener,
-                  contentLength,
-                  totalSegments,
-                  bytesDownloaded,
-                  segmentsDownloaded)
-              : null;
-      pendingSegments.addAll(segments);
-      while (!isCanceled && !pendingSegments.isEmpty()) {
+      val progressNotifier =
+          if (progressListener != null) {
+            ProgressNotifier(
+                progressListener,
+                contentLength,
+                totalSegments,
+                bytesDownloaded,
+                segmentsDownloaded
+            )
+          } else {
+            null
+          }
+      pendingSegments.addAll(segments)
+      while (!isCanceled && pendingSegments.isNotEmpty()) {
         // Block until there aren't any higher priority tasks.
-        if (priorityTaskManager != null) {
-          priorityTaskManager.proceed(C.PRIORITY_DOWNLOAD);
-        }
+        priorityTaskManager?.proceed(C.PRIORITY_DOWNLOAD)
 
         // Create and execute a runnable to download the next segment.
-        CacheDataSource segmentDataSource;
-        byte[] temporaryBuffer;
-        if (!recycledRunnables.isEmpty()) {
-          SegmentDownloadRunnable recycledRunnable = recycledRunnables.removeFirst();
-          segmentDataSource = recycledRunnable.dataSource;
-          temporaryBuffer = recycledRunnable.temporaryBuffer;
+        val segmentDataSource: CacheDataSource
+        val temporaryBuffer: ByteArray
+        if (recycledRunnables.isNotEmpty()) {
+          val recycledRunnable = recycledRunnables.removeFirst()
+          segmentDataSource = recycledRunnable.dataSource
+          temporaryBuffer = recycledRunnable.temporaryBuffer
         } else {
-          segmentDataSource = cacheDataSourceFactory.createDataSourceForDownloading();
-          temporaryBuffer = new byte[BUFFER_SIZE_BYTES];
+          segmentDataSource = cacheDataSourceFactory.createDataSourceForDownloading()
+          temporaryBuffer = ByteArray(BUFFER_SIZE_BYTES)
         }
-        Segment segment = pendingSegments.removeFirst();
-        SegmentDownloadRunnable downloadRunnable =
-            new SegmentDownloadRunnable(
-                segment, segmentDataSource, progressNotifier, temporaryBuffer);
-        addActiveRunnable(downloadRunnable);
-        executor.execute(downloadRunnable);
+        val segment = pendingSegments.removeFirst()
+        val downloadRunnable =
+            SegmentDownloadRunnable(segment, segmentDataSource, progressNotifier, temporaryBuffer)
+        addActiveRunnable(downloadRunnable)
+        executor.execute(downloadRunnable)
 
         // Clean up runnables that have finished.
-        for (int j = activeRunnables.size() - 1; j >= 0; j--) {
-          SegmentDownloadRunnable activeRunnable = (SegmentDownloadRunnable) activeRunnables.get(j);
+        for (j in activeRunnables.size - 1 downTo 0) {
+          val activeRunnable = activeRunnables[j] as SegmentDownloadRunnable
           // Only block until the runnable has finished if we don't have any more pending segments
           // to start. If we do have pending segments to start then only process the runnable if
           // it's already finished.
-          if (pendingSegments.isEmpty() || activeRunnable.isDone()) {
+          if (pendingSegments.isEmpty() || activeRunnable.isDone) {
             try {
-              activeRunnable.get();
-              removeActiveRunnable(j);
-              recycledRunnables.addLast(activeRunnable);
-            } catch (ExecutionException e) {
-              Throwable cause = Assertions.checkNotNull(e.getCause());
-              if (cause instanceof PriorityTooLowException) {
+              activeRunnable.get()
+              removeActiveRunnable(j)
+              recycledRunnables.addLast(activeRunnable)
+            } catch (e: ExecutionException) {
+              val cause = checkNotNull(e.cause)
+              if (cause is PriorityTooLowException) {
                 // We need to schedule this segment again in a future loop iteration.
-                pendingSegments.addFirst(activeRunnable.segment);
-                removeActiveRunnable(j);
-                recycledRunnables.addLast(activeRunnable);
-              } else if (cause instanceof IOException) {
-                throw (IOException) cause;
+                pendingSegments.addFirst(activeRunnable.segment)
+                removeActiveRunnable(j)
+                recycledRunnables.addLast(activeRunnable)
+              } else if (cause is IOException) {
+                throw cause
               } else {
                 // The cause must be an uncaught Throwable type.
-                Util.sneakyThrow(cause);
+                Util.sneakyThrow(cause)
               }
             }
           }
@@ -243,53 +222,49 @@ public abstract class SegmentDownloader<M extends FilterableManifest<M>> impleme
 
         // Don't move on to the next segment until the runnable for this segment has started. This
         // drip feeds runnables to the executor, rather than providing them all up front.
-        downloadRunnable.blockUntilStarted();
+        downloadRunnable.blockUntilStarted()
       }
     } finally {
       // If one of the runnables has thrown an exception, then it's possible there are other active
       // runnables still doing work. We need to wait until they finish before exiting this method.
       // Cancel them to speed this up.
-      for (int i = 0; i < activeRunnables.size(); i++) {
-        activeRunnables.get(i).cancel(/* interruptIfRunning= */ true);
+      for (i in activeRunnables.indices) {
+        activeRunnables[i].cancel(/* interruptIfRunning= */ true)
       }
       // Wait until the runnables have finished. In addition to the failure case, we also need to
       // do this for the case where the main download thread was interrupted as part of cancelation.
-      for (int i = activeRunnables.size() - 1; i >= 0; i--) {
-        activeRunnables.get(i).blockUntilFinished();
-        removeActiveRunnable(i);
+      for (i in activeRunnables.size - 1 downTo 0) {
+        activeRunnables[i].blockUntilFinished()
+        removeActiveRunnable(i)
       }
-      if (priorityTaskManager != null) {
-        priorityTaskManager.remove(C.PRIORITY_DOWNLOAD);
+      priorityTaskManager?.remove(C.PRIORITY_DOWNLOAD)
+    }
+  }
+
+  override fun cancel() {
+    synchronized(activeRunnables) {
+      isCanceled = true
+      for (i in activeRunnables.indices) {
+        activeRunnables[i].cancel(/* interruptIfRunning= */ true)
       }
     }
   }
 
-  @Override
-  public void cancel() {
-    synchronized (activeRunnables) {
-      isCanceled = true;
-      for (int i = 0; i < activeRunnables.size(); i++) {
-        activeRunnables.get(i).cancel(/* interruptIfRunning= */ true);
-      }
-    }
-  }
-
-  @Override
-  public final void remove() {
-    CacheDataSource dataSource = cacheDataSourceFactory.createDataSourceForRemovingDownload();
+  override fun remove() {
+    val dataSource = cacheDataSourceFactory.createDataSourceForRemovingDownload()
     try {
-      M manifest = getManifest(dataSource, manifestDataSpec, /* removing= */ true);
-      List<Segment> segments = getSegments(dataSource, manifest, /* removing= */ true);
-      for (int i = 0; i < segments.size(); i++) {
-        cache.removeResource(cacheKeyFactory.buildCacheKey(segments.get(i).dataSpec));
+      val manifest = getManifest(dataSource, manifestDataSpec, /* removing= */ true)
+      val segments = getSegments(dataSource, manifest, /* removing= */ true)
+      for (i in segments.indices) {
+        cache.removeResource(cacheKeyFactory.buildCacheKey(segments[i].dataSpec))
       }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-    } catch (Exception e) {
+    } catch (e: InterruptedException) {
+      Thread.currentThread().interrupt()
+    } catch (e: Exception) {
       // Ignore exceptions when removing.
     } finally {
       // Always attempt to remove the manifest.
-      cache.removeResource(cacheKeyFactory.buildCacheKey(manifestDataSpec));
+      cache.removeResource(cacheKeyFactory.buildCacheKey(manifestDataSpec))
     }
   }
 
@@ -298,237 +273,216 @@ public abstract class SegmentDownloader<M extends FilterableManifest<M>> impleme
   /**
    * Loads and parses a manifest.
    *
-   * @param dataSpec The manifest {@link DataSpec}.
+   * @param dataSpec The manifest [DataSpec].
    * @param removing Whether the manifest is being loaded as part of the download being removed.
    * @return The loaded manifest.
    * @throws InterruptedException If the thread on which the method is called is interrupted.
    * @throws IOException If an error occurs during execution.
    */
-  protected final M getManifest(DataSource dataSource, DataSpec dataSpec, boolean removing)
-      throws InterruptedException, IOException {
+  @Throws(InterruptedException::class, IOException::class)
+  protected fun getManifest(dataSource: DataSource, dataSpec: DataSpec, removing: Boolean): M {
     return execute(
-        new RunnableFutureTask<M, IOException>() {
-          @Override
-          protected M doWork() throws IOException {
-            return ParsingLoadable.load(dataSource, manifestParser, dataSpec, C.DATA_TYPE_MANIFEST);
+        object : RunnableFutureTask<M, IOException>() {
+          @Throws(IOException::class)
+          override fun doWork(): M {
+            return ParsingLoadable.load(dataSource, manifestParser, dataSpec, C.DATA_TYPE_MANIFEST)
           }
         },
-        removing);
+        removing
+    )
   }
 
   /**
-   * Executes the provided {@link RunnableFutureTask}.
+   * Executes the provided [RunnableFutureTask].
    *
-   * @param runnable The {@link RunnableFutureTask} to execute.
+   * @param runnable The [RunnableFutureTask] to execute.
    * @param removing Whether the execution is part of the download being removed.
    * @return The result.
    * @throws InterruptedException If the thread on which the method is called is interrupted.
    * @throws IOException If an error occurs during execution.
    */
-  protected final <T> T execute(RunnableFutureTask<T, ?> runnable, boolean removing)
-      throws InterruptedException, IOException {
+  @Throws(InterruptedException::class, IOException::class)
+  protected fun <T> execute(runnable: RunnableFutureTask<T, *>, removing: Boolean): T {
     if (removing) {
-      runnable.run();
+      runnable.run()
       try {
-        return runnable.get();
-      } catch (ExecutionException e) {
-        Throwable cause = Assertions.checkNotNull(e.getCause());
-        if (cause instanceof IOException) {
-          throw (IOException) cause;
+        @Suppress("UNCHECKED_CAST")
+        return runnable.get() as T
+      } catch (e: ExecutionException) {
+        val cause = checkNotNull(e.cause)
+        if (cause is IOException) {
+          throw cause
         } else {
           // The cause must be an uncaught Throwable type.
-          Util.sneakyThrow(e);
+          Util.sneakyThrow(cause)
         }
       }
     }
     while (true) {
       if (isCanceled) {
-        throw new InterruptedException();
+        throw InterruptedException()
       }
       // Block until there aren't any higher priority tasks.
-      if (priorityTaskManager != null) {
-        priorityTaskManager.proceed(C.PRIORITY_DOWNLOAD);
-      }
-      addActiveRunnable(runnable);
-      executor.execute(runnable);
+      priorityTaskManager?.proceed(C.PRIORITY_DOWNLOAD)
+      addActiveRunnable(runnable)
+      executor.execute(runnable)
       try {
-        return runnable.get();
-      } catch (ExecutionException e) {
-        Throwable cause = Assertions.checkNotNull(e.getCause());
-        if (cause instanceof PriorityTooLowException) {
+        @Suppress("UNCHECKED_CAST")
+        return runnable.get() as T
+      } catch (e: ExecutionException) {
+        val cause = checkNotNull(e.cause)
+        if (cause is PriorityTooLowException) {
           // The next loop iteration will block until the task is able to proceed.
-        } else if (cause instanceof IOException) {
-          throw (IOException) cause;
+        } else if (cause is IOException) {
+          throw cause
         } else {
           // The cause must be an uncaught Throwable type.
-          Util.sneakyThrow(e);
+          Util.sneakyThrow(cause)
         }
       } finally {
         // We don't want to return for as long as the runnable might still be doing work.
-        runnable.blockUntilFinished();
-        removeActiveRunnable(runnable);
+        runnable.blockUntilFinished()
+        removeActiveRunnable(runnable)
       }
     }
   }
 
   /**
-   * Returns a list of all downloadable {@link Segment}s for a given manifest. Any required data
-   * should be loaded using {@link #getManifest} or {@link #execute}.
+   * Returns a list of all downloadable [Segment]s for a given manifest. Any required data
+   * should be loaded using [getManifest] or [execute].
    *
-   * @param dataSource The {@link DataSource} through which to load any required data.
+   * @param dataSource The [DataSource] through which to load any required data.
    * @param manifest The manifest containing the segments.
    * @param removing Whether the segments are being obtained as part of a removal. If true then a
    *     partial segment list is returned in the case that a load error prevents all segments from
-   *     being listed. If false then an {@link IOException} will be thrown in this case.
-   * @return The list of downloadable {@link Segment}s.
-   * @throws IOException Thrown if {@code allowPartialIndex} is false and an execution error occurs,
+   *     being listed. If false then an [IOException] will be thrown in this case.
+   * @return The list of downloadable [Segment]s.
+   * @throws IOException Thrown if `allowPartialIndex` is false and an execution error occurs,
    *     or if the media is not in a form that allows for its segments to be listed.
    */
-  protected abstract List<Segment> getSegments(DataSource dataSource, M manifest, boolean removing)
-      throws IOException, InterruptedException;
+  @Throws(IOException::class, InterruptedException::class)
+  protected abstract fun getSegments(
+      dataSource: DataSource, manifest: M, removing: Boolean
+  ): MutableList<Segment>
 
-  protected static DataSpec getCompressibleDataSpec(Uri uri) {
-    return new DataSpec.Builder().setUri(uri).setFlags(DataSpec.FLAG_ALLOW_GZIP).build();
-  }
-
-  private <T> void addActiveRunnable(RunnableFutureTask<T, ?> runnable)
-      throws InterruptedException {
-    synchronized (activeRunnables) {
+  @Throws(InterruptedException::class)
+  private fun <T> addActiveRunnable(runnable: RunnableFutureTask<T, *>) {
+    synchronized(activeRunnables) {
       if (isCanceled) {
-        throw new InterruptedException();
+        throw InterruptedException()
       }
-      activeRunnables.add(runnable);
+      activeRunnables.add(runnable)
     }
   }
 
-  private void removeActiveRunnable(RunnableFutureTask<?, ?> runnable) {
-    synchronized (activeRunnables) {
-      activeRunnables.remove(runnable);
+  private fun removeActiveRunnable(runnable: RunnableFutureTask<*, *>) {
+    synchronized(activeRunnables) {
+      activeRunnables.remove(runnable)
     }
   }
 
-  private void removeActiveRunnable(int index) {
-    synchronized (activeRunnables) {
-      activeRunnables.remove(index);
+  private fun removeActiveRunnable(index: Int) {
+    synchronized(activeRunnables) {
+      activeRunnables.removeAt(index)
     }
   }
 
-  private static void mergeSegments(List<Segment> segments, CacheKeyFactory keyFactory) {
-    HashMap<String, Integer> lastIndexByCacheKey = new HashMap<>();
-    int nextOutIndex = 0;
-    for (int i = 0; i < segments.size(); i++) {
-      Segment segment = segments.get(i);
-      String cacheKey = keyFactory.buildCacheKey(segment.dataSpec);
-      @Nullable Integer lastIndex = lastIndexByCacheKey.get(cacheKey);
-      @Nullable Segment lastSegment = lastIndex == null ? null : segments.get(lastIndex);
-      if (lastSegment == null
-          || segment.startTimeUs > lastSegment.startTimeUs + MAX_MERGED_SEGMENT_START_TIME_DIFF_US
-          || !canMergeSegments(lastSegment.dataSpec, segment.dataSpec)) {
-        lastIndexByCacheKey.put(cacheKey, nextOutIndex);
-        segments.set(nextOutIndex, segment);
-        nextOutIndex++;
-      } else {
-        long mergedLength =
-            segment.dataSpec.length == C.LENGTH_UNSET
-                ? C.LENGTH_UNSET
-                : lastSegment.dataSpec.length + segment.dataSpec.length;
-        DataSpec mergedDataSpec = lastSegment.dataSpec.subrange(/* offset= */ 0, mergedLength);
-        segments.set(
-            Assertions.checkNotNull(lastIndex),
-            new Segment(lastSegment.startTimeUs, mergedDataSpec));
-      }
-    }
-    Util.removeRange(segments, /* fromIndex= */ nextOutIndex, /* toIndex= */ segments.size());
-  }
+  private class SegmentDownloadRunnable(
+      val segment: Segment,
+      val dataSource: CacheDataSource,
+      private val progressNotifier: ProgressNotifier?,
+      val temporaryBuffer: ByteArray
+  ) : RunnableFutureTask<Void?, IOException>() {
 
-  private static boolean canMergeSegments(DataSpec dataSpec1, DataSpec dataSpec2) {
-    return dataSpec1.uri.equals(dataSpec2.uri)
-        && dataSpec1.length != C.LENGTH_UNSET
-        && (dataSpec1.position + dataSpec1.length == dataSpec2.position)
-        && Util.areEqual(dataSpec1.key, dataSpec2.key)
-        && dataSpec1.flags == dataSpec2.flags
-        && dataSpec1.httpMethod == dataSpec2.httpMethod
-        && dataSpec1.httpRequestHeaders.equals(dataSpec2.httpRequestHeaders);
-  }
+    private val cacheWriter = CacheWriter(dataSource, segment.dataSpec, temporaryBuffer, progressNotifier)
 
-  private static final class SegmentDownloadRunnable extends RunnableFutureTask<Void, IOException> {
-
-    public final Segment segment;
-    public final CacheDataSource dataSource;
-    @Nullable private final ProgressNotifier progressNotifier;
-    public final byte[] temporaryBuffer;
-    private final CacheWriter cacheWriter;
-
-    public SegmentDownloadRunnable(
-        Segment segment,
-        CacheDataSource dataSource,
-        @Nullable ProgressNotifier progressNotifier,
-        byte[] temporaryBuffer) {
-      this.segment = segment;
-      this.dataSource = dataSource;
-      this.progressNotifier = progressNotifier;
-      this.temporaryBuffer = temporaryBuffer;
-      this.cacheWriter =
-          new CacheWriter(dataSource, segment.dataSpec, temporaryBuffer, progressNotifier);
+    @Throws(IOException::class)
+    override fun doWork(): Void? {
+      cacheWriter.cache()
+      progressNotifier?.onSegmentDownloaded()
+      return null
     }
 
-    @Override
-    protected Void doWork() throws IOException {
-      cacheWriter.cache();
-      if (progressNotifier != null) {
-        progressNotifier.onSegmentDownloaded();
-      }
-      return null;
-    }
-
-    @Override
-    protected void cancelWork() {
-      cacheWriter.cancel();
+    override fun cancelWork() {
+      cacheWriter.cancel()
     }
   }
 
-  private static final class ProgressNotifier implements CacheWriter.ProgressListener {
+  private class ProgressNotifier(
+      private val progressListener: Downloader.ProgressListener,
+      private val contentLength: Long,
+      private val totalSegments: Int,
+      private var bytesDownloaded: Long,
+      private var segmentsDownloaded: Int
+  ) : CacheWriter.ProgressListener {
 
-    private final ProgressListener progressListener;
-
-    private final long contentLength;
-    private final int totalSegments;
-
-    private long bytesDownloaded;
-    private int segmentsDownloaded;
-
-    public ProgressNotifier(
-        ProgressListener progressListener,
-        long contentLength,
-        int totalSegments,
-        long bytesDownloaded,
-        int segmentsDownloaded) {
-      this.progressListener = progressListener;
-      this.contentLength = contentLength;
-      this.totalSegments = totalSegments;
-      this.bytesDownloaded = bytesDownloaded;
-      this.segmentsDownloaded = segmentsDownloaded;
+    override fun onProgress(requestLength: Long, bytesCached: Long, newBytesCached: Long) {
+      bytesDownloaded += newBytesCached
+      progressListener.onProgress(contentLength, bytesDownloaded, getPercentDownloaded())
     }
 
-    @Override
-    public void onProgress(long requestLength, long bytesCached, long newBytesCached) {
-      bytesDownloaded += newBytesCached;
-      progressListener.onProgress(contentLength, bytesDownloaded, getPercentDownloaded());
+    fun onSegmentDownloaded() {
+      segmentsDownloaded++
+      progressListener.onProgress(contentLength, bytesDownloaded, getPercentDownloaded())
     }
 
-    public void onSegmentDownloaded() {
-      segmentsDownloaded++;
-      progressListener.onProgress(contentLength, bytesDownloaded, getPercentDownloaded());
-    }
-
-    private float getPercentDownloaded() {
-      if (contentLength != C.LENGTH_UNSET && contentLength != 0) {
-        return (bytesDownloaded * 100f) / contentLength;
+    private fun getPercentDownloaded(): Float {
+      return if (contentLength != C.LENGTH_UNSET.toLong() && contentLength != 0L) {
+        (bytesDownloaded * 100f) / contentLength
       } else if (totalSegments != 0) {
-        return (segmentsDownloaded * 100f) / totalSegments;
+        (segmentsDownloaded * 100f) / totalSegments
       } else {
-        return C.PERCENTAGE_UNSET;
+        C.PERCENTAGE_UNSET.toFloat()
       }
+    }
+  }
+
+  companion object {
+
+    private const val BUFFER_SIZE_BYTES = 128 * 1024
+    private const val MAX_MERGED_SEGMENT_START_TIME_DIFF_US = 20 * C.MICROS_PER_SECOND
+
+    @JvmStatic
+    protected fun getCompressibleDataSpec(uri: Uri): DataSpec {
+      return DataSpec.Builder().setUri(uri).setFlags(DataSpec.FLAG_ALLOW_GZIP).build()
+    }
+
+    private fun mergeSegments(segments: MutableList<Segment>, keyFactory: CacheKeyFactory) {
+      val lastIndexByCacheKey = HashMap<String, Int>()
+      var nextOutIndex = 0
+      for (i in segments.indices) {
+        val segment = segments[i]
+        val cacheKey = checkNotNull(keyFactory.buildCacheKey(segment.dataSpec))
+        val lastIndex = lastIndexByCacheKey[cacheKey]
+        val lastSegment = if (lastIndex == null) null else segments[lastIndex]
+        if (lastSegment == null ||
+            segment.startTimeUs > lastSegment.startTimeUs + MAX_MERGED_SEGMENT_START_TIME_DIFF_US ||
+            !canMergeSegments(lastSegment.dataSpec, segment.dataSpec)) {
+          lastIndexByCacheKey[cacheKey] = nextOutIndex
+          segments[nextOutIndex] = segment
+          nextOutIndex++
+        } else {
+          val mergedLength =
+              if (segment.dataSpec.length == C.LENGTH_UNSET.toLong()) {
+                C.LENGTH_UNSET.toLong()
+              } else {
+                lastSegment.dataSpec.length + segment.dataSpec.length
+              }
+          val mergedDataSpec = lastSegment.dataSpec.subrange(/* offset= */ 0, mergedLength)
+          segments[lastIndex!!] = Segment(lastSegment.startTimeUs, mergedDataSpec)
+        }
+      }
+      Util.removeRange(segments, /* fromIndex= */ nextOutIndex, /* toIndex= */ segments.size)
+    }
+
+    private fun canMergeSegments(dataSpec1: DataSpec, dataSpec2: DataSpec): Boolean {
+      return dataSpec1.uri == dataSpec2.uri &&
+          dataSpec1.length != C.LENGTH_UNSET.toLong() &&
+          dataSpec1.position + dataSpec1.length == dataSpec2.position &&
+          Util.areEqual(dataSpec1.key, dataSpec2.key) &&
+          dataSpec1.flags == dataSpec2.flags &&
+          dataSpec1.httpMethod == dataSpec2.httpMethod &&
+          dataSpec1.httpRequestHeaders == dataSpec2.httpRequestHeaders
     }
   }
 }

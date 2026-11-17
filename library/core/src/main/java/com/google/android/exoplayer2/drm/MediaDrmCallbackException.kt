@@ -13,51 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.drm;
+package com.google.android.exoplayer2.drm
 
-import android.net.Uri;
-import com.google.android.exoplayer2.upstream.DataSpec;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import android.net.Uri
+import com.google.android.exoplayer2.upstream.DataSpec
+import java.io.IOException
 
 /**
- * Thrown when an error occurs while executing a DRM {@link MediaDrmCallback#executeKeyRequest key}
- * or {@link MediaDrmCallback#executeProvisionRequest provisioning} request.
+ * Thrown when an error occurs while executing a DRM [key][MediaDrmCallback.executeKeyRequest]
+ * or [provisioning][MediaDrmCallback.executeProvisionRequest] request.
  */
-public final class MediaDrmCallbackException extends IOException {
-
-  /** The {@link DataSpec} associated with the request. */
-  public final DataSpec dataSpec;
-  /**
-   * The {@link Uri} after redirections, or {@link #dataSpec dataSpec.uri} if no redirection
-   * occurred.
-   */
-  public final Uri uriAfterRedirects;
-  /** The HTTP request headers included in the response. */
-  public final Map<String, List<String>> responseHeaders;
-  /** The number of bytes obtained from the server. */
-  public final long bytesLoaded;
-
-  /**
-   * Creates a new instance with the given values.
-   *
-   * @param dataSpec See {@link #dataSpec}.
-   * @param uriAfterRedirects See {@link #uriAfterRedirects}.
-   * @param responseHeaders See {@link #responseHeaders}.
-   * @param bytesLoaded See {@link #bytesLoaded}.
-   * @param cause The cause of the exception.
-   */
-  public MediaDrmCallbackException(
-      DataSpec dataSpec,
-      Uri uriAfterRedirects,
-      Map<String, List<String>> responseHeaders,
-      long bytesLoaded,
-      Throwable cause) {
-    super(cause);
-    this.dataSpec = dataSpec;
-    this.uriAfterRedirects = uriAfterRedirects;
-    this.responseHeaders = responseHeaders;
-    this.bytesLoaded = bytesLoaded;
-  }
-}
+class MediaDrmCallbackException
+/**
+ * Creates a new instance with the given values.
+ * 
+ * @param dataSpec See [.dataSpec].
+ * @param uriAfterRedirects See [.uriAfterRedirects].
+ * @param responseHeaders See [.responseHeaders].
+ * @param bytesLoaded See [.bytesLoaded].
+ * @param cause The cause of the exception.
+ */(
+    /** The [DataSpec] associated with the request.  */
+    val dataSpec: DataSpec?,
+    /**
+     * The [Uri] after redirections, or [dataSpec.uri][.dataSpec] if no redirection
+     * occurred.
+     */
+    val uriAfterRedirects: Uri?,
+    /** The HTTP request headers included in the response.  */
+    val responseHeaders: MutableMap<String?, MutableList<String?>?>?,
+    /** The number of bytes obtained from the server.  */
+    val bytesLoaded: Long,
+    cause: Throwable?
+) : IOException(cause)

@@ -13,58 +13,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.google.android.exoplayer2.drm;
+package com.google.android.exoplayer2.drm
 
-import static java.lang.annotation.ElementType.FIELD;
-import static java.lang.annotation.ElementType.LOCAL_VARIABLE;
-import static java.lang.annotation.ElementType.METHOD;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE_USE;
+import androidx.annotation.IntDef
 
-import androidx.annotation.IntDef;
-import java.lang.annotation.Documented;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+/** Thrown when the requested DRM scheme is not supported.  */
+class UnsupportedDrmException : Exception {
+    /**
+     * The reason for the exception. One of [.REASON_UNSUPPORTED_SCHEME] or [ ][.REASON_INSTANTIATION_ERROR].
+     */
+    // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
+    // with Kotlin usages from before TYPE_USE was added.
+    @MustBeDocumented
+    @Retention(AnnotationRetention.SOURCE)
+    @Target(
+        AnnotationTarget.FIELD,
+        AnnotationTarget.FUNCTION,
+        AnnotationTarget.PROPERTY_GETTER,
+        AnnotationTarget.PROPERTY_SETTER,
+        AnnotationTarget.VALUE_PARAMETER,
+        AnnotationTarget.LOCAL_VARIABLE,
+        AnnotationTarget.CLASS,
+        AnnotationTarget.TYPE,
+        AnnotationTarget.TYPE_PARAMETER
+    )
+    @IntDef([REASON_UNSUPPORTED_SCHEME, REASON_INSTANTIATION_ERROR])
+    annotation class Reason
 
-/** Thrown when the requested DRM scheme is not supported. */
-public final class UnsupportedDrmException extends Exception {
+    /** Either [.REASON_UNSUPPORTED_SCHEME] or [.REASON_INSTANTIATION_ERROR].  */
+    @Reason
+    val reason: @Reason Int
 
-  /**
-   * The reason for the exception. One of {@link #REASON_UNSUPPORTED_SCHEME} or {@link
-   * #REASON_INSTANTIATION_ERROR}.
-   */
-  // @Target list includes both 'default' targets and TYPE_USE, to ensure backwards compatibility
-  // with Kotlin usages from before TYPE_USE was added.
-  @Documented
-  @Retention(RetentionPolicy.SOURCE)
-  @Target({FIELD, METHOD, PARAMETER, LOCAL_VARIABLE, TYPE_USE})
-  @IntDef({REASON_UNSUPPORTED_SCHEME, REASON_INSTANTIATION_ERROR})
-  public @interface Reason {}
-  /** The requested DRM scheme is unsupported by the device. */
-  public static final int REASON_UNSUPPORTED_SCHEME = 1;
-  /**
-   * There device advertises support for the requested DRM scheme, but there was an error
-   * instantiating it. The cause can be retrieved using {@link #getCause()}.
-   */
-  public static final int REASON_INSTANTIATION_ERROR = 2;
+    /**
+     * @param reason [.REASON_UNSUPPORTED_SCHEME] or [.REASON_INSTANTIATION_ERROR].
+     */
+    constructor(@Reason reason: @Reason Int) {
+        this.reason = reason
+    }
 
-  /** Either {@link #REASON_UNSUPPORTED_SCHEME} or {@link #REASON_INSTANTIATION_ERROR}. */
-  public final @Reason int reason;
+    /**
+     * @param reason [.REASON_UNSUPPORTED_SCHEME] or [.REASON_INSTANTIATION_ERROR].
+     * @param cause The cause of this exception.
+     */
+    constructor(@Reason reason: @Reason Int, cause: Exception?) : super(cause) {
+        this.reason = reason
+    }
 
-  /**
-   * @param reason {@link #REASON_UNSUPPORTED_SCHEME} or {@link #REASON_INSTANTIATION_ERROR}.
-   */
-  public UnsupportedDrmException(@Reason int reason) {
-    this.reason = reason;
-  }
+    companion object {
+        /** The requested DRM scheme is unsupported by the device.  */
+        const val REASON_UNSUPPORTED_SCHEME: Int = 1
 
-  /**
-   * @param reason {@link #REASON_UNSUPPORTED_SCHEME} or {@link #REASON_INSTANTIATION_ERROR}.
-   * @param cause The cause of this exception.
-   */
-  public UnsupportedDrmException(@Reason int reason, Exception cause) {
-    super(cause);
-    this.reason = reason;
-  }
+        /**
+         * There device advertises support for the requested DRM scheme, but there was an error
+         * instantiating it. The cause can be retrieved using [.getCause].
+         */
+        const val REASON_INSTANTIATION_ERROR: Int = 2
+    }
 }
